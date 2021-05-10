@@ -541,6 +541,8 @@ def GLCM(cube):
     return feature
 
 def feature_extract():
+    # 提取两种类型的特征：一种是非mask的结节特征，另一种是mask的结节特征。
+    # 共提取6种特征，即resnet,vgg,googlenet,lbp,hog,glcm
     import torch 
     import model.data_loader as data_loader
     from tqdm import tqdm
@@ -552,7 +554,7 @@ def feature_extract():
     from skimage.feature import hog
 
     batch_size = 1
-    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = batch_size, data_dir='./data/nodules3d_128_npy', train_shuffle=False)
+    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = batch_size, data_dir='./data/nodules3d_128_mask_npy', train_shuffle=False)
     train_dl = dataloaders['train']
     train_len = 639
     test_dl = dataloaders['test']
@@ -651,20 +653,20 @@ def feature_extract():
             vgg_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
             t.update()
 
-    torch.save(googlenet_train_feature,'./data/feature/googlenet_train_feature.pt')
-    torch.save(googlenet_test_feature,'./data/feature/googlenet_test_feature.pt')
-    torch.save(resnet_train_feature,'./data/feature/resnet_train_feature.pt')
-    torch.save(resnet_test_feature,'./data/feature/resnet_test_feature.pt')
-    torch.save(vgg_train_feature,'./data/feature/vgg_train_feature.pt')
-    torch.save(vgg_test_feature,'./data/feature/vgg_test_feature.pt')
-    torch.save(hog_train_feature,'./data/feature/hog_train_feature.pt')
-    torch.save(hog_test_feature,'./data/feature/hog_test_feature.pt')
-    torch.save(lbp_train_feature,'./data/feature/lbp_train_feature.pt')
-    torch.save(lbp_test_feature,'./data/feature/lbp_test_feature.pt')
-    torch.save(glcm_train_feature,'./data/feature/glcm_train_feature.pt')
-    torch.save(glcm_test_feature,'./data/feature/glcm_test_feature.pt')
-    torch.save(train_label,'./data/feature/train_label.pt')
-    torch.save(test_label,'./data/feature/test_label.pt')
+    torch.save(googlenet_train_feature,'./data/mask_feature/googlenet_train_feature.pt')
+    torch.save(googlenet_test_feature,'./data/mask_feature/googlenet_test_feature.pt')
+    torch.save(resnet_train_feature,'./data/mask_feature/resnet_train_feature.pt')
+    torch.save(resnet_test_feature,'./data/mask_feature/resnet_test_feature.pt')
+    torch.save(vgg_train_feature,'./data/mask_feature/vgg_train_feature.pt')
+    torch.save(vgg_test_feature,'./data/mask_feature/vgg_test_feature.pt')
+    torch.save(hog_train_feature,'./data/mask_feature/hog_train_feature.pt')
+    torch.save(hog_test_feature,'./data/mask_feature/hog_test_feature.pt')
+    torch.save(lbp_train_feature,'./data/mask_feature/lbp_train_feature.pt')
+    torch.save(lbp_test_feature,'./data/mask_feature/lbp_test_feature.pt')
+    torch.save(glcm_train_feature,'./data/mask_feature/glcm_train_feature.pt')
+    torch.save(glcm_test_feature,'./data/mask_feature/glcm_test_feature.pt')
+    torch.save(train_label,'./data/mask_feature/train_label.pt')
+    torch.save(test_label,'./data/mask_feature/test_label.pt')
 
 def numpy_to_tensor_and_save():
     hog_train_feature = torch.from_numpy(np.load('./data/feature/hog_train_feature.pt.npy'))
