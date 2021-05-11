@@ -686,20 +686,35 @@ def svm_classification():
     import logging
     warnings.filterwarnings('ignore')
 
-    googlenet_train_feature = torch.load('./data/feature/googlenet_train_feature.pt')
-    googlenet_test_feature = torch.load('./data/feature/googlenet_test_feature.pt')
-    resnet_train_feature = torch.load('./data/feature/resnet_train_feature.pt')
-    resnet_test_feature = torch.load('./data/feature/resnet_test_feature.pt')
-    vgg_train_feature = torch.load('./data/feature/vgg_train_feature.pt')
-    vgg_test_feature = torch.load('./data/feature/vgg_test_feature.pt')
-    hog_train_feature = torch.load('./data/feature/hog_train_feature.pt')
-    hog_test_feature = torch.load('./data/feature/hog_test_feature.pt')
-    lbp_train_feature = torch.load('./data/feature/lbp_train_feature.pt')
-    lbp_test_feature = torch.load('./data/feature/lbp_test_feature.pt')
-    glcm_train_feature = torch.load('./data/feature/glcm_train_feature.pt')
-    glcm_test_feature = torch.load('./data/feature/glcm_test_feature.pt')
-    train_label = torch.load('./data/feature/train_label.pt')
-    test_label = torch.load('./data/feature/test_label.pt')
+    # googlenet_train_feature = torch.load('./data/feature/googlenet_train_feature.pt')
+    # googlenet_test_feature = torch.load('./data/feature/googlenet_test_feature.pt')
+    # resnet_train_feature = torch.load('./data/feature/resnet_train_feature.pt')
+    # resnet_test_feature = torch.load('./data/feature/resnet_test_feature.pt')
+    # vgg_train_feature = torch.load('./data/feature/vgg_train_feature.pt')
+    # vgg_test_feature = torch.load('./data/feature/vgg_test_feature.pt')
+    # hog_train_feature = torch.load('./data/feature/hog_train_feature.pt')
+    # hog_test_feature = torch.load('./data/feature/hog_test_feature.pt')
+    # lbp_train_feature = torch.load('./data/feature/lbp_train_feature.pt')
+    # lbp_test_feature = torch.load('./data/feature/lbp_test_feature.pt')
+    # glcm_train_feature = torch.load('./data/feature/glcm_train_feature.pt')
+    # glcm_test_feature = torch.load('./data/feature/glcm_test_feature.pt')
+    # train_label = torch.load('./data/feature/train_label.pt')
+    # test_label = torch.load('./data/feature/test_label.pt')
+
+    googlenet_train_feature = torch.load('./data/mask_feature/googlenet_train_feature.pt')
+    googlenet_test_feature = torch.load('./data/mask_feature/googlenet_test_feature.pt')
+    resnet_train_feature = torch.load('./data/mask_feature/resnet_train_feature.pt')
+    resnet_test_feature = torch.load('./data/mask_feature/resnet_test_feature.pt')
+    vgg_train_feature = torch.load('./data/mask_feature/vgg_train_feature.pt')
+    vgg_test_feature = torch.load('./data/mask_feature/vgg_test_feature.pt')
+    hog_train_feature = torch.load('./data/mask_feature/hog_train_feature.pt')
+    hog_test_feature = torch.load('./data/mask_feature/hog_test_feature.pt')
+    lbp_train_feature = torch.load('./data/mask_feature/lbp_train_feature.pt')
+    lbp_test_feature = torch.load('./data/mask_feature/lbp_test_feature.pt')
+    glcm_train_feature = torch.load('./data/mask_feature/glcm_train_feature.pt')
+    glcm_test_feature = torch.load('./data/mask_feature/glcm_test_feature.pt')
+    train_label = torch.load('./data/mask_feature/train_label.pt')
+    test_label = torch.load('./data/mask_feature/test_label.pt')
 
     #glcm竖直方向上归一化
     glcm_train_feature = glcm_train_feature.transpose(0,1)
@@ -732,7 +747,7 @@ def svm_classification():
                     }
     #SVM
     #glcm max_iter=500 效果最佳
-    set_logger('./experiments/svm/log.log')
+    set_logger('./experiments/svm/log_mask.log')
     kernel_function = ['linear', 'poly', 'rbf', 'sigmoid']
     C = [1e-2,1e-1,1,1e1,1e2] #C是对错误的惩罚
     gamma = [0.0001,0.0005,0.001,0.005,0.01,0.1] 
@@ -774,8 +789,8 @@ def svm_classification():
 
 
 if __name__ == '__main__':
-    # svm_classification()
-    feature_extract()
+    svm_classification()
+    # feature_extract()
     # numpy_to_tensor_and_save()
     # 制作5折交叉验证数据集
     # data_path = './data/nodules3d_128_npy'
