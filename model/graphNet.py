@@ -69,7 +69,7 @@ class GAT(nn.Module):
             self.add_module('attention_{}'.format(i), attention)
 
         self.out_att = GraphAttentionLayer(nhid * nheads, fc_num, dropout=dropout, alpha=alpha, concat=False)
-        self.fc = nn.Linear(fc_num*3, nclass)
+        self.fc = nn.Linear(fc_num*4, nclass)
 
     def forward(self, x, adj):
         x = F.dropout(x, self.dropout, training=self.training)
