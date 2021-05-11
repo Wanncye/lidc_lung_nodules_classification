@@ -12,18 +12,18 @@ def accuracy(pred, target):
     return correct / len(target)
 
 
-# model = GCN(nfeat=512, 
-#             nhid=64, 
-#             nclass=2, 
-#             fc_num=2,
-#             dropout=0.6)
-model = GAT(nfeat=512, 
+model = GCN(nfeat=512, 
             nhid=64, 
             nclass=2, 
-            fc_num=128,
-            dropout=0.6, 
-            nheads=8, 
-            alpha=0.2)
+            fc_num=2,
+            dropout=0.6)
+# model = GAT(nfeat=512, 
+#             nhid=64, 
+#             nclass=2, 
+#             fc_num=128,
+#             dropout=0.6, 
+#             nheads=8, 
+#             alpha=0.2)
 optimizer = optim.Adam(model.parameters(), 
                        lr=1e-4, 
                        weight_decay=5e-2)
@@ -31,21 +31,52 @@ train_len = 639
 test_len = 160
 feature_len = 512
 
-googlenet_train_feature = torch.load('./data/mask_feature/googlenet_train_feature.pt')
-googlenet_test_feature = torch.load('./data/mask_feature/googlenet_test_feature.pt')
-resnet_train_feature = torch.load('./data/mask_feature/resnet_train_feature.pt')
-resnet_test_feature = torch.load('./data/mask_feature/resnet_test_feature.pt')
-vgg_train_feature = torch.load('./data/mask_feature/vgg_train_feature.pt')
-vgg_test_feature = torch.load('./data/mask_feature/vgg_test_feature.pt')
-hog_train_feature = torch.load('./data/mask_feature/hog_train_feature.pt')
-hog_test_feature = torch.load('./data/mask_feature/hog_test_feature.pt')
-lbp_train_feature = torch.load('./data/mask_feature/lbp_train_feature.pt')
-lbp_test_feature = torch.load('./data/mask_feature/lbp_test_feature.pt')
-glcm_train_feature = torch.load('./data/mask_feature/glcm_train_feature.pt')
-glcm_test_feature = torch.load('./data/mask_feature/glcm_test_feature.pt')
-train_label = torch.load('./data/mask_feature/train_label.pt')
-test_label = torch.load('./data/mask_feature/test_label.pt')
-adj = Variable(torch.ones((6, 6)))
+# googlenet_train_feature = torch.load('./data/mask_feature/googlenet_train_feature.pt')
+# googlenet_test_feature = torch.load('./data/mask_feature/googlenet_test_feature.pt')
+# resnet_train_feature = torch.load('./data/mask_feature/resnet_train_feature.pt')
+# resnet_test_feature = torch.load('./data/mask_feature/resnet_test_feature.pt')
+# vgg_train_feature = torch.load('./data/mask_feature/vgg_train_feature.pt')
+# vgg_test_feature = torch.load('./data/mask_feature/vgg_test_feature.pt')
+# hog_train_feature = torch.load('./data/mask_feature/hog_train_feature.pt')
+# hog_test_feature = torch.load('./data/mask_feature/hog_test_feature.pt')
+# lbp_train_feature = torch.load('./data/mask_feature/lbp_train_feature.pt')
+# lbp_test_feature = torch.load('./data/mask_feature/lbp_test_feature.pt')
+# glcm_train_feature = torch.load('./data/mask_feature/glcm_train_feature.pt')
+# glcm_test_feature = torch.load('./data/mask_feature/glcm_test_feature.pt')
+# train_label = torch.load('./data/mask_feature/train_label.pt')
+# test_label = torch.load('./data/mask_feature/test_label.pt')
+
+googlenet_train_feature = torch.load('./data/feature/googlenet_train_feature.pt')
+googlenet_test_feature = torch.load('./data/feature/googlenet_test_feature.pt')
+resnet_train_feature = torch.load('./data/feature/resnet_train_feature.pt')
+resnet_test_feature = torch.load('./data/feature/resnet_test_feature.pt')
+vgg_train_feature = torch.load('./data/feature/vgg_train_feature.pt')
+vgg_test_feature = torch.load('./data/feature/vgg_test_feature.pt')
+hog_train_feature = torch.load('./data/feature/hog_train_feature.pt')
+hog_test_feature = torch.load('./data/feature/hog_test_feature.pt')
+lbp_train_feature = torch.load('./data/feature/lbp_train_feature.pt')
+lbp_test_feature = torch.load('./data/feature/lbp_test_feature.pt')
+
+glcm_train_feature = torch.load('./data/feature/glcm_train_feature.pt')
+glcm_test_feature = torch.load('./data/feature/glcm_test_feature.pt')
+#glcm竖直方向上归一化
+glcm_train_feature = glcm_train_feature.transpose(0,1)
+glcm_test_feature = glcm_test_feature.transpose(0,1)
+for index in range(len(glcm_train_feature)):
+    max = glcm_train_feature[index].max()  #170
+    min = glcm_train_feature[index].min()  #1.88
+    glcm_train_feature[index] = (glcm_train_feature[index] - min) / (max-min)
+for index in range(len(glcm_train_feature)):
+    max = glcm_test_feature[index].max()  #170
+    min = glcm_test_feature[index].min()  #1.88
+    glcm_test_feature[index] = (glcm_test_feature[index] - min) / (max-min)
+glcm_test_feature = glcm_test_feature.transpose(0,1)
+glcm_train_feature = glcm_train_feature.transpose(0,1)
+
+train_label = torch.load('./data/feature/train_label.pt')
+test_label = torch.load('./data/feature/test_label.pt')
+
+adj = Variable(torch.ones((5, 5)))
 
 best_test_acc = 0
 for epoch in range(100):
@@ -59,8 +90,7 @@ for epoch in range(100):
                                                     resnet_train_feature, 
                                                     vgg_train_feature,
                                                     hog_train_feature,
-                                                    lbp_train_feature,
-                                                    glcm_train_feature)):
+                                                    lbp_train_feature)):
         temp = torch.zeros((len(one_nodule_feature),512))
         for i, feature in enumerate(one_nodule_feature):
             temp[i] = feature
@@ -87,8 +117,7 @@ for epoch in range(100):
                                                     resnet_test_feature, 
                                                     vgg_test_feature,
                                                     hog_test_feature,
-                                                    lbp_test_feature,
-                                                    glcm_test_feature)):
+                                                    lbp_test_feature)):
         temp = torch.zeros((len(one_nodule_feature),512))
         for i, feature in enumerate(one_nodule_feature):
             temp[i] = feature
