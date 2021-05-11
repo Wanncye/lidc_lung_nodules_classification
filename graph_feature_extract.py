@@ -12,18 +12,18 @@ def accuracy(pred, target):
     return correct / len(target)
 
 
-model = GCN(nfeat=512, 
-            nhid=64, 
-            nclass=2, 
-            fc_num=2,
-            dropout=0.6)
-# model = GAT(nfeat=512, 
+# model = GCN(nfeat=512, 
 #             nhid=64, 
 #             nclass=2, 
-#             fc_num=128,
-#             dropout=0.6, 
-#             nheads=8, 
-#             alpha=0.2)
+#             fc_num=2,
+#             dropout=0.6)
+model = GAT(nfeat=512, 
+            nhid=64, 
+            nclass=2, 
+            fc_num=128,
+            dropout=0.6, 
+            nheads=8, 
+            alpha=0.2)
 optimizer = optim.Adam(model.parameters(), 
                        lr=1e-4, 
                        weight_decay=5e-2)
