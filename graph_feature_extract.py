@@ -47,6 +47,7 @@ train_label = torch.load('./data/mask_feature/train_label.pt')
 test_label = torch.load('./data/mask_feature/test_label.pt')
 adj = Variable(torch.ones((3, 3)))
 
+best_test_acc = 0
 for epoch in range(100):
     loss_train_list = []
     pre_train_list = torch.zeros(len(train_label))
@@ -98,8 +99,11 @@ for epoch in range(100):
         loss_test_list.append(F.nll_loss(output,one_label).item())
         
     acc_test = accuracy(pre_test_list, test_label)
+    if acc_test > best_test_acc:
+        best_test_acc = acc_test
     print('epoch:{:d}'.format(epoch) 
         , ', train loss:{:.4f}'.format(np.mean(loss_train_list)) 
         , ', train acc:{:.6f}'.format(acc_train.item()) 
         , ', test loss:{:.4f}'.format(np.mean(loss_test_list)) 
         , ', test acc:{:.6f}'.format(acc_test.item()))
+print('best test acc:{:.4f}'.format(best_test_acc))
