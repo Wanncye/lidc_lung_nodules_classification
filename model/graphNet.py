@@ -37,6 +37,7 @@ class GraphAttentionLayer(nn.Module):
         attention = torch.where(adj > 0, e, zero_vec)
         attention = F.softmax(attention, dim=1)
         attention = F.dropout(attention, self.dropout, training=self.training)
+        # print(attention)
         h_prime = torch.matmul(attention, Wh)
 
         if self.concat:
@@ -69,11 +70,13 @@ class GAT(nn.Module):
             self.add_module('attention_{}'.format(i), attention)
 
         self.out_att = GraphAttentionLayer(nhid * nheads, fc_num, dropout=dropout, alpha=alpha, concat=False)
-        self.fc = nn.Linear(fc_num*6, nclass)
+        self.fc = nn.Linear(fc_num*5, nclass)
 
     def forward(self, x, adj):
+        print(x)
         x = F.dropout(x, self.dropout, training=self.training)
         x = torch.cat([att(x, adj) for att in self.attentions], dim=1)
+        # print(x)
         x = F.dropout(x, self.dropout, training=self.training)
         x = F.elu(self.out_att(x, adj))
         x = x.view(1,-1)
@@ -128,8 +131,8 @@ class GCN(nn.Module):
 
     def forward(self, x, adj):
         x = F.relu(self.gc1(x, adj))
-        x = F.dropout(x, self.dropout, training=self.training)
-        x = self.gc2(x, adj)
+        x = F.dropout(x, self.dropout, training=self.training)#dropout了哪些信息？
+        x = F.relu(self.gc2(x, adj))  #这儿可以也加一个激活函数
         x = x.view(1, -1)
         x = self.fc(x)
         return F.log_softmax(x, dim=1)
