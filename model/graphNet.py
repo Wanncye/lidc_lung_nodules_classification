@@ -124,7 +124,7 @@ class GCN(nn.Module):
         self.gc1 = GC(nfeat, nhid)
         self.gc2 = GC(nhid, fc_num)
         self.dropout = dropout
-        self.fc = nn.Linear(fc_num*5, nclass)
+        self.fc = nn.Linear(fc_num*6, nclass)
 
     def forward(self, x, adj):
         x = F.relu(self.gc1(x, adj))
