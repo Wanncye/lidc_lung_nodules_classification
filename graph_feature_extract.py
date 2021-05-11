@@ -15,7 +15,7 @@ def accuracy(pred, target):
 model = GCN(nfeat=512, 
             nhid=64, 
             nclass=2, 
-            fc_num=2,
+            fc_num=128,
             dropout=0.6)
 # model = GAT(nfeat=512, 
 #             nhid=64, 
