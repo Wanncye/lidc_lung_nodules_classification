@@ -45,7 +45,7 @@ glcm_train_feature = torch.load('./data/mask_feature/glcm_train_feature.pt')
 glcm_test_feature = torch.load('./data/mask_feature/glcm_test_feature.pt')
 train_label = torch.load('./data/mask_feature/train_label.pt')
 test_label = torch.load('./data/mask_feature/test_label.pt')
-adj = Variable(torch.ones((6, 6)))
+adj = Variable(torch.ones((4, 4)))
 
 for epoch in range(100):
     loss_train_list = []
@@ -57,9 +57,7 @@ for epoch in range(100):
     for index, one_nodule_feature in enumerate(zip(googlenet_train_feature, 
                                                     resnet_train_feature, 
                                                     vgg_train_feature, 
-                                                    hog_train_feature,
-                                                    lbp_train_feature,
-                                                    glcm_train_feature)):
+                                                    hog_train_feature)):
         temp = torch.zeros((len(one_nodule_feature),512))
         for i, feature in enumerate(one_nodule_feature):
             temp[i] = feature
@@ -85,9 +83,7 @@ for epoch in range(100):
     for index, one_nodule_feature in enumerate(zip(googlenet_test_feature, 
                                                     resnet_test_feature, 
                                                     vgg_test_feature, 
-                                                    hog_test_feature,
-                                                    lbp_test_feature,
-                                                    glcm_test_feature)):
+                                                    hog_test_feature)):
         temp = torch.zeros((len(one_nodule_feature),512))
         for i, feature in enumerate(one_nodule_feature):
             temp[i] = feature
