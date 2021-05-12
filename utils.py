@@ -789,7 +789,7 @@ def svm_classification():
                                                                                                                                     best_accuracy))
                     
 #使用训练的GCN模型来提取中间层特征用于svm分类和直方图观察
-def gcn_feature():
+def get_gcn_feature():
     model = GCN(nfeat=512,
             nhid=64,
             nclass=2,
@@ -852,8 +852,30 @@ def gcn_feature():
     torch.save(test_middle_feature_64, './experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_64.pt')
     torch.save(test_middle_feature_2, './experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_2.pt')
 
+#将提取出来的GCN特征（64维和2维）用直方图可视化
+def gcn_feature_histogram():
+    train_middle_feature_64 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/train_middle_feature_64.pt')
+    train_middle_feature_2 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/train_middle_feature_2.pt')
+    test_middle_feature_64 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_64.pt')
+    test_middle_feature_2 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_2.pt')
+    train_label = torch.load('./data/mask_feature/train_label.pt')
+    test_label = torch.load('./data/mask_feature/test_label.pt')
+    for index in range(train_middle_feature_64.shape[0]):
+        print(index)
+        plt.plot([i for i in range(train_middle_feature_64.shape[2])],train_middle_feature_64[index,0,:].detach().numpy())
+        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/train.png')
+        plt.show()
+    for index in range(test_middle_feature_64.shape[0]):
+        print(index)
+        plt.plot([i for i in range(test_middle_feature_64.shape[2])],test_middle_feature_64[index,0,:].detach().numpy())
+        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/test.png')
+        plt.show()
+
+
+
 if __name__ == '__main__':
-    gcn_feature()
+    gcn_feature_histogram()
+    # get_gcn_feature()
     # feature_extract()
     # numpy_to_tensor_and_save()
     # 制作5折交叉验证数据集
