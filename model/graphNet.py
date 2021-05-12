@@ -78,7 +78,8 @@ class GAT(nn.Module):
         x = torch.cat([att(x, adj) for att in self.attentions], dim=1)
         # print(x)
         x = F.dropout(x, self.dropout, training=self.training)
-        x = F.elu(self.out_att(x, adj))
+        x = F.elu(self.out_att(x, adj))     #根据GCN的经验，是不是可以试试将这里的elu激活函数去掉？
+        # x = self.out_att(x, adj)
         x = x.view(1,-1)
         x = self.fc(x)
         return F.log_softmax(x, dim=1)
@@ -127,12 +128,12 @@ class GCN(nn.Module):
         self.gc1 = GC(nfeat, nhid)
         self.gc2 = GC(nhid, fc_num)
         self.dropout = dropout
-        self.fc = nn.Linear(fc_num*5, nclass)
+        self.fc = nn.Linear(fc_num*4, nclass)
 
     def forward(self, x, adj):
-        x = F.relu(self.gc1(x, adj))
-        x = F.dropout(x, self.dropout, training=self.training)#dropout了哪些信息？
-        x = F.relu(self.gc2(x, adj))  #这儿可以也加一个激活函数
-        x = x.view(1, -1)
-        x = self.fc(x)
-        return F.log_softmax(x, dim=1)
+        x1 = F.relu(self.gc1(x, adj))
+        x2 = F.dropout(x1, self.dropout, training=self.training)#dropout了哪些信息？
+        x3 = self.gc2(x2, adj)  #这儿可以也加一个激活函数,但是这里加激活函数之后测试集准确率全50%，所以去掉relu
+        x4 = x3.view(1, -1)
+        x5 = self.fc(x4)
+        return x1, x3, F.log_softmax(x5, dim=1)

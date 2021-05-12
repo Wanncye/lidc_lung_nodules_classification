@@ -254,7 +254,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
 if __name__ == '__main__':
 
-    model_ligpustatst=['googlenet', 'vgg', 'resnet50']
+    model_list=['googlenet', 'vgg', 'resnet50']
     # model_list=['vgg', 'resnet50']
     # model_list=['vgg']
     # model_list=['googlenet']

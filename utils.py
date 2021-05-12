@@ -15,6 +15,18 @@ import numpy as np
 from sklearn import metrics
 import matplotlib.pyplot as plt 
 import re
+from torch.autograd import Variable
+
+import torch 
+import model.data_loader as data_loader
+from tqdm import tqdm
+from model.threeDresnet_feature import generate_model
+from model.threeDVGG_feature import vgg16_bn
+from model.threeDGoogleNet_feature import googlenet
+torch.cuda.set_device(0)
+from matplotlib import pyplot as plt
+
+from model.graphNet import GAT,GCN
 
 class Params():
     """Class that loads hyperparameters from a json file.
@@ -543,16 +555,6 @@ def GLCM(cube):
 def feature_extract():
     # 提取两种类型的特征：一种是非mask的结节特征，另一种是mask的结节特征。
     # 共提取6种特征，即resnet,vgg,googlenet,lbp,hog,glcm
-    import torch 
-    import model.data_loader as data_loader
-    from tqdm import tqdm
-    from model.threeDresnet_feature import generate_model
-    from model.threeDVGG_feature import vgg16_bn
-    from model.threeDGoogleNet_feature import googlenet
-    torch.cuda.set_device(0)
-    from matplotlib import pyplot as plt
-    from skimage.feature import hog
-
     batch_size = 1
     dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = batch_size, data_dir='./data/nodules3d_128_mask_npy', train_shuffle=False)
     train_dl = dataloaders['train']
@@ -786,10 +788,72 @@ def svm_classification():
                                                                                                                                     param_list[2],
                                                                                                                                     best_accuracy))
                     
+#使用训练的GCN模型来提取中间层特征用于svm分类和直方图观察
+def gcn_feature():
+    model = GCN(nfeat=512,
+            nhid=64,
+            nclass=2,
+            fc_num=2,
+            dropout=0.6)
+    model.load_state_dict(torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar'), strict=False)
 
+    googlenet_train_feature = torch.load('./data/mask_feature/googlenet_train_feature.pt')
+    googlenet_test_feature = torch.load('./data/mask_feature/googlenet_test_feature.pt')
+    resnet_train_feature = torch.load('./data/mask_feature/resnet_train_feature.pt')
+    resnet_test_feature = torch.load('./data/mask_feature/resnet_test_feature.pt')
+    vgg_train_feature = torch.load('./data/mask_feature/vgg_train_feature.pt')
+    vgg_test_feature = torch.load('./data/mask_feature/vgg_test_feature.pt')
+    hog_train_feature = torch.load('./data/mask_feature/hog_train_feature.pt')
+    hog_test_feature = torch.load('./data/mask_feature/hog_test_feature.pt')
+
+    feature_type = 4
+    adj = Variable(torch.ones((feature_type, feature_type)))
+    train_middle_feature_64 = torch.zeros((639,feature_type,64))
+    test_middle_feature_64 = torch.zeros((160,feature_type,64))
+    train_middle_feature_2 = torch.zeros((639,feature_type,2))
+    test_middle_feature_2 = torch.zeros((160,feature_type,2))
+    for index, one_nodule_feature in enumerate(zip(googlenet_train_feature, 
+                                                    resnet_train_feature, 
+                                                    vgg_train_feature,
+                                                    hog_train_feature)):
+        temp = torch.zeros((len(one_nodule_feature),512))
+        for i, feature in enumerate(one_nodule_feature):
+            temp[i] = feature
+        one_nodule_feature = temp
+
+        adj = torch.ones((len(one_nodule_feature), len(one_nodule_feature)))
+        one_nodule_feature = torch.from_numpy(np.array(one_nodule_feature))
+        features, adj = Variable(one_nodule_feature), Variable(adj)
+        model.eval()
+        middle_feature_64, middle_feature_2, _ = model(features, adj)
+        train_middle_feature_64[index] = middle_feature_64
+        train_middle_feature_2[index] = middle_feature_2
+
+    
+    for index, one_nodule_feature in enumerate(zip(googlenet_test_feature, 
+                                                    resnet_test_feature, 
+                                                    vgg_test_feature,
+                                                    hog_test_feature)):
+        temp = torch.zeros((len(one_nodule_feature),512))
+        for i, feature in enumerate(one_nodule_feature):
+            temp[i] = feature
+        one_nodule_feature = temp
+
+        adj = torch.ones((len(one_nodule_feature), len(one_nodule_feature)))
+        one_nodule_feature = torch.from_numpy(np.array(one_nodule_feature))
+        features, adj = Variable(one_nodule_feature), Variable(adj)
+        model.eval()
+        middle_feature_64, middle_feature_2, _ = model(features, adj)
+        test_middle_feature_64[index] = middle_feature_64
+        test_middle_feature_2[index] = middle_feature_2
+
+    torch.save(train_middle_feature_64, './experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/train_middle_feature_64.pt')
+    torch.save(train_middle_feature_2, './experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/train_middle_feature_2.pt')
+    torch.save(test_middle_feature_64, './experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_64.pt')
+    torch.save(test_middle_feature_2, './experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_2.pt')
 
 if __name__ == '__main__':
-    svm_classification()
+    gcn_feature()
     # feature_extract()
     # numpy_to_tensor_and_save()
     # 制作5折交叉验证数据集

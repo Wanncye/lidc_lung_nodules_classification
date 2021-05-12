@@ -12,21 +12,21 @@ def accuracy(pred, target):
     return correct / len(target)
 
 
-# model = GCN(nfeat=512,
+model = GCN(nfeat=512,
+            nhid=64,
+            nclass=2,
+            fc_num=2,
+            dropout=0.6)
+# model = GAT(nfeat=512,
 #             nhid=64,
 #             nclass=2,
 #             fc_num=128,
-#             dropout=0.6)
-model = GAT(nfeat=512,
-            nhid=64,
-            nclass=2,
-            fc_num=128,
-            dropout=0.6,
-            nheads=8,
-            alpha=0.2)
+#             dropout=0.6,
+#             nheads=8,
+#             alpha=0.2)
 optimizer = optim.Adam(model.parameters(), 
                        lr=1e-4, 
-                       weight_decay=5e-4)
+                       weight_decay=5e-2)
 train_len = 639
 test_len = 160
 feature_len = 512
@@ -75,7 +75,7 @@ for index in range(len(glcm_train_feature)):
 glcm_test_feature = glcm_test_feature.transpose(0,1)
 glcm_train_feature = glcm_train_feature.transpose(0,1)
 
-adj = Variable(torch.ones((5, 5)))
+adj = Variable(torch.ones((4, 4)))
 
 best_test_acc = 0
 for epoch in range(100):
@@ -88,8 +88,7 @@ for epoch in range(100):
     for index, one_nodule_feature in enumerate(zip(googlenet_train_feature, 
                                                     resnet_train_feature, 
                                                     vgg_train_feature,
-                                                    hog_train_feature,
-                                                    lbp_train_feature)):
+                                                    hog_train_feature)):
         temp = torch.zeros((len(one_nodule_feature),512))
         for i, feature in enumerate(one_nodule_feature):
             temp[i] = feature
@@ -101,7 +100,7 @@ for epoch in range(100):
         model.train()
         optimizer.zero_grad()
 
-        output = model(features, adj)
+        _ , _, output = model(features, adj)
         one_label = train_label[index].unsqueeze(0).long()
         pre_train_list[index] = output.max(1)[1].type_as(one_label)
         loss_train = F.nll_loss(output,one_label)
@@ -115,8 +114,7 @@ for epoch in range(100):
     for index, one_nodule_feature in enumerate(zip(googlenet_test_feature, 
                                                     resnet_test_feature, 
                                                     vgg_test_feature,
-                                                    hog_test_feature,
-                                                    lbp_test_feature)):
+                                                    hog_test_feature)):
         temp = torch.zeros((len(one_nodule_feature),512))
         for i, feature in enumerate(one_nodule_feature):
             temp[i] = feature
@@ -127,14 +125,20 @@ for epoch in range(100):
         features, adj = Variable(one_nodule_feature), Variable(adj)
 
         model.eval()
-        output = model(features, adj)
+        _ , _, output = model(features, adj)
         one_label = test_label[index].unsqueeze(0).long()
         pre_test_list[index] = output.max(1)[1].type_as(one_label)
         loss_test_list.append(F.nll_loss(output,one_label).item())
         
     acc_test = accuracy(pre_test_list, test_label)
-    if acc_test > best_test_acc:
+    if acc_test >= best_test_acc:
         best_test_acc = acc_test
+        #最好准确率时保存模型
+        torch.save({
+            'epoch' : epoch,
+            'state_dict': model.state_dict(),
+            'optim_dict' : optimizer.state_dict()
+        },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar')
     print('epoch:{:d}'.format(epoch) 
         , ', train loss:{:.4f}'.format(np.mean(loss_train_list)) 
         , ', train acc:{:.6f}'.format(acc_train.item()) 
