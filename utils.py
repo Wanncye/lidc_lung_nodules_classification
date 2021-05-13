@@ -853,8 +853,8 @@ def get_gcn_feature():
     torch.save(test_middle_feature_64, './experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_64.pt')
     torch.save(test_middle_feature_2, './experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_2.pt')
 
-#将提取出来的GCN特征（64维和2维）用直方图可视化
-def gcn_feature_histogram():
+#将提取出来的GCN特征（64维和2维）用折线图可视化
+def gcn_feature_line():
     train_middle_feature_64 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/train_middle_feature_64.pt')
     train_middle_feature_2 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/train_middle_feature_2.pt')
     test_middle_feature_64 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_64.pt')
@@ -878,7 +878,7 @@ def gcn_feature_histogram():
         plt.subplot(3,1,3)
         plt.title('all label')
         plt.plot([i for i in range(train_middle_feature_64.shape[2])],train_middle_feature_64[index,0,:].detach().numpy())
-    plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/train_fig_dim_64.png')
+    plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/line/train_fig_dim_64.png')
     plt.clf()
     for index in range(train_middle_feature_64.shape[0]):
         print(index)
@@ -889,7 +889,7 @@ def gcn_feature_histogram():
             plt.plot([i for i in range(train_middle_feature_64.shape[2])],train_middle_feature_64[index,jndex,:].detach().numpy())
             plt.subplot(5,1,5)
             plt.plot([i for i in range(train_middle_feature_64.shape[2])],train_middle_feature_64[index,jndex,:].detach().numpy())
-        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/train_64/train_middle_feature_64_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
+        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/line/train_64/train_middle_feature_64_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
         plt.clf()#清除图
 
     #训练集 2
@@ -908,7 +908,7 @@ def gcn_feature_histogram():
         plt.subplot(3,1,3)
         plt.title('all label')
         plt.plot([i for i in range(train_middle_feature_2.shape[2])],train_middle_feature_2[index,0,:].detach().numpy())
-    plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/train_fig_dim_2.png')
+    plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/line/train_fig_dim_2.png')
     plt.clf()
     for index in range(train_middle_feature_2.shape[0]):
         print(index)
@@ -919,7 +919,7 @@ def gcn_feature_histogram():
             plt.plot([i for i in range(train_middle_feature_2.shape[2])],train_middle_feature_2[index,jndex,:].detach().numpy())
             plt.subplot(5,1,5)
             plt.plot([i for i in range(train_middle_feature_2.shape[2])],train_middle_feature_2[index,jndex,:].detach().numpy())
-        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/train_2/train_middle_feature_2_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
+        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/line/train_2/train_middle_feature_2_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
         plt.clf()#清除图
 
     #测试集 64
@@ -938,7 +938,7 @@ def gcn_feature_histogram():
         plt.subplot(3,1,3)
         plt.title('all label')
         plt.plot([i for i in range(test_middle_feature_64.shape[2])],test_middle_feature_64[index,0,:].detach().numpy())
-    plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/test_fig_dim_64.png')
+    plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/line/test_fig_dim_64.png')
     plt.clf()
     for index in range(test_middle_feature_64.shape[0]):
         print(index)
@@ -949,7 +949,7 @@ def gcn_feature_histogram():
             plt.plot([i for i in range(test_middle_feature_64.shape[2])],test_middle_feature_64[index,jndex,:].detach().numpy())
             plt.subplot(5,1,5)
             plt.plot([i for i in range(test_middle_feature_64.shape[2])],test_middle_feature_64[index,jndex,:].detach().numpy())
-        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/test_64/test_middle_feature_64_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
+        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/line/test_64/test_middle_feature_64_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
         plt.clf()#清除图
 
     #测试集 2
@@ -968,7 +968,7 @@ def gcn_feature_histogram():
         plt.subplot(3,1,3)
         plt.title('all label')
         plt.plot([i for i in range(test_middle_feature_2.shape[2])],test_middle_feature_2[index,0,:].detach().numpy())
-    plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/test_fig_dim_2.png')
+    plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/line/test_fig_dim_2.png')
     plt.clf()
     for index in range(test_middle_feature_2.shape[0]):
         print(index)
@@ -979,13 +979,89 @@ def gcn_feature_histogram():
             plt.plot([i for i in range(test_middle_feature_2.shape[2])],test_middle_feature_2[index,jndex,:].detach().numpy())
             plt.subplot(5,1,5)
             plt.plot([i for i in range(test_middle_feature_2.shape[2])],test_middle_feature_2[index,jndex,:].detach().numpy())
-        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/test_64/test_middle_feature_2_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
+        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/line/test_2/test_middle_feature_2_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
         plt.clf()#清除图
 
+#将提取出来的GCN特征（64维和2维）用直方图可视化
+def gcn_feature_histogram():
+    train_middle_feature_64 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/train_middle_feature_64.pt')
+    train_middle_feature_2 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/train_middle_feature_2.pt')
+    test_middle_feature_64 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_64.pt')
+    test_middle_feature_2 = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_2.pt')
+    train_label = torch.load('./data/mask_feature/train_label.pt')
+    test_label = torch.load('./data/mask_feature/test_label.pt')
 
+    # 训练集 64
+    print("train 64")
+    for index in range(train_middle_feature_64.shape[0]):
+        print(index)
+        label = train_label[index].detach().numpy()
+        for jndex in range(train_middle_feature_64.shape[1]):
+            plt.rcParams['figure.figsize'] = (12, 12)
+            plt.subplot(5,1,jndex+1)
+            Max = max(train_middle_feature_64[index,jndex,:]).detach().numpy()
+            Min = min(train_middle_feature_64[index,jndex,:]).detach().numpy()
+            seper = (Max-Min)/20
+            plt.hist(train_middle_feature_64[index,jndex,:].detach().numpy(),bins=np.arange(Min,Max,seper))
+            plt.subplot(5,1,5)
+            plt.hist(train_middle_feature_64[index,jndex,:].detach().numpy(),bins=np.arange(Min,Max,seper))
+        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/train_64/train_middle_feature_64_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
+        plt.clf()#清除图
+
+    #训练集 2
+    print("train 2")
+    for index in range(train_middle_feature_2.shape[0]):
+        print(index)
+        label = train_label[index].detach().numpy()
+        for jndex in range(train_middle_feature_2.shape[1]):
+            plt.rcParams['figure.figsize'] = (12, 12)
+            plt.subplot(5,1,jndex+1)
+            Max = max(train_middle_feature_2[index,jndex,:]).detach().numpy()
+            Min = min(train_middle_feature_2[index,jndex,:]).detach().numpy()
+            seper = (Max-Min)/20
+            plt.hist(train_middle_feature_2[index,jndex,:].detach().numpy(),bins=np.arange(Min,Max,seper))
+            plt.subplot(5,1,5)
+            plt.hist(train_middle_feature_2[index,jndex,:].detach().numpy(),bins=np.arange(Min,Max,seper))
+        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/train_2/train_middle_feature_2_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
+        plt.clf()#清除图
+
+    #测试集 64
+    print("test 64")
+    for index in range(test_middle_feature_64.shape[0]):
+        print(index)
+        label = test_label[index].detach().numpy()
+        for jndex in range(test_middle_feature_64.shape[1]):
+            plt.rcParams['figure.figsize'] = (12, 12)
+            plt.subplot(5,1,jndex+1)
+            Max = max(test_middle_feature_64[index,jndex,:]).detach().numpy()
+            Min = min(test_middle_feature_64[index,jndex,:]).detach().numpy()
+            seper = (Max-Min)/20
+            plt.hist(test_middle_feature_64[index,jndex,:].detach().numpy(),bins=np.arange(Min,Max,seper))
+            plt.subplot(5,1,5)
+            plt.hist(test_middle_feature_64[index,jndex,:].detach().numpy(),bins=np.arange(Min,Max,seper))
+        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/test_64/test_middle_feature_64_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
+        plt.clf()#清除图
+
+    #测试集 2
+    print("test 2")
+    for index in range(test_middle_feature_2.shape[0]):
+        print(index)
+        label = test_label[index].detach().numpy()
+        for jndex in range(test_middle_feature_2.shape[1]):
+            plt.rcParams['figure.figsize'] = (12, 12)
+            plt.subplot(5,1,jndex+1)
+            Max = max(test_middle_feature_2[index,jndex,:]).detach().numpy()
+            Min = min(test_middle_feature_2[index,jndex,:]).detach().numpy()
+            seper = (Max-Min)/20
+            plt.hist(test_middle_feature_2[index,jndex,:].detach().numpy(),bins=np.arange(Min,Max,seper))
+            plt.subplot(5,1,5)
+            plt.hist(test_middle_feature_2[index,jndex,:].detach().numpy(),bins=np.arange(Min,Max,seper))
+        plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/test_2/test_middle_feature_2_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
+        plt.clf()#清除图
 
 if __name__ == '__main__':
     gcn_feature_histogram()
+    gcn_feature_line()
     # get_gcn_feature()
     # feature_extract()
     # numpy_to_tensor_and_save()
