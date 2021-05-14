@@ -6,3 +6,6 @@ a = t.randn((4,1,6))
 print(a.shape)
 a = a.squeeze(1)
 print(a.shape)
+
+
+

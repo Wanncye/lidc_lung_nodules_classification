@@ -4,19 +4,24 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch
 import numpy as np
-
+from sklearn.metrics import confusion_matrix
 
 def accuracy(pred, target):
     correct = pred.eq(target).double()
     correct = correct.sum()
-    return correct / len(target)
+    con_matrix = confusion_matrix(target,pred,labels=range(2))
+    TN = con_matrix[0][0]
+    TP = con_matrix[1][1]
+    FN = con_matrix[1][0]
+    FP = con_matrix[0][1]
+    return correct / len(target),[TN,TP,FN,FP]
 
 
 model = GCN(nfeat=512,
             nhid=64,
             nclass=2,
             fc_num=2,
-            dropout=0.6)
+            dropout=1)
 # model = GAT(nfeat=512,
 #             nhid=64,
 #             nclass=2,
@@ -78,6 +83,7 @@ glcm_train_feature = glcm_train_feature.transpose(0,1)
 adj = Variable(torch.ones((4, 4)))
 
 best_test_acc = 0
+best_epoc = 0
 for epoch in range(100):
     loss_train_list = []
     pre_train_list = torch.zeros(len(train_label))
@@ -108,7 +114,7 @@ for epoch in range(100):
 
         loss_train.backward()
         optimizer.step()
-    acc_train = accuracy(pre_train_list, train_label)
+    acc_train,_ = accuracy(pre_train_list, train_label)
 
     #测试
     for index, one_nodule_feature in enumerate(zip(googlenet_test_feature, 
@@ -130,18 +136,19 @@ for epoch in range(100):
         pre_test_list[index] = output.max(1)[1].type_as(one_label)
         loss_test_list.append(F.nll_loss(output,one_label).item())
         
-    acc_test = accuracy(pre_test_list, test_label)
+    acc_test,conf_mat = accuracy(pre_test_list, test_label)
     if acc_test >= best_test_acc:
         best_test_acc = acc_test
+        best_epoc = epoch
         #最好准确率时保存模型
-        torch.save({
-            'epoch' : epoch,
-            'state_dict': model.state_dict(),
-            'optim_dict' : optimizer.state_dict()
-        },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar')
+        # torch.save({
+        #     'epoch' : epoch,
+        #     'state_dict': model.state_dict(),
+        #     'optim_dict' : optimizer.state_dict()
+        # },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar')
     print('epoch:{:d}'.format(epoch) 
         , ', train loss:{:.4f}'.format(np.mean(loss_train_list)) 
         , ', train acc:{:.6f}'.format(acc_train.item()) 
         , ', test loss:{:.4f}'.format(np.mean(loss_test_list)) 
         , ', test acc:{:.6f}'.format(acc_test.item()))
-print('best test acc:{:.4f}'.format(best_test_acc))
+print('best test acc:{:.4f}, epoch:{:d}, TN:{:d}, TP:{:d}, FN:{:d}, FP:{:d}'.format(best_test_acc, best_epoc, conf_mat[0], conf_mat[1], conf_mat[2], conf_mat[3]))
