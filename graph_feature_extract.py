@@ -16,8 +16,8 @@ def accuracy(pred, target):
     FP = con_matrix[0][1]
     return correct / len(target),[TN,TP,FN,FP]
 
-input_dim = 6
-node_num = 512
+input_dim = 512
+node_num = 6
 model = GCN(nfeat=input_dim,
             nhid=64,
             nclass=2,
@@ -82,7 +82,17 @@ for index in range(len(glcm_train_feature)):
 glcm_test_feature = glcm_test_feature.transpose(0,1)
 glcm_train_feature = glcm_train_feature.transpose(0,1)
 
+np.random.seed(2021)
 adj = Variable(torch.ones((node_num, node_num)))
+# #将邻接矩阵改一改,随机置1
+# def rand_adj(adj):
+#     for i in range(node_num):
+#         for j in range(node_num):
+#             random_num = np.random.rand()
+#             if random_num > 0.5:
+#                 adj[i,j] = 0
+#     return adj
+# adj = rand_adj(adj)
 
 best_test_acc = 0
 best_epoc = 0
@@ -102,7 +112,7 @@ for epoch in range(100):
         temp = torch.zeros((len(one_nodule_feature),512))
         for i, feature in enumerate(one_nodule_feature):
             temp[i] = feature
-        one_nodule_feature = temp.transpose(1,0)  #512*6  尝试改成512个节点，每个节点6维特征
+        one_nodule_feature = temp  #512*6  尝试改成512个节点，每个节点6维特征
 
         one_nodule_feature = torch.from_numpy(np.array(one_nodule_feature))
         features = Variable(one_nodule_feature)
@@ -130,7 +140,7 @@ for epoch in range(100):
         temp = torch.zeros((len(one_nodule_feature),512))
         for i, feature in enumerate(one_nodule_feature):
             temp[i] = feature
-        one_nodule_feature = temp.transpose(1,0)
+        one_nodule_feature = temp
 
         adj = torch.ones((len(one_nodule_feature), len(one_nodule_feature)))
         one_nodule_feature = torch.from_numpy(np.array(one_nodule_feature))

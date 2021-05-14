@@ -9,6 +9,8 @@ import torch
 import glob
 from tqdm.std import tqdm
 
+import csv
+
 import visdom
 import time
 import numpy as np
@@ -720,6 +722,13 @@ def svm_classification():
     train_label = torch.load('./data/mask_feature/train_label.pt')
     test_label = torch.load('./data/mask_feature/test_label.pt')
 
+    batch_size = 1
+    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = batch_size, data_dir='./data/nodules3d_128_mask_npy', train_shuffle=False)
+    test_dl = dataloaders['test']
+    file_name_list = []
+    for i, (x, target, file_name) in enumerate(test_dl):
+        file_name_list.append(file_name[0])
+
     #glcm竖直方向上归一化
     glcm_train_feature = glcm_train_feature.transpose(0,1)
     glcm_test_feature = glcm_test_feature.transpose(0,1)
@@ -765,10 +774,11 @@ def svm_classification():
                 for c in C:
                     for ga in gamma:
                         for miter in max_iter:
-                            clf = SVC(kernel=kf, C=c, gamma=ga, max_iter=miter)
+                            clf = SVC(kernel=kf, C=c, gamma=ga, max_iter=miter,probability=True)
                             clf = clf.fit(train_feature, train_label)
 
                             Y_pred = clf.predict(test_feature)
+                            # Y_pred_prob = clf.predict_proba(test_feature)
                             con_matrix = confusion_matrix(test_label,Y_pred,labels=range(2))
                             
                             accuracy = (con_matrix[0][0] + con_matrix[1][1])/160
@@ -776,6 +786,17 @@ def svm_classification():
                                 save_matrix = con_matrix
                                 param_list = [c, ga, miter,kf]
                                 best_accuracy = accuracy
+                                #将最好的情况的预测结果写进csv
+                                predict_csv = open('./data/mask_feature/'+feature_type+'_testset_result.csv','w',encoding='utf-8')
+                                csv_writer = csv.writer(predict_csv)
+                                csv_writer.writerow(["filename","truth_label","predict_label","probability","is_right"])
+                                for i_npy in range(len(file_name_list)):
+                                    if test_label[i_npy] == Y_pred[i_npy]:
+                                        is_right = True
+                                    else:
+                                        is_right = False
+                                    data = [file_name_list[i_npy], int(test_label[i_npy].detach().numpy()), int(Y_pred[i_npy]), 0, is_right]
+                                    csv_writer.writerow(data)
                             t.update()
             
             TN = save_matrix[0][0]
@@ -1112,7 +1133,9 @@ def svm_classification_gcn_middle_feature():
                                                                                                                                 best_accuracy))
 
 if __name__ == '__main__':
-    svm_classification_gcn_middle_feature()
+    svm_classification()
+    # get_test_name_and_save()
+    # svm_classification_gcn_middle_feature()
     # gcn_feature_histogram()
     # gcn_feature_line()
     # get_gcn_feature()
