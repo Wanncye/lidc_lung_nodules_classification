@@ -16,12 +16,14 @@ def accuracy(pred, target):
     FP = con_matrix[0][1]
     return correct / len(target),[TN,TP,FN,FP]
 
-
-model = GCN(nfeat=512,
+input_dim = 6
+node_num = 512
+model = GCN(nfeat=input_dim,
             nhid=64,
             nclass=2,
             fc_num=2,
-            dropout=1)
+            dropout=0.6,
+            ft=node_num)
 # model = GAT(nfeat=512,
 #             nhid=64,
 #             nclass=2,
@@ -80,7 +82,7 @@ for index in range(len(glcm_train_feature)):
 glcm_test_feature = glcm_test_feature.transpose(0,1)
 glcm_train_feature = glcm_train_feature.transpose(0,1)
 
-adj = Variable(torch.ones((4, 4)))
+adj = Variable(torch.ones((node_num, node_num)))
 
 best_test_acc = 0
 best_epoc = 0
@@ -94,12 +96,14 @@ for epoch in range(100):
     for index, one_nodule_feature in enumerate(zip(googlenet_train_feature, 
                                                     resnet_train_feature, 
                                                     vgg_train_feature,
-                                                    hog_train_feature)):
+                                                    hog_train_feature,
+                                                    lbp_train_feature,
+                                                    glcm_train_feature)):
         temp = torch.zeros((len(one_nodule_feature),512))
         for i, feature in enumerate(one_nodule_feature):
             temp[i] = feature
-        one_nodule_feature = temp
-        
+        one_nodule_feature = temp.transpose(1,0)  #512*6  尝试改成512个节点，每个节点6维特征
+
         one_nodule_feature = torch.from_numpy(np.array(one_nodule_feature))
         features = Variable(one_nodule_feature)
 
@@ -120,11 +124,13 @@ for epoch in range(100):
     for index, one_nodule_feature in enumerate(zip(googlenet_test_feature, 
                                                     resnet_test_feature, 
                                                     vgg_test_feature,
-                                                    hog_test_feature)):
+                                                    hog_test_feature,
+                                                    lbp_test_feature,
+                                                    glcm_test_feature)):
         temp = torch.zeros((len(one_nodule_feature),512))
         for i, feature in enumerate(one_nodule_feature):
             temp[i] = feature
-        one_nodule_feature = temp
+        one_nodule_feature = temp.transpose(1,0)
 
         adj = torch.ones((len(one_nodule_feature), len(one_nodule_feature)))
         one_nodule_feature = torch.from_numpy(np.array(one_nodule_feature))
@@ -151,4 +157,5 @@ for epoch in range(100):
         , ', train acc:{:.6f}'.format(acc_train.item()) 
         , ', test loss:{:.4f}'.format(np.mean(loss_test_list)) 
         , ', test acc:{:.6f}'.format(acc_test.item()))
+#这里输出的混淆矩阵值是最后一个epoch的
 print('best test acc:{:.4f}, epoch:{:d}, TN:{:d}, TP:{:d}, FN:{:d}, FP:{:d}'.format(best_test_acc, best_epoc, conf_mat[0], conf_mat[1], conf_mat[2], conf_mat[3]))

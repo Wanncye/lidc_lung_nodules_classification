@@ -1,3 +1,4 @@
+from skimage import feature
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -122,15 +123,17 @@ class GC(Module):
                + str(self.out_features) + ')'
 
 class GCN(nn.Module):
-    def __init__(self, nfeat, nhid, nclass, fc_num, dropout):
+    def __init__(self, nfeat, nhid, nclass, fc_num, dropout, ft):
         super(GCN, self).__init__()
         self.nclass = nclass
         self.gc1 = GC(nfeat, nhid)
         self.gc2 = GC(nhid, fc_num)
         self.dropout = dropout
-        self.fc = nn.Linear(fc_num*4, nclass)
+        node_num = ft
+        self.fc = nn.Linear(fc_num*node_num, nclass)
 
     def forward(self, x, adj):
+        # x = F.dropout(x, self.dropout, training=self.training)  不能在这里加dropout，这个会降低性能
         x1 = F.relu(self.gc1(x, adj))
         # print(x1)
         x2 = F.dropout(x1, self.dropout, training=self.training)#dropout了哪些信息？ 确定，这里的dropout是随机失活某一维度的一些值，而不是所有值
