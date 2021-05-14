@@ -1060,9 +1060,61 @@ def gcn_feature_histogram():
         plt.savefig('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/hist/test_2/test_middle_feature_2_'+'index_'+str(index)+'_label_'+str(int(label))+'.png')
         plt.clf()#清除图
 
+#使用svm对gcn的中间层特征进行分类
+def svm_classification_gcn_middle_feature():
+    from sklearn.metrics import confusion_matrix
+    from sklearn.svm import SVC
+    
+    gcn_train_feature = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/train_middle_feature_64.pt')[:,0,:]   #639*64
+    gcn_test_feature = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_64.pt')[:,0,:]    #160*64
+    train_label = torch.load('./data/mask_feature/train_label.pt')
+    test_label = torch.load('./data/mask_feature/test_label.pt')
+    
+    
+    #SVM
+    #glcm max_iter=500 效果最佳
+    set_logger('./experiments/gcn/gcm_middle_feature_svm_classification_log.log')
+    kernel_function = ['linear', 'poly', 'rbf', 'sigmoid']
+    C = [1e-2,1e-1,1,1e1,1e2] #C是对错误的惩罚
+    gamma = [0.0001,0.0005,0.001,0.005,0.01,0.1] 
+    max_iter = [50,100,200,500,700,1000,1500,2000]
+    with tqdm(total = len(kernel_function)*len(C)*len(gamma)*len(max_iter)) as t:
+        train_feature = gcn_train_feature.detach().numpy()
+        test_feature = gcn_test_feature.detach().numpy()
+        best_accuracy = 0
+        for kf in kernel_function:
+            for c in C:
+                for ga in gamma:
+                    for miter in max_iter:
+                        clf = SVC(kernel=kf, C=c, gamma=ga, max_iter=miter)
+                        clf = clf.fit(train_feature, train_label)
+
+                        Y_pred = clf.predict(test_feature)
+                        con_matrix = confusion_matrix(test_label,Y_pred,labels=range(2))
+                        
+                        accuracy = (con_matrix[0][0] + con_matrix[1][1])/160
+                        if accuracy > best_accuracy:
+                            save_matrix = con_matrix
+                            param_list = [c, ga, miter,kf]
+                            best_accuracy = accuracy
+                        t.update()
+        
+        TN = save_matrix[0][0]
+        TP = save_matrix[1][1]
+        FN = save_matrix[1][0]
+        FP = save_matrix[0][1]
+        logging.info('TN:{0}, TP:{1}, FN:{2}, FP:{3} '.format(TN, TP, FN, FP))
+        logging.info('{0} svm classification, kernel_function={1}, c={2}, gamma={3}, max_iter={4}, test_accuracy={5}'.format('gcn', 
+                                                                                                                                param_list[3],
+                                                                                                                                param_list[0], 
+                                                                                                                                param_list[1], 
+                                                                                                                                param_list[2],
+                                                                                                                                best_accuracy))
+
 if __name__ == '__main__':
-    gcn_feature_histogram()
-    gcn_feature_line()
+    svm_classification_gcn_middle_feature()
+    # gcn_feature_histogram()
+    # gcn_feature_line()
     # get_gcn_feature()
     # feature_extract()
     # numpy_to_tensor_and_save()
