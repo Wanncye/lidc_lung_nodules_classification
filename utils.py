@@ -683,6 +683,7 @@ def numpy_to_tensor_and_save():
     torch.save(lbp_train_feature,'./data/feature/lbp_train_feature.pt')
     torch.save(lbp_test_feature,'./data/feature/lbp_test_feature.pt')
 
+#对6种特征使用svm进行分类
 def svm_classification():
     from sklearn.model_selection import GridSearchCV
     from sklearn.metrics import confusion_matrix

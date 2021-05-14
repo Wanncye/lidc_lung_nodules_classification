@@ -132,7 +132,9 @@ class GCN(nn.Module):
 
     def forward(self, x, adj):
         x1 = F.relu(self.gc1(x, adj))
-        x2 = F.dropout(x1, self.dropout, training=self.training)#dropout了哪些信息？
+        # print(x1)
+        x2 = F.dropout(x1, self.dropout, training=self.training)#dropout了哪些信息？ 确定，这里的dropout是随机失活某一维度的一些值，而不是所有值
+        # print(x2)
         x3 = self.gc2(x2, adj)  #这儿可以也加一个激活函数,但是这里加激活函数之后测试集准确率全50%，所以去掉relu
         x4 = x3.view(1, -1)
         x5 = self.fc(x4)
