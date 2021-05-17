@@ -685,7 +685,7 @@ def numpy_to_tensor_and_save():
     torch.save(lbp_train_feature,'./data/feature/lbp_train_feature.pt')
     torch.save(lbp_test_feature,'./data/feature/lbp_test_feature.pt')
 
-#对6种特征使用svm进行分类
+#对6种特征使用svm进行分类,并将最好的预测结果存储在csv文件中
 def svm_classification():
     from sklearn.model_selection import GridSearchCV
     from sklearn.metrics import confusion_matrix
@@ -1132,8 +1132,62 @@ def svm_classification_gcn_middle_feature():
                                                                                                                                 param_list[2],
                                                                                                                                 best_accuracy))
 
+#计算6种方法之间的预测相似度，以此来构建邻接矩阵
+def caculate_six_method_predict_similarity():
+    #先获得6种特征的预测标签，计算相似度只需要看预测得一不一样了
+    csv_reader = csv.reader(open('./data/mask_feature/glcm_testset_result.csv'))
+    header = next(csv_reader)
+    glcm_predict_list = []
+    for row in csv_reader:
+        glcm_predict_list.append(row[2])
+    
+    csv_reader = csv.reader(open('./data/mask_feature/googlenet_testset_result.csv'))
+    header = next(csv_reader)
+    googlenet_predict_list = []
+    for row in csv_reader:
+        googlenet_predict_list.append(row[2])
+
+    csv_reader = csv.reader(open('./data/mask_feature/vgg_testset_result.csv'))
+    header = next(csv_reader)
+    vgg_predict_list = []
+    for row in csv_reader:
+        vgg_predict_list.append(row[2])
+
+    csv_reader = csv.reader(open('./data/mask_feature/resnet_testset_result.csv'))
+    header = next(csv_reader)
+    resnet_predict_list = []
+    for row in csv_reader:
+        resnet_predict_list.append(row[2])
+    
+    csv_reader = csv.reader(open('./data/mask_feature/lbp_testset_result.csv'))
+    header = next(csv_reader)
+    lbp_predict_list = []
+    for row in csv_reader:
+        lbp_predict_list.append(row[2])
+
+    csv_reader = csv.reader(open('./data/mask_feature/hog_testset_result.csv'))
+    header = next(csv_reader)
+    hog_predict_list = []
+    for row in csv_reader:
+        hog_predict_list.append(row[2])
+    
+    all_predict_list = [googlenet_predict_list, resnet_predict_list, vgg_predict_list, hog_predict_list, lbp_predict_list, glcm_predict_list]
+    sim_matrix = np.zeros((6,6))
+    cord = 0
+    for i_predict_list in all_predict_list:
+        for j_predict_list in all_predict_list:
+            correct = 0
+            for index in range(160):
+                if i_predict_list[index] == j_predict_list[index]:
+                    correct += 1
+            row = int(cord / 6)
+            coloum = cord % 6
+            sim_matrix[row][coloum] = correct
+            cord += 1
+    return sim_matrix/160
+
 if __name__ == '__main__':
-    svm_classification()
+    caculate_six_method_predict_similarity()
     # get_test_name_and_save()
     # svm_classification_gcn_middle_feature()
     # gcn_feature_histogram()

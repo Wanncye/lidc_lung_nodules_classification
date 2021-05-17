@@ -1,3 +1,4 @@
+from torch._C import dtype
 from model.graphNet import GAT,GCN
 from torch.autograd import Variable
 import torch.optim as optim
@@ -5,6 +6,7 @@ import torch.nn.functional as F
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix
+from utils import caculate_six_method_predict_similarity
 
 def accuracy(pred, target):
     correct = pred.eq(target).double()
@@ -83,7 +85,8 @@ glcm_test_feature = glcm_test_feature.transpose(0,1)
 glcm_train_feature = glcm_train_feature.transpose(0,1)
 
 np.random.seed(2021)
-adj = Variable(torch.ones((node_num, node_num)))
+adj = torch.from_numpy(caculate_six_method_predict_similarity()).float()
+# adj = Variable(torch.ones((node_num, node_num)))
 # #将邻接矩阵改一改,随机置1
 # def rand_adj(adj):
 #     for i in range(node_num):
