@@ -23,7 +23,7 @@ import csv
 
 from model.threeDresnet import generate_model
 from model.threeDGoogleNet import googlenet
-from model.threeDVGG import vgg16_bn
+from model.threeDVGG import vgg16_bn, vgg11_bn, vgg13_bn, vgg19_bn
 
 import netron     
 import torch.onnx
@@ -62,7 +62,7 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
             train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
 
             #将载入的数据输入3DResNet,得到结果
-            output_batch = model(train_batch)
+            output_batch, _ = model(train_batch)
             #计算网络输出结果和目标值之间的损失
 
             loss = loss_fn(output_batch, labels_batch)
@@ -129,7 +129,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             data_batch, labels_batch = Variable(data_batch), Variable(labels_batch)
             
             # compute model output
-            output_batch = model(data_batch)
+            output_batch, _ = model(data_batch)
             loss = loss_fn(output_batch, labels_batch)
 
             m = nn.Softmax(dim=1)
@@ -239,6 +239,18 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             val_metrics['epoch'] = epoch + 1
             utils.save_dict_to_json(val_metrics, best_json_path)
 
+            #用最好的模型来提取512维特征
+            model.eval()
+            train_feature = torch.zeros((639,512))
+            test_feature = torch.zeros((160,512))
+            for i, (x, target, _) in enumerate(train_dataloader):
+                _, feature = model(x.cuda())
+                train_feature[(i*16):((i+1)*16), :] = feature.detach()
+            for i, (x, target, _) in enumerate(val_dataloader):
+                _, feature = model(x.cuda())
+                test_feature[(i*16):((i+1)*16), :] = feature.detach()
+            torch.save(train_feature,'./data/mask_feature/' + model_name + '_train.pt')
+            torch.save(train_feature,'./data/mask_feature/' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
         last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_last_weights.json")
         utils.save_dict_to_json(val_metrics, last_json_path)
@@ -247,29 +259,25 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         finish_time = time.time()
         used_time = finish_time-start_time
         print('used: ' + str(used_time) + ' seconds. ')
-        eta = ((params.num_epochs - 1 - epoch) + (4 - N_folder) * params.num_epochs) * used_time / 60
+        eta = ((params.num_epochs - 1 - epoch) + (0 - N_folder) * params.num_epochs) * used_time / 60
         print('eta: ' + str(eta) + ' minutes. = ' + str(eta/60) + 'hs')
         print("\n")
 
 
 if __name__ == '__main__':
 
-    model_list=['googlenet', 'vgg', 'resnet50']
+    model_list=['vgg11',  'vgg13', 'vgg16', 'vgg19', 
+                'googlenet', 
+                'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200']
     # model_list=['vgg', 'resnet50']
     # model_list=['vgg']
     # model_list=['googlenet']
     # model_list=['resnet50']
         
     for model_name in model_list:
-        if model_name == 'resnet50':
-            parser = argparse.ArgumentParser()
-            parser.add_argument('--model_dir', default='experiments/resnet50_no_mask', help="Directory containing params.json")
-        if model_name == 'googlenet':
-            parser = argparse.ArgumentParser()
-            parser.add_argument('--model_dir', default='experiments/GoogleNet_no_mask', help="Directory containing params.json")
-        if model_name == 'vgg':
-            parser = argparse.ArgumentParser()
-            parser.add_argument('--model_dir', default='experiments/VGG16_no_mask', help="Directory containing params.json")
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--model_dir', default='experiments/' + model_name + '_mask', help="Directory containing params.json")
 
         all_time_start = time.time()
         # Load the parameters from json file
@@ -283,7 +291,7 @@ if __name__ == '__main__':
         params.cuda = torch.cuda.is_available()
 
         #使用第二块gpu
-        torch.cuda.set_device(0)
+        torch.cuda.set_device(1)
 
 
         # 设置随机种子，种子相同，随机初始化相同，两次跑的结果相同
@@ -304,25 +312,47 @@ if __name__ == '__main__':
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
             # 得到训练测试数据
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir, train_shuffle=False)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
             logging.info("- done.")
-
-            if model_name == 'resnet50':
-                # ResNet
-                # net_depth = 10, 18, 34, 50, 101, 152, 200
+            if model_name == 'resnet10':
+                model = generate_model(params.net_depth).cuda()
+                print('Using ResNet'+str(params.net_depth))
+            elif model_name == 'resnet18':
+                model = generate_model(params.net_depth).cuda()
+                print('Using ResNet'+str(params.net_depth))
+            elif model_name == 'resnet34':
+                model = generate_model(params.net_depth).cuda()
+                print('Using ResNet'+str(params.net_depth))
+            elif model_name == 'resnet50':
+                model = generate_model(params.net_depth).cuda()
+                print('Using ResNet'+str(params.net_depth))
+            elif model_name == 'resnet100':
+                model = generate_model(params.net_depth).cuda()
+                print('Using ResNet'+str(params.net_depth))
+            elif model_name == 'resnet152':
+                model = generate_model(params.net_depth).cuda()
+                print('Using ResNet'+str(params.net_depth))
+            elif model_name == 'resnet200':
                 model = generate_model(params.net_depth).cuda()
                 print('Using ResNet'+str(params.net_depth))
             elif model_name == 'googlenet':
-                # GoogLeNet
                 model = googlenet().cuda()
                 print('Using GoogLeNet')
-            elif model_name == 'vgg':
-                # VGG
+            elif model_name == 'vgg11':
+                model = vgg11_bn(params.dropout_rate).cuda()
+                print('Using VGG_11')
+            elif model_name == 'vgg13':
+                model = vgg13_bn(params.dropout_rate).cuda()
+                print('Using VGG_13')
+            elif model_name == 'vgg16':
                 model = vgg16_bn(params.dropout_rate).cuda()
                 print('Using VGG_16')
+            elif model_name == 'vgg19':
+                model = vgg19_bn(params.dropout_rate).cuda()
+                print('Using VGG_19')
 
 
             # 在pytorch中，输入数据的维数可以表示为（N,C,D,H,W），其中：N为batch_size，C为输入的通道数，D为深度（D这个维度上含有时序信息），H和W分别是输入图像的高和宽。

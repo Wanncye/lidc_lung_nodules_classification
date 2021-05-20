@@ -14,9 +14,9 @@ class VGG(nn.Module):
             nn.Linear(4096, 4096),
             nn.ReLU(True),
             nn.Dropout(dropout_rate),
-            nn.Linear(4096, 512),
-            nn.Linear(512, num_classes),
         )
+        self.fc1 = nn.Linear(4096, 512)
+        self.fc2 = nn.Linear(512, num_classes)
         if init_weights:
             self._initialize_weights()
 
@@ -24,7 +24,9 @@ class VGG(nn.Module):
         x = self.features(x)
         x = x.view(x.size(0), -1)  #16*8192
         x = self.classifier(x)
-        return x
+        x1 = self.fc1(x)    #得到的512维特征
+        x2 = self.fc2(x1)
+        return x2, x1
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -70,8 +72,8 @@ def vgg11(**kwargs):
     return model
 
 
-def vgg11_bn(**kwargs):
-    model = VGG(make_layers(cfg['A'], batch_norm=True), **kwargs)
+def vgg11_bn(dropout_rate,**kwargs):
+    model = VGG(make_layers(cfg['A'], batch_norm=True), dropout_rate, **kwargs)
     return model
 
 
@@ -80,8 +82,8 @@ def vgg13(**kwargs):
     return model
 
 
-def vgg13_bn(**kwargs):
-    model = VGG(make_layers(cfg['B'], batch_norm=True), **kwargs)
+def vgg13_bn(dropout_rate,**kwargs):
+    model = VGG(make_layers(cfg['B'], batch_norm=True), dropout_rate, **kwargs)
     return model
 
 
@@ -100,8 +102,8 @@ def vgg19(**kwargs):
     return model
 
 
-def vgg19_bn(**kwargs):
-    model = VGG(make_layers(cfg['E'], batch_norm=True), **kwargs)
+def vgg19_bn(dropout_rate,**kwargs):
+    model = VGG(make_layers(cfg['E'], batch_norm=True), dropout_rate, **kwargs)
     return model
 
 

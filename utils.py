@@ -10,7 +10,9 @@ import glob
 from tqdm.std import tqdm
 
 import csv
-
+from model.threeDresnet import generate_model
+from model.threeDGoogleNet import googlenet
+from model.threeDVGG import vgg16_bn, vgg11_bn, vgg13_bn, vgg19_bn
 import visdom
 import time
 import numpy as np
@@ -22,9 +24,6 @@ from torch.autograd import Variable
 import torch 
 import model.data_loader as data_loader
 from tqdm import tqdm
-from model.threeDresnet_feature import generate_model
-from model.threeDVGG_feature import vgg16_bn
-from model.threeDGoogleNet_feature import googlenet
 torch.cuda.set_device(0)
 from matplotlib import pyplot as plt
 
@@ -142,10 +141,10 @@ def save_checkpoint(state, is_best, checkpoint, N_folder, params):
         print("Checkpoint Directory does not exist! Making directory {}".format(checkpoint))
         os.mkdir(checkpoint)
 
-    # torch.save(state, filepath)  #不保存最后的
     if is_best:
         torch.save(state, filepath)
-        # shutil.copyfile(filepath, os.path.join(checkpoint, 'folder.'+ str(N_folder)+ '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha)+'.best.pth.tar'))
+    return filepath
+        
 
 
 def load_checkpoint(checkpoint, model, optimizer=None):

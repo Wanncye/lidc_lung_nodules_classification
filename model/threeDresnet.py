@@ -241,11 +241,11 @@ class ResNet(nn.Module):
 
         x = x.view(x.size(0), -1)
         # print("after view:",x.shape)
-        x = self.fc1(x)
-        x = self.fc2(x)
+        x1 = self.fc1(x)
+        x2 = self.fc2(x1)
         # print("after fc:",x.shape)
         # print(x)
-        return x
+        return x2, x1
 
 
 def generate_model(model_depth, **kwargs):

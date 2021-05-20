@@ -128,10 +128,10 @@ class GoogleNet(nn.Module):
         x = self.avgpool(x)
         x = self.dropout(x)
         x = x.view(x.size()[0], -1)
-        x = self.linear1(x)
-        x = self.linear2(x)
+        x1 = self.linear1(x)
+        x2 = self.linear2(x1)
 
-        return x
+        return x2,x1
 
 def googlenet():
     return GoogleNet()
