@@ -251,7 +251,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                 _, feature = model(x.cuda())
                 test_feature[(i*16):((i+1)*16), :] = feature.detach()
             torch.save(train_feature,'./data/mask_feature/' + model_name + '_train.pt')
-            torch.save(train_feature,'./data/mask_feature/' + model_name + '_test.pt')
+            torch.save(test_feature,'./data/mask_feature/' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
         last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_last_weights.json")
         utils.save_dict_to_json(val_metrics, last_json_path)
@@ -290,7 +290,8 @@ if __name__ == '__main__':
         params.cuda = torch.cuda.is_available()
 
         #使用第二块gpu
-        torch.cuda.set_device(1)
+        torch.cuda.set_device(0)
+        torch.cuda.empty_cache()
 
 
         # 设置随机种子，种子相同，随机初始化相同，两次跑的结果相同

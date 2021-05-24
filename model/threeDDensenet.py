@@ -51,24 +51,13 @@ class DenseNet_BC(nn.Module):
         # 初始的卷积为filter:2倍的growth_rate
         num_init_feature = 2 * growth_rate
 
-        # 表示cifar-10
-        if num_classes == 10:
+        # 表示LIDC
+        if num_classes == 2:
             self.features = nn.Sequential(OrderedDict([
                 ('conv0', nn.Conv3d(1, num_init_feature,
                                     kernel_size=3, stride=1,
                                     padding=1, bias=False)),
             ]))
-        else:
-            self.features = nn.Sequential(OrderedDict([
-                ('conv0', nn.Conv3d(1, num_init_feature,
-                                    kernel_size=3, stride=1,
-                                    padding=1, bias=False)),
-                ('norm0', nn.BatchNorm3d(num_init_feature)),
-                ('relu0', nn.ReLU(inplace=True)),
-                ('pool0', nn.MaxPool3d(kernel_size=3, stride=2, padding=1))
-            ]))
-
-
 
         num_feature = num_init_feature
         for i, num_layers in enumerate(block_config):

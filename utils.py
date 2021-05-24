@@ -13,6 +13,8 @@ import csv
 from model.threeDresnet import generate_model
 from model.threeDGoogleNet import googlenet
 from model.threeDVGG import vgg16_bn, vgg11_bn, vgg13_bn, vgg19_bn
+from model.threeDDensenet import DenseNet121, DenseNet161, DenseNet169, DenseNet201
+
 import visdom
 import time
 import numpy as np
@@ -566,113 +568,142 @@ def feature_extract():
     test_dl = dataloaders['test']
     test_len = 160
     feature_len = 512
-    googlenet_train_feature = torch.zeros((train_len,feature_len))
     googlenet_test_feature = torch.zeros((test_len,feature_len))
-    resnet_train_feature = torch.zeros((train_len,feature_len))
-    resnet_test_feature = torch.zeros((test_len,feature_len))
-    vgg_train_feature = torch.zeros((train_len,feature_len))
-    vgg_test_feature = torch.zeros((test_len,feature_len))
-    hog_train_feature = torch.zeros((train_len,feature_len))
-    hog_test_feature = torch.zeros((test_len,feature_len))
-    lbp_train_feature = torch.zeros((train_len,feature_len))
-    lbp_test_feature = torch.zeros((test_len,feature_len))
-    glcm_train_feature = torch.zeros((train_len,feature_len))
-    glcm_test_feature = torch.zeros((test_len,feature_len))
-    train_label = torch.zeros((train_len))
-    test_label = torch.zeros((test_len))
-
-
-    # lbp提取特征
-    with tqdm(total=len(train_dl)+len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(train_dl):
-            feature = torch.from_numpy(LBP(x))
-            lbp_train_feature[i] = feature
-            t.update()
-        for i, (x, target, _) in enumerate(test_dl):
-            feature = torch.from_numpy(LBP(x))
-            lbp_test_feature[i] = feature
-            t.update()
-            
-    # hog提取特征
-    with tqdm(total=len(train_dl)+len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(train_dl):
-            feature = torch.from_numpy(HOG(x))
-            hog_train_feature[i] = feature
-            t.update()
-        for i, (x, target, _) in enumerate(test_dl):
-            feature = torch.from_numpy(HOG(x))
-            hog_test_feature[i] = feature
-            t.update()
-
-    # glcm提取特征
-    with tqdm(total=len(train_dl)+len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(train_dl):
-            feature = torch.from_numpy(GLCM(x))
-            glcm_train_feature[i] = feature
-            t.update()
-        for i, (x, target, _) in enumerate(test_dl):
-            feature = torch.from_numpy(GLCM(x))
-            glcm_test_feature[i] = feature
-            t.update()
+    resnet10_test_feature = torch.zeros((test_len,feature_len))
+    resnet18_test_feature = torch.zeros((test_len,feature_len))
+    resnet34_test_feature = torch.zeros((test_len,feature_len))
+    resnet50_test_feature = torch.zeros((test_len,feature_len))
+    resnet101_test_feature = torch.zeros((test_len,feature_len))
+    resnet152_test_feature = torch.zeros((test_len,feature_len))
+    resnet200_test_feature = torch.zeros((test_len,feature_len))
+    vgg11_test_feature = torch.zeros((test_len,feature_len))
+    vgg13_test_feature = torch.zeros((test_len,feature_len))
+    vgg16_test_feature = torch.zeros((test_len,feature_len))
+    vgg19_test_feature = torch.zeros((test_len,feature_len))
 
     # #googlenet提取特征
     model = googlenet()
     #strict=False 使得预训练模型参数中和新模型对应上的参数会被载入，对应不上或没有的参数被抛弃
-    model.load_state_dict(torch.load('./experiments/GoogleNet_no_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(train_dl)+len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(train_dl):
-            feature = model(x)
-            googlenet_train_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            train_label[i*batch_size:(i+1)*batch_size] = target.detach()
-            t.update()
+    model.load_state_dict(torch.load('./experiments/googlenet_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
         for i, (x, target, _) in enumerate(test_dl):
-            feature = model(x)
+            _, feature = model(x)
             googlenet_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            test_label[i*batch_size:(i+1)*batch_size] = target.detach()
             t.update()
 
-    # #resnet50提取特征
+    model = generate_model(10)
+    model.load_state_dict(torch.load('./experiments/resnet10_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
+        for i, (x, target, _) in enumerate(test_dl):
+            _, feature = model(x)
+            resnet10_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            t.update()
+
+    model = generate_model(18)
+    model.load_state_dict(torch.load('./experiments/resnet18_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
+        for i, (x, target, _) in enumerate(test_dl):
+            _, feature = model(x)
+            resnet18_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            t.update()
+
+    model = generate_model(34)
+    model.load_state_dict(torch.load('./experiments/resnet34_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
+        for i, (x, target, _) in enumerate(test_dl):
+            _, feature = model(x)
+            resnet34_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            t.update()
+    
     model = generate_model(50)
-    #strict=False 使得预训练模型参数中和新模型对应上的参数会被载入，对应不上或没有的参数被抛弃
-    model.load_state_dict(torch.load('./experiments/resnet50_no_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(train_dl)+len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(train_dl):
-            feature = model(x)
-            resnet_train_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
+    model.load_state_dict(torch.load('./experiments/resnet50_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
         for i, (x, target, _) in enumerate(test_dl):
-            feature = model(x)
-            resnet_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            _, feature = model(x)
+            resnet50_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            t.update()
+    
+    model = generate_model(101)
+    model.load_state_dict(torch.load('./experiments/resnet101_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
+        for i, (x, target, _) in enumerate(test_dl):
+            _, feature = model(x)
+            resnet101_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
             t.update()
 
-    # #resnet50提取特征
+    model = generate_model(152)
+    model.load_state_dict(torch.load('./experiments/resnet152_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
+        for i, (x, target, _) in enumerate(test_dl):
+            _, feature = model(x)
+            resnet152_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            t.update()
+
+    model = generate_model(200)
+    model.load_state_dict(torch.load('./experiments/resnet200_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
+        for i, (x, target, _) in enumerate(test_dl):
+            _, feature = model(x)
+            resnet200_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            t.update()
+
+    model = vgg11_bn(0.5)
+    model.load_state_dict(torch.load('./experiments/vgg11_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
+        for i, (x, target, _) in enumerate(test_dl):
+            _, feature = model(x)
+            vgg11_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            t.update()
+    
+    model = vgg13_bn(0.5)
+    model.load_state_dict(torch.load('./experiments/vgg13_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
+        for i, (x, target, _) in enumerate(test_dl):
+            _, feature = model(x)
+            vgg13_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            t.update()
+
     model = vgg16_bn(0.5)
-    #strict=False 使得预训练模型参数中和新模型对应上的参数会被载入，对应不上或没有的参数被抛弃
-    model.load_state_dict(torch.load('./experiments/VGG16_no_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(train_dl)+len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(train_dl):
-            feature = model(x)
-            vgg_train_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
+    model.load_state_dict(torch.load('./experiments/vgg16_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
         for i, (x, target, _) in enumerate(test_dl):
-            feature = model(x)
-            vgg_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            _, feature = model(x)
+            vgg16_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
             t.update()
 
-    torch.save(googlenet_train_feature,'./data/mask_feature/googlenet_train_feature.pt')
-    torch.save(googlenet_test_feature,'./data/mask_feature/googlenet_test_feature.pt')
-    torch.save(resnet_train_feature,'./data/mask_feature/resnet_train_feature.pt')
-    torch.save(resnet_test_feature,'./data/mask_feature/resnet_test_feature.pt')
-    torch.save(vgg_train_feature,'./data/mask_feature/vgg_train_feature.pt')
-    torch.save(vgg_test_feature,'./data/mask_feature/vgg_test_feature.pt')
-    torch.save(hog_train_feature,'./data/mask_feature/hog_train_feature.pt')
-    torch.save(hog_test_feature,'./data/mask_feature/hog_test_feature.pt')
-    torch.save(lbp_train_feature,'./data/mask_feature/lbp_train_feature.pt')
-    torch.save(lbp_test_feature,'./data/mask_feature/lbp_test_feature.pt')
-    torch.save(glcm_train_feature,'./data/mask_feature/glcm_train_feature.pt')
-    torch.save(glcm_test_feature,'./data/mask_feature/glcm_test_feature.pt')
-    torch.save(train_label,'./data/mask_feature/train_label.pt')
-    torch.save(test_label,'./data/mask_feature/test_label.pt')
+    model = vgg19_bn(0.5)
+    model.load_state_dict(torch.load('./experiments/vgg19_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(test_dl)) as t:
+        for i, (x, target, _) in enumerate(test_dl):
+            _, feature = model(x)
+            vgg19_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            t.update()
+
+    googlenet_test_feature = torch.zeros((test_len,feature_len))
+    resnet10_test_feature = torch.zeros((test_len,feature_len))
+    resnet18_test_feature = torch.zeros((test_len,feature_len))
+    resnet34_test_feature = torch.zeros((test_len,feature_len))
+    resnet50_test_feature = torch.zeros((test_len,feature_len))
+    resnet101_test_feature = torch.zeros((test_len,feature_len))
+    resnet152_test_feature = torch.zeros((test_len,feature_len))
+    resnet200_test_feature = torch.zeros((test_len,feature_len))
+    vgg11_test_feature = torch.zeros((test_len,feature_len))
+    vgg13_test_feature = torch.zeros((test_len,feature_len))
+    vgg16_test_feature = torch.zeros((test_len,feature_len))
+    vgg19_test_feature = torch.zeros((test_len,feature_len))
+
+    torch.save(googlenet_test_feature,'./data/mask_feature/googlenet_test.pt')
+    torch.save(resnet10_test_feature,'./data/mask_feature/resnet10_test.pt')
+    torch.save(resnet18_test_feature,'./data/mask_feature/resnet18_test.pt')
+    torch.save(resnet34_test_feature,'./data/mask_feature/resnet34_test.pt')
+    torch.save(resnet50_test_feature,'./data/mask_feature/resnet50_test.pt')
+    torch.save(resnet101_test_feature,'./data/mask_feature/resnet101_test.pt')
+    torch.save(resnet152_test_feature,'./data/mask_feature/resnet152_test.pt')
+    torch.save(resnet200_test_feature,'./data/mask_feature/resnet200_test.pt')
+    torch.save(vgg11_test_feature,'./data/mask_feature/vgg11_test.pt')
+    torch.save(vgg13_test_feature,'./data/mask_feature/vgg13_test.pt')
+    torch.save(vgg16_test_feature,'./data/mask_feature/vgg16_test.pt')
+    torch.save(vgg19_test_feature,'./data/mask_feature/vgg19_test.pt')
 
 def numpy_to_tensor_and_save():
     hog_train_feature = torch.from_numpy(np.load('./data/feature/hog_train_feature.pt.npy'))
@@ -1186,13 +1217,13 @@ def caculate_six_method_predict_similarity():
     return sim_matrix/160
 
 if __name__ == '__main__':
-    caculate_six_method_predict_similarity()
+    # caculate_six_method_predict_similarity()
     # get_test_name_and_save()
     # svm_classification_gcn_middle_feature()
     # gcn_feature_histogram()
     # gcn_feature_line()
     # get_gcn_feature()
-    # feature_extract()
+    feature_extract()
     # numpy_to_tensor_and_save()
     # 制作5折交叉验证数据集
     # data_path = './data/nodules3d_128_npy'
