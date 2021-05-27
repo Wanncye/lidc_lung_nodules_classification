@@ -10,9 +10,9 @@ mask_dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch
 mask_train_dl = dataloaders['train']
 mask_test_dl = dataloaders['test']
 
-for i, (x, target, _) in enumerate(test_dl):
+for i, (x, target, file_name) in enumerate(test_dl):
     if i == 0:
-        print(target)
+        print(file_name[0])
 for i, (x, target, _) in enumerate(mask_test_dl):
     if i == 0:
         print(target)

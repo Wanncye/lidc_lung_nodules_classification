@@ -1203,14 +1203,105 @@ def caculate_six_method_predict_similarity():
             cord += 1
     return sim_matrix/160
 
+
+#提取15种特征的10个样本（5个正样本，5个负样本）的512维特征，写进txt文档中
+def exract_15_feature_10_sample_write_in_txt():
+    googlenet_train_feature = torch.load('./data/feature/googlenet_train.pt')
+    googlenet_test_feature = torch.load('./data/feature/googlenet_test.pt')
+    resnet10_train_feature = torch.load('./data/feature/resnet10_train.pt')
+    resnet10_test_feature = torch.load('./data/feature/resnet10_test.pt')
+    resnet18_train_feature = torch.load('./data/feature/resnet18_train.pt')
+    resnet18_test_feature = torch.load('./data/feature/resnet18_test.pt')
+    resnet34_train_feature = torch.load('./data/feature/resnet34_train.pt')
+    resnet34_test_feature = torch.load('./data/feature/resnet34_test.pt')
+    resnet50_train_feature = torch.load('./data/feature/resnet50_train.pt')
+    resnet50_test_feature = torch.load('./data/feature/resnet50_test.pt')
+    resnet101_train_feature = torch.load('./data/feature/resnet101_train.pt')
+    resnet101_test_feature = torch.load('./data/feature/resnet101_test.pt')
+    resnet152_train_feature = torch.load('./data/feature/resnet152_train.pt')
+    resnet152_test_feature = torch.load('./data/feature/resnet152_test.pt')
+    resnet200_train_feature = torch.load('./data/feature/resnet200_train.pt')
+    resnet200_test_feature = torch.load('./data/feature/resnet200_test.pt')
+    vgg11_train_feature = torch.load('./data/feature/vgg11_train.pt')
+    vgg11_test_feature = torch.load('./data/feature/vgg11_test.pt')
+    vgg13_train_feature = torch.load('./data/feature/vgg13_train.pt')
+    vgg13_test_feature = torch.load('./data/feature/vgg13_test.pt')
+    vgg16_train_feature = torch.load('./data/feature/vgg16_train.pt')
+    vgg16_test_feature = torch.load('./data/feature/vgg16_test.pt')
+    vgg19_train_feature = torch.load('./data/feature/vgg19_train.pt')
+    vgg19_test_feature = torch.load('./data/feature/vgg19_test.pt')
+    hog_train_feature = torch.load('./data/feature/hog_train_feature.pt')
+    hog_test_feature = torch.load('./data/feature/hog_test_feature.pt')
+    lbp_train_feature = torch.load('./data/feature/lbp_train_feature.pt')
+    lbp_test_feature = torch.load('./data/feature/lbp_test_feature.pt')
+    glcm_train_feature = torch.load('./data/feature/glcm_train_feature.pt')
+    glcm_test_feature = torch.load('./data/feature/glcm_test_feature.pt')
+    train_label = torch.load('./data/feature/train_label.pt')
+    test_label = torch.load('./data/feature/test_label.pt')
+
+    import model.data_loader as data_loader
+    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir='data/nodules3d_128_npy', train_shuffle=False)
+    train_dl = dataloaders['train']
+    test_dl = dataloaders['test']
+    filename_list = []
+    for i, (x, target, file_name) in enumerate(train_dl):
+        filename_list.append(file_name[0])
+    flag_positive = 0
+    flag_negative = 0
+    for i in range(100):
+        if train_label[i] == 0: # 负样本
+            if flag_negative == 5:
+                continue
+            f = open('./experiments/feature_15_sample_10/'+filename_list[i]+'.txt','w')
+            f.write('googlenet ' + str(googlenet_train_feature[i]) + '\n')
+            f.write('resnet10_train_feature ' + str(resnet10_train_feature[i]) + '\n')
+            f.write('resnet18_train_feature ' + str(resnet18_train_feature[i]) + '\n')
+            f.write('resnet34_train_feature ' + str(resnet34_train_feature[i]) + '\n')
+            f.write('resnet50_train_feature ' + str(resnet50_train_feature[i]) + '\n')
+            f.write('resnet101_train_feature ' + str(resnet101_train_feature[i]) + '\n')
+            f.write('resnet152_train_feature ' + str(resnet152_train_feature[i]) + '\n')
+            f.write('resnet200_train_feature ' + str(resnet200_train_feature[i]) + '\n')
+            f.write('vgg11_train_feature ' + str(vgg11_train_feature[i]) + '\n')
+            f.write('vgg13_train_feature ' + str(vgg13_train_feature[i]) + '\n')
+            f.write('vgg16_train_feature ' + str(vgg16_train_feature[i]) + '\n')
+            f.write('vgg19_train_feature ' + str(vgg19_train_feature[i]) + '\n')
+            f.write('hog_train_feature ' + str(hog_train_feature[i]) + '\n')
+            f.write('lbp_train_feature ' + str(lbp_train_feature[i]) + '\n')
+            f.write('glcm_train_feature ' + str(glcm_train_feature[i]) + '\n')
+            f.close()
+            flag_negative += 1
+        if train_label[i] == 1: # 负样本
+            if flag_positive == 5:
+                continue
+            f = open('./experiments/feature_15_sample_10/'+filename_list[i]+'.txt','w')
+            f.write('googlenet ' + str(googlenet_train_feature[i]) + '\n')
+            f.write('resnet10_train_feature ' + str(resnet10_train_feature[i]) + '\n')
+            f.write('resnet18_train_feature ' + str(resnet18_train_feature[i]) + '\n')
+            f.write('resnet34_train_feature ' + str(resnet34_train_feature[i]) + '\n')
+            f.write('resnet50_train_feature ' + str(resnet50_train_feature[i]) + '\n')
+            f.write('resnet101_train_feature ' + str(resnet101_train_feature[i]) + '\n')
+            f.write('resnet152_train_feature ' + str(resnet152_train_feature[i]) + '\n')
+            f.write('resnet200_train_feature ' + str(resnet200_train_feature[i]) + '\n')
+            f.write('vgg11_train_feature ' + str(vgg11_train_feature[i]) + '\n')
+            f.write('vgg13_train_feature ' + str(vgg13_train_feature[i]) + '\n')
+            f.write('vgg16_train_feature ' + str(vgg16_train_feature[i]) + '\n')
+            f.write('vgg19_train_feature ' + str(vgg19_train_feature[i]) + '\n')
+            f.write('hog_train_feature ' + str(hog_train_feature[i]) + '\n')
+            f.write('lbp_train_feature ' + str(lbp_train_feature[i]) + '\n')
+            f.write('glcm_train_feature ' + str(glcm_train_feature[i]) + '\n')
+            f.close()
+            flag_positive += 1
+                
+            
 if __name__ == '__main__':
+    exract_15_feature_10_sample_write_in_txt()
     # caculate_six_method_predict_similarity()
     # get_test_name_and_save()
     # svm_classification_gcn_middle_feature()
     # gcn_feature_histogram()
     # gcn_feature_line()
     # get_gcn_feature()
-    feature_extract()
+    # feature_extract()
     # numpy_to_tensor_and_save()
     # 制作5折交叉验证数据集
     # data_path = './data/nodules3d_128_npy'
