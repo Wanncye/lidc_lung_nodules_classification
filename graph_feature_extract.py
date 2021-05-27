@@ -94,14 +94,14 @@ for out_index in range(1):
     # adj = torch.from_numpy(caculate_six_method_predict_similarity()).float()
     adj = Variable(torch.ones((node_num, node_num)))
     # #将邻接矩阵改一改,随机置1
-    # for i in range(node_num):
-    #     for j in range(node_num):
-    #         random_num = np.random.rand()
-    #         if out_index < 200: 
-    #             if random_num > 0.5:
-    #                 adj[i,j] = 0
-    #         elif out_index >= 200: #大于200的循环随机数，而不是0-1矩阵
-    #             adj[i,j] = random_num
+    for i in range(node_num):
+        for j in range(node_num):
+            random_num = np.random.rand()
+            if out_index < 200: 
+                if random_num > 0.5:
+                    adj[i,j] = 0
+            elif out_index >= 200: #大于200的循环随机数，而不是0-1矩阵
+                adj[i,j] = random_num
 
     best_test_acc = 0
     best_epoc = 0

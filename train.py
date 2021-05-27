@@ -25,6 +25,7 @@ from model.threeDresnet import generate_model
 from model.threeDGoogleNet import googlenet
 from model.threeDVGG import vgg16_bn, vgg11_bn, vgg13_bn, vgg19_bn
 from model.threeDDensenet import DenseNet121, DenseNet161, DenseNet169, DenseNet201
+from model.threeDAlexnet import alexnet
 
 import netron     
 import torch.onnx
@@ -271,8 +272,8 @@ if __name__ == '__main__':
     # model_list=['vgg11',  'vgg13', 'vgg16', 'vgg19', 
     #             'googlenet', 
     #             'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200']
-    model_list=['googlenet']
-    # model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']
+    model_list=['alexnet']
+    # model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #densenet参数太多，OOM
         
     for model_name in model_list:
 
@@ -354,18 +355,21 @@ if __name__ == '__main__':
             elif model_name == 'vgg19':
                 model = vgg19_bn(params.dropout_rate).cuda()
                 print('Using VGG_19')
-            # elif model_name == 'densenet121':
-            #     model = DenseNet121().cuda()
-            #     print('Using densenet121')
-            # elif model_name == 'densenet161':
-            #     model = DenseNet161().cuda()
-            #     print('Using densenet161')
-            # elif model_name == 'densenet169':
-            #     model = DenseNet169().cuda()
-            #     print('Using densenet169')
-            # elif model_name == 'densenet201':
-            #     model = DenseNet201().cuda()
-            #     print('Using densenet201')
+            elif model_name == 'densenet121':
+                model = DenseNet121().cuda()
+                print('Using densenet121')
+            elif model_name == 'densenet161':
+                model = DenseNet161().cuda()
+                print('Using densenet161')
+            elif model_name == 'densenet169':
+                model = DenseNet169().cuda()
+                print('Using densenet169')
+            elif model_name == 'densenet201':
+                model = DenseNet201().cuda()
+                print('Using densenet201')
+            elif model_name == 'alexnet':
+                model = alexnet().cuda()
+                print('Using alexnet')
 
             # 在pytorch中，输入数据的维数可以表示为（N,C,D,H,W），其中：N为batch_size，C为输入的通道数，D为深度（D这个维度上含有时序信息），H和W分别是输入图像的高和宽。
             #可视化网络结构
