@@ -26,6 +26,8 @@ from model.threeDGoogleNet import googlenet
 from model.threeDVGG import vgg16_bn, vgg11_bn, vgg13_bn, vgg19_bn
 from model.threeDDensenet import DenseNet121, DenseNet161, DenseNet169, DenseNet201
 from model.threeDAlexnet import alexnet
+from model.threeDLenet5 import lenet5
+from model.Attention import attention56, attention92
 
 import netron     
 import torch.onnx
@@ -271,9 +273,11 @@ if __name__ == '__main__':
 
     # model_list=['vgg11',  'vgg13', 'vgg16', 'vgg19', 
     #             'googlenet', 
-    #             'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200']
-    model_list=['alexnet']
+    #             'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200',
+    #             'alexnet']
+    # model_list=['lenet5'] #不起作用
     # model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #densenet参数太多，OOM
+    model_list=['attention56', 'attention92'] 
         
     for model_name in model_list:
 
@@ -370,6 +374,15 @@ if __name__ == '__main__':
             elif model_name == 'alexnet':
                 model = alexnet().cuda()
                 print('Using alexnet')
+            elif model_name == 'lenet5':
+                model = lenet5().cuda()
+                print('Using lenet5')
+            elif model_name == 'attention56':
+                model = attention56().cuda()
+                print('Using attention56')
+            elif model_name == 'attention92':
+                model = attention92().cuda()
+                print('Using attention92')
 
             # 在pytorch中，输入数据的维数可以表示为（N,C,D,H,W），其中：N为batch_size，C为输入的通道数，D为深度（D这个维度上含有时序信息），H和W分别是输入图像的高和宽。
             #可视化网络结构
