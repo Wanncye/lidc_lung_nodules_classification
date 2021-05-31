@@ -28,6 +28,8 @@ from model.threeDDensenet import DenseNet121, DenseNet161, DenseNet169, DenseNet
 from model.threeDAlexnet import alexnet
 from model.threeDLenet5 import lenet5
 from model.Attention import attention56, attention92
+from model.InceptionV3 import inceptionv3
+from model.InceptionV4 import inceptionv4, inception_resnet_v2
 
 import netron     
 import torch.onnx
@@ -278,6 +280,9 @@ if __name__ == '__main__':
     # model_list=['lenet5'] #不起作用
     # model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #densenet参数太多，OOM
     model_list=['attention56', 'attention92'] 
+    model_list=['inceptionv3'] 
+    model_list=['inceptionv4']
+    model_list=['inception_resnet_v2']
         
     for model_name in model_list:
 
@@ -383,6 +388,15 @@ if __name__ == '__main__':
             elif model_name == 'attention92':
                 model = attention92().cuda()
                 print('Using attention92')
+            elif model_name == 'inceptionv3':
+                model = inceptionv3().cuda()
+                print('Using inceptionv3')
+            elif model_name == 'inceptionv4':
+                model = inceptionv4().cuda()
+                print('Using inceptionv4')
+            elif model_name == 'inception_resnet_v2':
+                model = inception_resnet_v2().cuda()
+                print('Using inception_resnet_v2')
 
             # 在pytorch中，输入数据的维数可以表示为（N,C,D,H,W），其中：N为batch_size，C为输入的通道数，D为深度（D这个维度上含有时序信息），H和W分别是输入图像的高和宽。
             #可视化网络结构
