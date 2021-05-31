@@ -30,6 +30,7 @@ from model.threeDLenet5 import lenet5
 from model.Attention import attention56, attention92
 from model.InceptionV3 import inceptionv3
 from model.InceptionV4 import inceptionv4, inception_resnet_v2
+from model.mobilenet import mobilenet
 
 import netron     
 import torch.onnx
@@ -283,6 +284,7 @@ if __name__ == '__main__':
     model_list=['inceptionv3'] 
     model_list=['inceptionv4']
     model_list=['inception_resnet_v2']
+    model_list=['mobilenet']
         
     for model_name in model_list:
 
@@ -397,6 +399,9 @@ if __name__ == '__main__':
             elif model_name == 'inception_resnet_v2':
                 model = inception_resnet_v2().cuda()
                 print('Using inception_resnet_v2')
+            elif model_name == 'mobilenet':
+                model = mobilenet().cuda()
+                print('Using mobilenet')
 
             # 在pytorch中，输入数据的维数可以表示为（N,C,D,H,W），其中：N为batch_size，C为输入的通道数，D为深度（D这个维度上含有时序信息），H和W分别是输入图像的高和宽。
             #可视化网络结构
