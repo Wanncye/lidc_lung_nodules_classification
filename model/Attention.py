@@ -25,24 +25,24 @@ class PreActResidualUnit(nn.Module):
         bottleneck_channels = int(out_channels / 4)
         self.residual_function = nn.Sequential(
             #1x1 conv
-            nn.BatchNorm2d(in_channels),
+            nn.BatchNorm3d(in_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels, bottleneck_channels, 1, stride),
+            nn.Conv3d(in_channels, bottleneck_channels, 1, stride),
 
             #3x3 conv
-            nn.BatchNorm2d(bottleneck_channels),
+            nn.BatchNorm3d(bottleneck_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(bottleneck_channels, bottleneck_channels, 3, padding=1),
+            nn.Conv3d(bottleneck_channels, bottleneck_channels, 3, padding=1),
 
             #1x1 conv
-            nn.BatchNorm2d(bottleneck_channels),
+            nn.BatchNorm3d(bottleneck_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(bottleneck_channels, out_channels, 1)
+            nn.Conv3d(bottleneck_channels, out_channels, 1)
         )
 
         self.shortcut = nn.Sequential()
         if stride != 2 or (in_channels != out_channels):
-            self.shortcut = nn.Conv2d(in_channels, out_channels, 1, stride=stride)
+            self.shortcut = nn.Conv3d(in_channels, out_channels, 1, stride=stride)
 
     def forward(self, x):
 
@@ -77,12 +77,12 @@ class AttentionModule1(nn.Module):
         self.shortcut_long = PreActResidualUnit(in_channels, out_channels, 1)
 
         self.sigmoid = nn.Sequential(
-            nn.BatchNorm2d(out_channels),
+            nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=1),
-            nn.BatchNorm2d(out_channels),
+            nn.Conv3d(out_channels, out_channels, kernel_size=1),
+            nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=1),
+            nn.Conv3d(out_channels, out_channels, kernel_size=1),
             nn.Sigmoid()
         )
 
@@ -93,28 +93,28 @@ class AttentionModule1(nn.Module):
         #with the smallest trunk output map size.
         ###Thus 3,2,1 max-pooling layers are used in mask branch with input size 56 * 56, 28 * 28, 14 * 14 respectively.
         x = self.pre(x)
-        input_size = (x.size(2), x.size(3))
+        input_size = (x.size(2), x.size(3), x.size(4))
 
         x_t = self.trunk(x)
 
         #first downsample out 28
-        x_s = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+        x_s = F.max_pool3d(x, kernel_size=3, stride=2, padding=1)
         x_s = self.soft_resdown1(x_s)
 
         #28 shortcut
-        shape1 = (x_s.size(2), x_s.size(3))
+        shape1 = (x_s.size(2), x_s.size(3), x_s.size(4))
         shortcut_long = self.shortcut_long(x_s)
 
         #seccond downsample out 14
-        x_s = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+        x_s = F.max_pool3d(x, kernel_size=3, stride=2, padding=1)
         x_s = self.soft_resdown2(x_s)
 
         #14 shortcut
-        shape2 = (x_s.size(2), x_s.size(3))
+        shape2 = (x_s.size(2), x_s.size(3), x_s.size(4))
         shortcut_short = self.soft_resdown3(x_s)
 
         #third downsample out 7
-        x_s = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+        x_s = F.max_pool3d(x, kernel_size=3, stride=2, padding=1)
         x_s = self.soft_resdown3(x_s)
 
         #mid
@@ -137,7 +137,7 @@ class AttentionModule1(nn.Module):
 
         x_s = self.sigmoid(x_s)
         x = (1 + x_s) * x_t
-        x = self.last(x)
+        x = self.last(x) #16, 256, 4, 64, 64
 
         return x
 
@@ -172,12 +172,12 @@ class AttentionModule2(nn.Module):
         self.shortcut = PreActResidualUnit(in_channels, out_channels, 1)
 
         self.sigmoid = nn.Sequential(
-            nn.BatchNorm2d(out_channels),
+            nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=1),
-            nn.BatchNorm2d(out_channels),
+            nn.Conv3d(out_channels, out_channels, kernel_size=1),
+            nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=1),
+            nn.Conv3d(out_channels, out_channels, kernel_size=1),
             nn.Sigmoid()
         )
 
@@ -185,20 +185,20 @@ class AttentionModule2(nn.Module):
 
     def forward(self, x):
         x = self.pre(x)
-        input_size = (x.size(2), x.size(3))
+        input_size = (x.size(2), x.size(3), x.size(4))
 
         x_t = self.trunk(x)
 
         #first downsample out 14
-        x_s = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+        x_s = F.max_pool3d(x, kernel_size=3, stride=2, padding=1)
         x_s = self.soft_resdown1(x_s)
 
         #14 shortcut
-        shape1 = (x_s.size(2), x_s.size(3))
+        shape1 = (x_s.size(2), x_s.size(3), x_s.size(4))
         shortcut = self.shortcut(x_s)
 
         #seccond downsample out 7
-        x_s = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+        x_s = F.max_pool3d(x, kernel_size=3, stride=2, padding=1)
         x_s = self.soft_resdown2(x_s)
 
         #mid
@@ -246,12 +246,12 @@ class AttentionModule3(nn.Module):
         self.shortcut = PreActResidualUnit(in_channels, out_channels, 1)
 
         self.sigmoid = nn.Sequential(
-            nn.BatchNorm2d(out_channels),
+            nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=1),
-            nn.BatchNorm2d(out_channels),
+            nn.Conv3d(out_channels, out_channels, kernel_size=1),
+            nn.BatchNorm3d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=1),
+            nn.Conv3d(out_channels, out_channels, kernel_size=1),
             nn.Sigmoid()
         )
 
@@ -259,12 +259,12 @@ class AttentionModule3(nn.Module):
 
     def forward(self, x):
         x = self.pre(x)
-        input_size = (x.size(2), x.size(3))
+        input_size = (x.size(2), x.size(3), x.size(4))
 
         x_t = self.trunk(x)
 
         #first downsample out 14
-        x_s = F.max_pool2d(x, kernel_size=3, stride=2, padding=1)
+        x_s = F.max_pool3d(x, kernel_size=3, stride=2, padding=1)
         x_s = self.soft_resdown1(x_s)
 
         #mid
@@ -299,8 +299,8 @@ class Attention(nn.Module):
 
         super().__init__()
         self.pre_conv = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv3d(1, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm3d(64),
             nn.ReLU(inplace=True)
         )
 
@@ -312,20 +312,21 @@ class Attention(nn.Module):
             PreActResidualUnit(2048, 2048, 1),
             PreActResidualUnit(2048, 2048, 1)
         )
-        self.avg = nn.AdaptiveAvgPool2d(1)
-        self.linear = nn.Linear(2048, 100)
+        self.avg = nn.AdaptiveAvgPool3d(1)
+        self.linear1 = nn.Linear(2048, 512)
+        self.linear2 = nn.Linear(512, 2)
 
     def forward(self, x):
-        x = self.pre_conv(x)
+        x = self.pre_conv(x) #16 64 8 128 128
         x = self.stage1(x)
         x = self.stage2(x)
         x = self.stage3(x)
         x = self.stage4(x)
-        x = self.avg(x)
+        x = self.avg(x) #16, 2048, 1, 1, 1
         x = x.view(x.size(0), -1)
-        x = self.linear(x)
-
-        return x
+        feature = self.linear1(x)
+        x = self.linear2(feature)
+        return x, feature
 
     def _make_stage(self, in_channels, out_channels, num, block):
 
