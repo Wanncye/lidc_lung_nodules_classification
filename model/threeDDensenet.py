@@ -45,7 +45,7 @@ class _Transition(nn.Sequential):
 
 class DenseNet_BC(nn.Module):
     def __init__(self, growth_rate=12, block_config=(6,12,24,16),
-                 bn_size=4, theta=0.5, num_classes=10):
+                 bn_size=4, theta=0.5, num_classes=2):
         super(DenseNet_BC, self).__init__()
 
         # 初始的卷积为filter:2倍的growth_rate
@@ -73,9 +73,10 @@ class DenseNet_BC(nn.Module):
 
         self.features.add_module('norm5', nn.BatchNorm3d(num_feature))
         self.features.add_module('relu5', nn.ReLU(inplace=True))
-        self.features.add_module('avg_pool', nn.AdaptiveAvgPool3d((1, 1)))
+        self.features.add_module('avg_pool', nn.AdaptiveAvgPool3d((1, 1, 1)))
 
-        self.classifier = nn.Linear(num_feature, num_classes)
+        self.fc1 = nn.Linear(num_feature, 512)
+        self.fc2 = nn.Linear(512, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
@@ -89,8 +90,9 @@ class DenseNet_BC(nn.Module):
     def forward(self, x):
         features = self.features(x)
         out = features.view(features.size(0), -1)
-        out = self.classifier(out)
-        return out
+        feature = self.fc1(out)
+        out = self.fc2(feature)
+        return out, feature
 
 
 # DenseNet_BC for ImageNet

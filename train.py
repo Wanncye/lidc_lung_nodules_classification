@@ -32,8 +32,9 @@ from model.InceptionV3 import inceptionv3
 from model.InceptionV4 import inceptionv4, inception_resnet_v2
 from model.mobilenet import mobilenet
 from model.mobilenetv2 import mobilenetv2
-from model.nasnet import nasnet
 from model.preactresnet import preactresnet18
+
+
 import netron     
 import torch.onnx
 
@@ -280,15 +281,14 @@ if __name__ == '__main__':
     #             'googlenet', 
     #             'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200',
     #             'alexnet']
-    # model_list=['lenet5'] #不起作用
-    model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #OOM
-    # model_list=['attention56', 'attention92'] 
-    # model_list=['inceptionv3']            #调整batchsize为8
-    # model_list=['inceptionv4']            #OOM
-    # model_list=['inception_resnet_v2']    #OOM
+    # model_list=['attention56', 'attention92']  #83.75% 81.25%
     # model_list=['mobilenet']              #69.75%
     # model_list=['mobilenetv2']            #77.63%
-    # model_list=['nasnet']                 #OOM,改小batchsize，但是还是有错误
+    # model_list=['lenet5'] #不起作用
+    # model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #调整batchsize为8可运行
+    # model_list=['inceptionv3']            #调整batchsize
+    # model_list=['inceptionv4']            #调整batchsize
+    # model_list=['inception_resnet_v2']    #调整batchsize
     # model_list=['preactresnet18']                 
     
 
@@ -311,7 +311,7 @@ if __name__ == '__main__':
         params.cuda = torch.cuda.is_available()
 
         #使用第二块gpu
-        torch.cuda.set_device(1)
+        torch.cuda.set_device(0)
         torch.cuda.empty_cache()
 
 

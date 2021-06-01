@@ -155,22 +155,22 @@ class InceptionB(nn.Module):
 
         self.branch7x7stack = nn.Sequential(
             BasicConv3d(input_channels, 192, kernel_size=1),
-            BasicConv3d(192, 192, kernel_size=(1, 7), padding=(0, 3)),
-            BasicConv3d(192, 224, kernel_size=(7, 1), padding=(3, 0)),
-            BasicConv3d(224, 224, kernel_size=(1, 7), padding=(0, 3)),
-            BasicConv3d(224, 256, kernel_size=(7, 1), padding=(3, 0))
+            BasicConv3d(192, 192, kernel_size=(1, 1, 7), padding=(0, 0, 3)),
+            BasicConv3d(192, 224, kernel_size=(1, 7, 1), padding=(0, 3, 0)),
+            BasicConv3d(224, 224, kernel_size=(1, 1, 7), padding=(0, 0, 3)),
+            BasicConv3d(224, 256, kernel_size=(1, 7, 1), padding=(0, 3, 0))
         )
 
         self.branch7x7 = nn.Sequential(
             BasicConv3d(input_channels, 192, kernel_size=1),
-            BasicConv3d(192, 224, kernel_size=(1, 7), padding=(0, 3)),
-            BasicConv3d(224, 256, kernel_size=(7, 1), padding=(3, 0))
+            BasicConv3d(192, 224, kernel_size=(1, 1, 7), padding=(0, 0, 3)),
+            BasicConv3d(224, 256, kernel_size=(1, 7, 1), padding=(0, 3, 0))
         )
 
         self.branch1x1 = BasicConv3d(input_channels, 384, kernel_size=1)
 
         self.branchpool = nn.Sequential(
-            nn.AvgPool3d(3, stride=1, padding=1),
+            nn.AvgPool3d((1, 3, 3), stride=1, padding=(0, 1, 1)),
             BasicConv3d(input_channels, 128, kernel_size=1)
         )
 
@@ -194,8 +194,8 @@ class ReductionB(nn.Module):
         super().__init__()
         self.branch7x7 = nn.Sequential(
             BasicConv3d(input_channels, 256, kernel_size=1),
-            BasicConv3d(256, 256, kernel_size=(1, 7), padding=(0, 3)),
-            BasicConv3d(256, 320, kernel_size=(7, 1), padding=(3, 0)),
+            BasicConv3d(256, 256, kernel_size=(1, 1, 7), padding=(0, 0, 3)),
+            BasicConv3d(256, 320, kernel_size=(1, 7, 1), padding=(0, 3, 0)),
             BasicConv3d(320, 320, kernel_size=3, stride=2, padding=1)
         )
 
@@ -226,20 +226,20 @@ class InceptionC(nn.Module):
 
         self.branch3x3stack = nn.Sequential(
             BasicConv3d(input_channels, 384, kernel_size=1),
-            BasicConv3d(384, 448, kernel_size=(1, 3), padding=(0, 1)),
-            BasicConv3d(448, 512, kernel_size=(3, 1), padding=(1, 0)),
+            BasicConv3d(384, 448, kernel_size=(1, 1, 3), padding=(0, 0, 1)),
+            BasicConv3d(448, 512, kernel_size=(1, 3, 1), padding=(0, 1, 0)),
         )
-        self.branch3x3stacka = BasicConv3d(512, 256, kernel_size=(1, 3), padding=(0, 1))
-        self.branch3x3stackb = BasicConv3d(512, 256, kernel_size=(3, 1), padding=(1, 0))
+        self.branch3x3stacka = BasicConv3d(512, 256, kernel_size=(1, 1, 3), padding=(0, 0, 1))
+        self.branch3x3stackb = BasicConv3d(512, 256, kernel_size=(1, 3, 1), padding=(0, 1, 0))
 
         self.branch3x3 = BasicConv3d(input_channels, 384, kernel_size=1)
-        self.branch3x3a = BasicConv3d(384, 256, kernel_size=(3, 1), padding=(1, 0))
-        self.branch3x3b = BasicConv3d(384, 256, kernel_size=(1, 3), padding=(0, 1))
+        self.branch3x3a = BasicConv3d(384, 256, kernel_size=(1, 3, 1), padding=(0, 1, 0))
+        self.branch3x3b = BasicConv3d(384, 256, kernel_size=(1, 1, 3), padding=(0, 0, 1))
 
         self.branch1x1 = BasicConv3d(input_channels, 256, kernel_size=1)
 
         self.branchpool = nn.Sequential(
-            nn.AvgPool3d(kernel_size=3, stride=1, padding=1),
+            nn.AvgPool3d(kernel_size=(1,3,3), stride=1, padding=(0,1,1)),
             BasicConv3d(input_channels, 256, kernel_size=1)
         )
 
@@ -283,7 +283,7 @@ class InceptionV4(nn.Module):
         self.inception_b = self._generate_inception_module(output_channels, 1024, B, InceptionB)
         self.reduction_b = ReductionB(1024)
         self.inception_c = self._generate_inception_module(1536, 1536, C, InceptionC)
-        self.avgpool = nn.AvgPool3d(7)
+        self.avgpool = nn.AvgPool3d((1,7,7))
 
         #"""Dropout (keep 0.8)"""
         self.dropout = nn.Dropout3d(1 - 0.8)
@@ -368,8 +368,8 @@ class InceptionResNetB(nn.Module):
         super().__init__()
         self.branch7x7 = nn.Sequential(
             BasicConv3d(input_channels, 128, kernel_size=1),
-            BasicConv3d(128, 160, kernel_size=(1, 7), padding=(0, 3)),
-            BasicConv3d(160, 192, kernel_size=(7, 1), padding=(3, 0))
+            BasicConv3d(128, 160, kernel_size=(1, 1, 7), padding=(0, 0, 3)),
+            BasicConv3d(160, 192, kernel_size=(1, 7, 1), padding=(0, 3, 0))
         )
 
         self.branch1x1 = BasicConv3d(input_channels, 192, kernel_size=1)
@@ -409,8 +409,8 @@ class InceptionResNetC(nn.Module):
         super().__init__()
         self.branch3x3 = nn.Sequential(
             BasicConv3d(input_channels, 192, kernel_size=1),
-            BasicConv3d(192, 224, kernel_size=(1, 3), padding=(0, 1)),
-            BasicConv3d(224, 256, kernel_size=(3, 1), padding=(1, 0))
+            BasicConv3d(192, 224, kernel_size=(1, 1, 3), padding=(0, 0, 1)),
+            BasicConv3d(224, 256, kernel_size=(1, 3, 1), padding=(0, 1, 0))
         )
 
         self.branch1x1 = BasicConv3d(input_channels, 192, kernel_size=1)
@@ -474,25 +474,25 @@ class InceptionResNetReductionB(nn.Module):
     def __init__(self, input_channels):
 
         super().__init__()
-        self.branchpool = nn.MaxPool3d(3, stride=2)
+        self.branchpool = nn.MaxPool3d((1,3,3), stride=(1,2,2))
 
         self.branch3x3a = nn.Sequential(
             BasicConv3d(input_channels, 256, kernel_size=1),
-            BasicConv3d(256, 384, kernel_size=3, stride=2)
+            BasicConv3d(256, 384, kernel_size=(1,3,3), stride=(1,2,2))
         )
 
         self.branch3x3b = nn.Sequential(
             BasicConv3d(input_channels, 256, kernel_size=1),
-            BasicConv3d(256, 288, kernel_size=3, stride=2)
+            BasicConv3d(256, 288, kernel_size=(1,3,3), stride=(1,2,2))
         )
 
         self.branch3x3stack = nn.Sequential(
             BasicConv3d(input_channels, 256, kernel_size=1),
-            BasicConv3d(256, 288, kernel_size=3, padding=1),
-            BasicConv3d(288, 320, kernel_size=3, stride=2)
+            BasicConv3d(256, 288, kernel_size=(1,3,3), padding=(0,1,1)),
+            BasicConv3d(288, 320, kernel_size=(1,3,3), stride=(1,2,2))
         )
 
-    def forward(self, x):
+    def forward(self, x):# x.shape = 2 62 62
         x = [
             self.branch3x3a(x),
             self.branch3x3b(x),
@@ -516,7 +516,7 @@ class InceptionResNetV2(nn.Module):
         self.inception_resnet_c = self._generate_inception_module(2146, 2048, C, InceptionResNetC)
 
         #6x6 featuresize
-        self.avgpool = nn.AdaptiveAvgPool3d((1, 1))
+        self.avgpool = nn.AdaptiveAvgPool3d((1, 1,1))
         #"""Dropout (keep 0.8)"""
         self.dropout = nn.Dropout3d(1 - 0.8)
         self.linear1 = nn.Linear(2048, 512)
@@ -537,7 +537,7 @@ class InceptionResNetV2(nn.Module):
         feature = self.relu(x)
         x = self.linear2(feature)
 
-        return x
+        return x, feature
 
     @staticmethod
     def _generate_inception_module(input_channels, output_channels, block_num, block):
