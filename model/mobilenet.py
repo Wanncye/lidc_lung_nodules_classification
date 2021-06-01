@@ -186,7 +186,7 @@ class MobileNet(nn.Module):
        )
 
        self.fc1 = nn.Linear(int(1024 * alpha), 512)
-       self.relu = nn.ReLU(replace=True)
+       self.relu = nn.ReLU(inplace=True)
        self.fc2 = nn.Linear(512, class_num)
        self.avg = nn.AdaptiveAvgPool3d(1)
 
@@ -200,8 +200,8 @@ class MobileNet(nn.Module):
 
         x = self.avg(x)
         x = x.view(x.size(0), -1)
-        x = self.fc1(x)
-        feature = self.relu(x)
+        feature = self.fc1(x)
+        # feature = self.relu(x)
         x = self.fc2(feature)
         return x,feature
 

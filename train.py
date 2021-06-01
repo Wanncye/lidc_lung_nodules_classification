@@ -31,7 +31,9 @@ from model.Attention import attention56, attention92
 from model.InceptionV3 import inceptionv3
 from model.InceptionV4 import inceptionv4, inception_resnet_v2
 from model.mobilenet import mobilenet
-
+from model.mobilenetv2 import mobilenetv2
+from model.nasnet import nasnet
+from model.preactresnet import preactresnet18
 import netron     
 import torch.onnx
 
@@ -253,10 +255,10 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                 test_feature = torch.zeros((160,512))
                 for i, (x, target, _) in enumerate(train_dataloader):
                     _, feature = model(x.cuda())
-                    train_feature[(i*16):((i+1)*16), :] = feature.detach()
+                    train_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
                 for i, (x, target, _) in enumerate(val_dataloader):
                     _, feature = model(x.cuda())
-                    test_feature[(i*16):((i+1)*16), :] = feature.detach()
+                    test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
                 torch.save(train_feature,'./data/feature/' + model_name + '_train.pt')
                 torch.save(test_feature,'./data/feature/' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
@@ -279,12 +281,18 @@ if __name__ == '__main__':
     #             'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200',
     #             'alexnet']
     # model_list=['lenet5'] #不起作用
-    # model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #densenet参数太多，OOM
-    model_list=['attention56', 'attention92'] 
-    model_list=['inceptionv3'] 
-    model_list=['inceptionv4']
-    model_list=['inception_resnet_v2']
-    model_list=['mobilenet']
+    model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #OOM
+    # model_list=['attention56', 'attention92'] 
+    # model_list=['inceptionv3']            #调整batchsize为8
+    # model_list=['inceptionv4']            #OOM
+    # model_list=['inception_resnet_v2']    #OOM
+    # model_list=['mobilenet']              #69.75%
+    # model_list=['mobilenetv2']            #77.63%
+    # model_list=['nasnet']                 #OOM,改小batchsize，但是还是有错误
+    # model_list=['preactresnet18']                 
+    
+
+
         
     for model_name in model_list:
 
@@ -402,6 +410,15 @@ if __name__ == '__main__':
             elif model_name == 'mobilenet':
                 model = mobilenet().cuda()
                 print('Using mobilenet')
+            elif model_name == 'mobilenetv2':
+                model = mobilenetv2().cuda()
+                print('Using mobilenetv2')
+            elif model_name == 'nasnet':
+                model = nasnet().cuda()
+                print('Using nasnet')
+            elif model_name == 'preactresnet18':
+                model = preactresnet18().cuda()
+                print('Using preactresnet18')
 
             # 在pytorch中，输入数据的维数可以表示为（N,C,D,H,W），其中：N为batch_size，C为输入的通道数，D为深度（D这个维度上含有时序信息），H和W分别是输入图像的高和宽。
             #可视化网络结构

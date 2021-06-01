@@ -41,8 +41,9 @@ class Inception_Stem(nn.Module):
 
         self.branch7x7a = nn.Sequential(
             BasicConv3d(160, 64, kernel_size=1),
-            BasicConv3d(64, 64, kernel_size=(7, 1), padding=(3, 0)),
-            BasicConv3d(64, 64, kernel_size=(1, 7), padding=(0, 3)),
+            BasicConv3d(64, 64, kernel_size=(7, 1, 1), padding=(3, 0, 0)),
+            BasicConv3d(64, 64, kernel_size=(1, 7, 1), padding=(0, 3, 0)),
+            BasicConv3d(64, 64, kernel_size=(1, 1, 7), padding=(0, 0, 3)),
             BasicConv3d(64, 96, kernel_size=3, padding=1)
         )
 
@@ -275,7 +276,7 @@ class InceptionV4(nn.Module):
     def __init__(self, A, B, C, k=192, l=224, m=256, n=384, class_nums=2):
 
         super().__init__()
-        self.stem = Inception_Stem(3)
+        self.stem = Inception_Stem(1)
         self.inception_a = self._generate_inception_module(384, 384, A, InceptionA)
         self.reduction_a = ReductionA(384, k, l, m, n)
         output_channels = self.reduction_a.output_channels
@@ -287,7 +288,7 @@ class InceptionV4(nn.Module):
         #"""Dropout (keep 0.8)"""
         self.dropout = nn.Dropout3d(1 - 0.8)
         self.linear1 = nn.Linear(1536, 512)
-        self.relu = nn.ReLU(replace=True)
+        self.relu = nn.ReLU(inplace=True)
         self.linear2 = nn.Linear(512, class_nums)
 
     def forward(self, x):
@@ -506,7 +507,7 @@ class InceptionResNetV2(nn.Module):
 
     def __init__(self, A, B, C, k=256, l=256, m=384, n=384, class_nums=2):
         super().__init__()
-        self.stem = Inception_Stem(3)
+        self.stem = Inception_Stem(1)
         self.inception_resnet_a = self._generate_inception_module(384, 384, A, InceptionResNetA)
         self.reduction_a = InceptionResNetReductionA(384, k, l, m, n)
         output_channels = self.reduction_a.output_channels
@@ -518,7 +519,9 @@ class InceptionResNetV2(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1))
         #"""Dropout (keep 0.8)"""
         self.dropout = nn.Dropout3d(1 - 0.8)
-        self.linear = nn.Linear(2048, class_nums)
+        self.linear1 = nn.Linear(2048, 512)
+        self.relu = nn.ReLU(inplace=True)
+        self.linear2 = nn.Linear(512, class_nums)
 
     def forward(self, x):
         x = self.stem(x)
@@ -530,7 +533,9 @@ class InceptionResNetV2(nn.Module):
         x = self.avgpool(x)
         x = self.dropout(x)
         x = x.view(-1, 2048)
-        x = self.linear(x)
+        x = self.linear1(x)
+        feature = self.relu(x)
+        x = self.linear2(feature)
 
         return x
 

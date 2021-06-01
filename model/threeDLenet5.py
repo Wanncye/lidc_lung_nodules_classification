@@ -39,8 +39,8 @@ class lenet5(Module):
         y = y.view(y.shape[0], -1)
         y = self.fc1(y)
         y = self.relu3(y)
-        y = self.fc2(y)
-        feature = self.relu4(y)
+        feature = self.fc2(y)
+        feature = self.relu4(feature)
         y = self.fc3(feature)
-        y = self.relu5(y)
+        # y = self.relu5(y)
         return y, feature
