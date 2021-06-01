@@ -40,6 +40,8 @@ from model.ResnetInResnet import resnet_in_resnet
 from model.senet import senet18,senet34,senet50,senet101,senet152
 from model.shufflenet import shufflenet
 from model.squeezenet import squeezenet
+from model.wideresidual import wideresnet
+from model.xception import xception
 
 import netron     
 import torch.onnx
@@ -287,10 +289,12 @@ if __name__ == '__main__':
     #             'googlenet', 
     #             'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200',
     #             'alexnet']
-    # model_list=['attention56', 'attention92']  #83.75% 81.25%
-    # model_list=['mobilenet']              #69.75%
-    # model_list=['mobilenetv2']            #77.63%
-    # model_list=['shufflenet']             #76.25%
+    # model_list=['alexnet']                        #86.88%
+    # model_list=['attention56', 'attention92']     #83.75% 81.25%
+    # model_list=['mobilenet']                      #69.75%
+    # model_list=['mobilenetv2']                    #77.63%
+    # model_list=['shufflenet']                     #76.25%
+    # model_list=['squeezenet']                     #88.75%
     # model_list=['lenet5']                 #不起作用
     # model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #调整batchsize为8可运行
     # model_list=['inceptionv3']            #调整batchsize
@@ -311,7 +315,8 @@ if __name__ == '__main__':
     # model_list=['senet50']
     # model_list=['senet101']
     # model_list=['senet152']
-    model_list=['squeezenet']   
+    # model_list=['wideresidual']
+    model_list=['xception']
 
     
         
@@ -485,7 +490,13 @@ if __name__ == '__main__':
             elif model_name == 'squeezenet':
                 model = squeezenet().cuda()
                 print('Using squeezenet')
-                
+            elif model_name == 'wideresidual':
+                model = wideresnet().cuda()
+                print('Using wideresnet')
+            elif model_name == 'xception':
+                model = xception().cuda()
+                print('Using xception')
+
             print('# model parameters:', sum(param.numel() for param in model.parameters()))
             input = torch.randn(1, 1, 8, 128, 128).cuda()
             flops_num, params_num = profile(model, inputs=(input, ))
