@@ -39,6 +39,7 @@ from model.resnext import resnext50,resnext101,resnext152
 from model.ResnetInResnet import resnet_in_resnet
 from model.senet import senet18,senet34,senet50,senet101,senet152
 from model.shufflenet import shufflenet
+from model.squeezenet import squeezenet
 
 import netron     
 import torch.onnx
@@ -289,6 +290,7 @@ if __name__ == '__main__':
     # model_list=['attention56', 'attention92']  #83.75% 81.25%
     # model_list=['mobilenet']              #69.75%
     # model_list=['mobilenetv2']            #77.63%
+    # model_list=['shufflenet']             #76.25%
     # model_list=['lenet5']                 #不起作用
     # model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #调整batchsize为8可运行
     # model_list=['inceptionv3']            #调整batchsize
@@ -309,7 +311,7 @@ if __name__ == '__main__':
     # model_list=['senet50']
     # model_list=['senet101']
     # model_list=['senet152']
-    model_list=['shufflenet']
+    model_list=['squeezenet']   
 
     
         
@@ -480,6 +482,9 @@ if __name__ == '__main__':
             elif model_name == 'shufflenet':
                 model = shufflenet().cuda()
                 print('Using shufflenet')
+            elif model_name == 'squeezenet':
+                model = squeezenet().cuda()
+                print('Using squeezenet')
                 
             print('# model parameters:', sum(param.numel() for param in model.parameters()))
             input = torch.randn(1, 1, 8, 128, 128).cuda()
