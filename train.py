@@ -32,8 +32,8 @@ from model.InceptionV3 import inceptionv3
 from model.InceptionV4 import inceptionv4, inception_resnet_v2
 from model.mobilenet import mobilenet
 from model.mobilenetv2 import mobilenetv2
-from model.preactresnet import preactresnet18
-
+from model.preactresnet import preactresnet18,preactresnet34,preactresnet50,preactresnet101,preactresnet152
+from model.resnext import resnext50,resnext101,resnext152
 
 import netron     
 import torch.onnx
@@ -284,12 +284,19 @@ if __name__ == '__main__':
     # model_list=['attention56', 'attention92']  #83.75% 81.25%
     # model_list=['mobilenet']              #69.75%
     # model_list=['mobilenetv2']            #77.63%
-    # model_list=['lenet5'] #不起作用
+    # model_list=['lenet5']                 #不起作用
     # model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #调整batchsize为8可运行
     # model_list=['inceptionv3']            #调整batchsize
     # model_list=['inceptionv4']            #调整batchsize
     # model_list=['inception_resnet_v2']    #调整batchsize
     # model_list=['preactresnet18']                 
+    # model_list=['preactresnet34']                 
+    # model_list=['preactresnet50']                 
+    # model_list=['preactresnet101']                 
+    # model_list=['preactresnet152']                 
+    model_list=['resnext50']                 
+    # model_list=['resnext101']                 
+    # model_list=['resnext152']                 
     
 
 
@@ -419,6 +426,27 @@ if __name__ == '__main__':
             elif model_name == 'preactresnet18':
                 model = preactresnet18().cuda()
                 print('Using preactresnet18')
+            elif model_name == 'preactresnet34':
+                model = preactresnet34().cuda()
+                print('Using preactresnet34')
+            elif model_name == 'preactresnet50':
+                model = preactresnet50().cuda()
+                print('Using preactresnet50')
+            elif model_name == 'preactresnet101':
+                model = preactresnet101().cuda()
+                print('Using preactresnet101')
+            elif model_name == 'preactresnet152':
+                model = preactresnet152().cuda()
+                print('Using preactresnet152')
+            elif model_name == 'resnext50':
+                model = resnext50().cuda()
+                print('Using resnext50')
+            elif model_name == 'resnext101':
+                model = resnext101().cuda()
+                print('Using resnext101')
+            elif model_name == 'resnext152':
+                model = resnext152().cuda()
+                print('Using resnext152')
 
             # 在pytorch中，输入数据的维数可以表示为（N,C,D,H,W），其中：N为batch_size，C为输入的通道数，D为深度（D这个维度上含有时序信息），H和W分别是输入图像的高和宽。
             #可视化网络结构

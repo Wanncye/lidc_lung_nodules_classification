@@ -110,7 +110,7 @@ class PreActResNet(nn.Module):
         x = F.adaptive_avg_pool3d(x, 1)
         x = x.view(x.size(0), -1)
         feature = self.linear1(x)
-        x = self.linear1(feature)
+        x = self.linear2(feature)
         return x,feature
 
 def preactresnet18():
