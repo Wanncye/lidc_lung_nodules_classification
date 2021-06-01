@@ -4,6 +4,8 @@ import argparse
 import logging
 import os
 
+from thop import profile
+
 import numpy as np
 import torch
 import torch.optim as optim
@@ -34,6 +36,8 @@ from model.mobilenet import mobilenet
 from model.mobilenetv2 import mobilenetv2
 from model.preactresnet import preactresnet18,preactresnet34,preactresnet50,preactresnet101,preactresnet152
 from model.resnext import resnext50,resnext101,resnext152
+from model.ResnetInResnet import resnet_in_resnet
+from model.senet import senet18,senet34,senet50,senet101,senet152
 
 import netron     
 import torch.onnx
@@ -294,12 +298,18 @@ if __name__ == '__main__':
     # model_list=['preactresnet50']                 
     # model_list=['preactresnet101']                 
     # model_list=['preactresnet152']                 
-    model_list=['resnext50']                 
+    # model_list=['resnext50']                 
     # model_list=['resnext101']                 
     # model_list=['resnext152']                 
+    # model_list=['resnet_in_resnet']       
+    # model_list=['resnet_in_resnet']
+    # model_list=['senet18']
+    model_list=['senet34']
+    # model_list=['senet50']
+    # model_list=['senet101']
+    # model_list=['senet152']
+
     
-
-
         
     for model_name in model_list:
 
@@ -447,6 +457,29 @@ if __name__ == '__main__':
             elif model_name == 'resnext152':
                 model = resnext152().cuda()
                 print('Using resnext152')
+            elif model_name == 'resnet_in_resnet':
+                model = resnet_in_resnet().cuda()
+                print('Using resnet_in_resnet')
+            elif model_name == 'senet18':
+                model = senet18().cuda()
+                print('Using senet18')
+            elif model_name == 'senet34':
+                model = senet34().cuda()
+                print('Using senet34')
+            elif model_name == 'senet50':
+                model = senet50().cuda()
+                print('Using senet50')
+            elif model_name == 'senet101':
+                model = senet101().cuda()
+                print('Using senet101')
+            elif model_name == 'senet152':
+                model = senet152().cuda()
+                print('Using senet152')
+            print('# model parameters:', sum(param.numel() for param in model.parameters()))
+            input = torch.randn(1, 1, 8, 128, 128).cuda()
+            flops_num, params_num = profile(model, inputs=(input, ))
+            print('# flops:', flops_num)
+            print('# params:', params_num)
 
             # 在pytorch中，输入数据的维数可以表示为（N,C,D,H,W），其中：N为batch_size，C为输入的通道数，D为深度（D这个维度上含有时序信息），H和W分别是输入图像的高和宽。
             #可视化网络结构
