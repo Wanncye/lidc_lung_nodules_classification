@@ -2,17 +2,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import model.data_loader as data_loader
+import numpy as np
 
-dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir='data/nodules3d_128_npy', train_shuffle=False)
-train_dl = dataloaders['train']
-test_dl = dataloaders['test']
-mask_dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir='data/nodules3d_128_mask_npy', train_shuffle=False)
-mask_train_dl = dataloaders['train']
-mask_test_dl = dataloaders['test']
+from scipy import linalg, mat, dot
 
-for i, (x, target, file_name) in enumerate(test_dl):
-    if i == 0:
-        print(file_name[0])
-for i, (x, target, _) in enumerate(mask_test_dl):
-    if i == 0:
-        print(target)
+
+
+def normalize_features(mx):
+    rowsum = np.array(mx.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = np.diagflat(r_inv)
+    mx = r_mat_inv.dot(mx)
+    return mx
+
+a = np.array([[1,2,4],[5,2,1]], dtype=np.float32)
+print(normalize_features(a))

@@ -1291,10 +1291,29 @@ def exract_15_feature_10_sample_write_in_txt():
             f.write('glcm_train_feature ' + str(glcm_train_feature[i]) + '\n')
             f.close()
             flag_positive += 1
-                
-            
+
+#得到两个矩阵的余弦相似度
+def get_matrix_similarity(_matrixA, _matrixB):
+    _matrixA_matrixB = np.dot(_matrixA, _matrixB.transpose())
+    _matrixA_norm = np.sqrt(np.multiply(_matrixA,_matrixA).sum(axis=1))
+    _matrixB_norm = np.sqrt(np.multiply(_matrixB,_matrixB).sum(axis=1))
+    return np.divide(_matrixA_matrixB, _matrixA_norm * _matrixB_norm.transpose())
+
+def search_different_resnet_feature_correlation():
+    matirx_a = torch.load('data/feature/resnet18_test.pt').numpy()
+    matirx_b = torch.load('data/feature/resnet34_test.pt').numpy()
+    print(matirx_b[29])
+    print(matirx_b[0])
+    sim = get_matrix_similarity(matirx_b, matirx_b)
+    for i in range(160):
+        print(sim[i][i], np.max(sim[i]), np.argmax(sim[i]))
+    
+
+
+
 if __name__ == '__main__':
-    exract_15_feature_10_sample_write_in_txt()
+    search_different_resnet_feature_correlation()
+    # exract_15_feature_10_sample_write_in_txt()
     # caculate_six_method_predict_similarity()
     # get_test_name_and_save()
     # svm_classification_gcn_middle_feature()

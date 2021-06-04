@@ -8,6 +8,14 @@ import numpy as np
 from sklearn.metrics import confusion_matrix
 from utils import caculate_six_method_predict_similarity
 
+def normalize_features(mx):
+    rowsum = np.array(mx.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = np.diagflat(r_inv)
+    mx = r_mat_inv.dot(mx)
+    return mx
+
 def accuracy(pred, target):
     correct = pred.eq(target).double()
     correct = correct.sum()
@@ -22,7 +30,7 @@ def accuracy(pred, target):
 best_acc_list = []
 for out_index in range(1):
     input_dim = 512
-    node_num = 15
+    node_num = 42
     model = GCN(nfeat=input_dim,
                 nhid=64,
                 nclass=2,
@@ -73,6 +81,63 @@ for out_index in range(1):
     lbp_test_feature = torch.load('./data/feature/lbp_test_feature.pt')
     glcm_train_feature = torch.load('./data/feature/glcm_train_feature.pt')
     glcm_test_feature = torch.load('./data/feature/glcm_test_feature.pt')
+    alexnet_train_feature = torch.load('./data/feature/alexnet_train.pt')
+    alexnet_test_feature = torch.load('./data/feature/alexnet_test.pt')
+    attention56_train_feature = torch.load('./data/feature/attention56_train.pt')
+    attention56_test_feature = torch.load('./data/feature/attention56_test.pt')
+    attention92_train_feature = torch.load('./data/feature/attention92_train.pt')
+    attention92_test_feature = torch.load('./data/feature/attention92_test.pt')
+    mobilenet_train_feature = torch.load('./data/feature/mobilenet_train.pt')
+    mobilenet_test_feature = torch.load('./data/feature/mobilenet_test.pt')
+    mobilenetv2_train_feature = torch.load('./data/feature/mobilenetv2_train.pt')
+    mobilenetv2_test_feature = torch.load('./data/feature/mobilenetv2_test.pt')
+    shufflenet_train_feature = torch.load('./data/feature/shufflenet_train.pt')
+    shufflenet_test_feature = torch.load('./data/feature/shufflenet_test.pt')
+    squeezenet_train_feature = torch.load('./data/feature/squeezenet_train.pt')
+    squeezenet_test_feature = torch.load('./data/feature/squeezenet_test.pt')
+    preactresnet18_train_feature = torch.load('./data/feature/preactresnet18_train.pt')
+    preactresnet18_test_feature = torch.load('./data/feature/preactresnet18_test.pt')
+
+    preactresnet34_train_feature = torch.load('./data/feature/preactresnet34_train.pt')
+    preactresnet34_test_feature = torch.load('./data/feature/preactresnet34_test.pt')
+    inceptionv3_train_feature = torch.load('./data/feature/inceptionv3_train.pt')
+    inceptionv3_test_feature = torch.load('./data/feature/inceptionv3_test.pt')
+    densenet121_train_feature = torch.load('./data/feature/densenet121_train.pt')
+    densenet121_test_feature = torch.load('./data/feature/densenet121_test.pt')
+    densenet161_train_feature = torch.load('./data/feature/densenet161_train.pt')
+    densenet161_test_feature = torch.load('./data/feature/densenet161_test.pt')
+    densenet169_train_feature = torch.load('./data/feature/densenet169_train.pt')
+    densenet169_test_feature = torch.load('./data/feature/densenet169_test.pt')
+    densenet201_train_feature = torch.load('./data/feature/densenet201_train.pt')
+    densenet201_test_feature = torch.load('./data/feature/densenet201_test.pt')
+    
+    preactresnet50_train_feature = torch.load('./data/feature/preactresnet50_train.pt')
+    preactresnet50_test_feature = torch.load('./data/feature/preactresnet50_test.pt')
+    preactresnet101_train_feature = torch.load('./data/feature/preactresnet101_train.pt')
+    preactresnet101_test_feature = torch.load('./data/feature/preactresnet101_test.pt')
+    preactresnet152_train_feature = torch.load('./data/feature/preactresnet152_train.pt')
+    preactresnet152_test_feature = torch.load('./data/feature/preactresnet152_test.pt')
+    resnext50_train_feature = torch.load('./data/feature/resnext50_train.pt')
+    resnext50_test_feature = torch.load('./data/feature/resnext50_test.pt')
+    resnext101_train_feature = torch.load('./data/feature/resnext101_train.pt')
+    resnext101_test_feature = torch.load('./data/feature/resnext101_test.pt')
+    resnext152_train_feature = torch.load('./data/feature/resnext152_train.pt')
+    resnext152_test_feature = torch.load('./data/feature/resnext152_test.pt')
+    resnet_in_resnet_train_feature = torch.load('./data/feature/resnet_in_resnet_train.pt')
+    resnet_in_resnet_test_feature = torch.load('./data/feature/resnet_in_resnet_test.pt')
+    senet18_train_feature = torch.load('./data/feature/senet18_train.pt')
+    senet18_test_feature = torch.load('./data/feature/senet18_test.pt')
+    senet34_train_feature = torch.load('./data/feature/senet34_train.pt')
+    senet34_test_feature = torch.load('./data/feature/senet34_test.pt')
+    senet50_train_feature = torch.load('./data/feature/senet50_train.pt')
+    senet50_test_feature = torch.load('./data/feature/senet50_test.pt')
+    senet101_train_feature = torch.load('./data/feature/senet101_train.pt')
+    senet101_test_feature = torch.load('./data/feature/senet101_test.pt')
+    senet152_train_feature = torch.load('./data/feature/senet152_train.pt')
+    senet152_test_feature = torch.load('./data/feature/senet152_test.pt')
+    xception_train_feature = torch.load('./data/feature/xception_train.pt')
+    xception_test_feature = torch.load('./data/feature/xception_test.pt')
+
     train_label = torch.load('./data/feature/train_label.pt')
     test_label = torch.load('./data/feature/test_label.pt')
 
@@ -127,7 +192,34 @@ for out_index in range(1):
             resnet200_train_feature,
             vgg11_train_feature,
             vgg13_train_feature,
-            vgg19_train_feature
+            vgg19_train_feature,
+            alexnet_train_feature,
+            attention56_train_feature,
+            attention92_train_feature,
+            mobilenet_train_feature,
+            mobilenetv2_train_feature,
+            shufflenet_train_feature,
+            squeezenet_train_feature,
+            preactresnet18_train_feature,
+            preactresnet34_train_feature,
+            inceptionv3_train_feature,
+            densenet121_train_feature,
+            densenet161_train_feature,
+            densenet169_train_feature,
+            densenet201_train_feature,
+            preactresnet50_train_feature,
+            preactresnet101_train_feature,
+            preactresnet152_train_feature,
+            resnext50_train_feature,
+            resnext101_train_feature,
+            resnext152_train_feature,
+            resnet_in_resnet_train_feature,
+            senet18_train_feature,
+            senet34_train_feature,
+            senet50_train_feature,
+            senet101_train_feature,
+            senet152_train_feature,
+            xception_train_feature
         )):  #必须得在这里用zip才行，好家伙
             temp = torch.zeros((len(one_nodule_feature),512))
             for i, feature in enumerate(one_nodule_feature):
@@ -166,7 +258,34 @@ for out_index in range(1):
             resnet200_test_feature,
             vgg11_test_feature,
             vgg13_test_feature,
-            vgg19_test_feature
+            vgg19_test_feature,
+            alexnet_test_feature,
+            attention56_test_feature,
+            attention92_test_feature,
+            mobilenet_test_feature,
+            mobilenetv2_test_feature,
+            shufflenet_test_feature,
+            squeezenet_test_feature,
+            preactresnet18_test_feature,
+            preactresnet34_test_feature,
+            inceptionv3_test_feature,
+            densenet121_test_feature,
+            densenet161_test_feature,
+            densenet169_test_feature,
+            densenet201_test_feature,
+            preactresnet50_test_feature,
+            preactresnet101_test_feature,
+            preactresnet152_test_feature,
+            resnext50_test_feature,
+            resnext101_test_feature,
+            resnext152_test_feature,
+            resnet_in_resnet_test_feature,
+            senet18_test_feature,
+            senet34_test_feature,
+            senet50_test_feature,
+            senet101_test_feature,
+            senet152_test_feature,
+            xception_test_feature
         )):
             temp = torch.zeros((len(one_nodule_feature),512))
             for i, feature in enumerate(one_nodule_feature):

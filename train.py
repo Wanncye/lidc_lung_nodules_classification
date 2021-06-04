@@ -215,6 +215,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
     best_val_acc = 0.0
     is_best = 1
+    val_acc_list = []
     for epoch in range(params.num_epochs):
         # Run one epoch
         print("第%d个epoch的学习率：%f" % (epoch+1, optimizer.param_groups[0]['lr']))
@@ -282,6 +283,14 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         print('eta: ' + str(eta) + ' minutes. = ' + str(eta/60) + 'hs')
         print("\n")
 
+        val_acc_list.append(val_acc)
+        if epoch > 10:
+            if val_acc_list[epoch] == val_acc_list[epoch-1] and \
+                val_acc_list[epoch] == val_acc_list[epoch-2] and \
+                val_acc_list[epoch] == val_acc_list[epoch-3] and\
+                val_acc_list[epoch] == val_acc_list[epoch-4]:
+                logging.info("- early stop because 5 epochs had the same accuracy.")
+                break
 
 if __name__ == '__main__':
 
@@ -289,36 +298,44 @@ if __name__ == '__main__':
     #             'googlenet', 
     #             'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200',
     #             'alexnet']
+    # model_list=['lenet5']                         #有问题 50%
     # model_list=['alexnet']                        #86.88%
-    # model_list=['attention56', 'attention92']     #83.75% 81.25%
+    # model_list=['attention56']                    #83.75%
+    # model_list=['attention92']                    #81.25%
+
     # model_list=['mobilenet']                      #69.75%
     # model_list=['mobilenetv2']                    #77.63%
+
     # model_list=['shufflenet']                     #76.25%
     # model_list=['squeezenet']                     #88.75%
-    # model_list=['lenet5']                 #不起作用
-    # model_list=['densenet121', 'densenet161', 'densenet169', 'densenet201']  #调整batchsize为8可运行
-    # model_list=['inceptionv3']            #调整batchsize
-    # model_list=['inceptionv4']            #调整batchsize
-    # model_list=['inception_resnet_v2']    #调整batchsize
-    # model_list=['preactresnet18']                 
-    # model_list=['preactresnet34']                 
-    # model_list=['preactresnet50']                 
-    # model_list=['preactresnet101']                 
-    # model_list=['preactresnet152']                 
-    # model_list=['resnext50']                 
-    # model_list=['resnext101']                 
-    # model_list=['resnext152']                 
-    # model_list=['resnet_in_resnet']       
-    # model_list=['resnet_in_resnet']
-    # model_list=['senet18']
-    # model_list=['senet34']
-    # model_list=['senet50']
-    # model_list=['senet101']
-    # model_list=['senet152']
-    # model_list=['wideresidual']
-    model_list=['xception']
 
-    
+    # model_list=['preactresnet18']                 #84.38%
+    # model_list=['preactresnet34']                 #81.88%
+    # model_list=['preactresnet50']                 #73.13%       
+    # model_list=['preactresnet101']                #72.50%        
+    # model_list=['preactresnet152']                #81.88%  
+
+    # model_list=['densenet161']                    #85.63%  
+    # model_list=['densenet201']                    #84.38%
+    # model_list=['densenet169']                    #85.00%
+    # model_list=['densenet121']                    #82.50%
+
+    # model_list=['inceptionv3']                    #78.13%     
+    # model_list=['inceptionv4']                    #有问题 50%
+    # model_list=['inception_resnet_v2']            #有问题 50%
+        
+    # model_list=['resnext50']                      #83.13%  
+    # model_list=['resnext101']                     #72.50%
+    # model_list=['resnext152']                     #74.38%
+    # model_list=['resnet_in_resnet']               #81.88%
+    # model_list=['senet18']                        #85.00%
+    # model_list=['senet34']                        #86.25%
+    # model_list=['senet50']                        #78.75%
+    # model_list=['senet101']                       #80.63%
+    # model_list=['senet152']                       #81.88%
+    # model_list=['wideresidual']                   
+    # model_list=['xception']                       #85.63%
+    model_list=['xception', 'wideresidual']
         
     for model_name in model_list:
 
