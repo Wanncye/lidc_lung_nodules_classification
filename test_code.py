@@ -16,5 +16,6 @@ def normalize_features(mx):
     mx = r_mat_inv.dot(mx)
     return mx
 
-a = np.array([[1,2,4],[5,2,1]], dtype=np.float32)
-print(normalize_features(a))
+a = torch.tensor([[1,2],[5,2]])
+b = torch.tensor([[1,2],[5,2]])
+print(torch.spmm(a,b))

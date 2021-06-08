@@ -26,11 +26,11 @@ def accuracy(pred, target):
     FP = con_matrix[0][1]
     return correct / len(target),[TN,TP,FN,FP]
 
-# f = open('./experiments/gcn/random_adj/random_adj_result.txt', 'w')
+f = open('./experiments/gcn/random_adj/random_adj_43_feature_result.txt', 'w')
 best_acc_list = []
-for out_index in range(1):
+for out_index in range(1000):
     input_dim = 512
-    node_num = 42
+    node_num = 43
     model = GCN(nfeat=input_dim,
                 nhid=64,
                 nclass=2,
@@ -137,6 +137,8 @@ for out_index in range(1):
     senet152_test_feature = torch.load('./data/feature/senet152_test.pt')
     xception_train_feature = torch.load('./data/feature/xception_train.pt')
     xception_test_feature = torch.load('./data/feature/xception_test.pt')
+    wideresidual_train_feature = torch.load('./data/feature/wideresidual_train.pt')
+    wideresidual_test_feature = torch.load('./data/feature/wideresidual_test.pt')
 
     train_label = torch.load('./data/feature/train_label.pt')
     test_label = torch.load('./data/feature/test_label.pt')
@@ -162,10 +164,10 @@ for out_index in range(1):
     for i in range(node_num):
         for j in range(node_num):
             random_num = np.random.rand()
-            if out_index < 200: 
+            if out_index < 500: 
                 if random_num > 0.5:
                     adj[i,j] = 0
-            elif out_index >= 200: #大于200的循环随机数，而不是0-1矩阵
+            elif out_index >= 500: #大于200的循环随机数，而不是0-1矩阵
                 adj[i,j] = random_num
 
     best_test_acc = 0
@@ -219,7 +221,8 @@ for out_index in range(1):
             senet50_train_feature,
             senet101_train_feature,
             senet152_train_feature,
-            xception_train_feature
+            xception_train_feature,
+            wideresidual_train_feature
         )):  #必须得在这里用zip才行，好家伙
             temp = torch.zeros((len(one_nodule_feature),512))
             for i, feature in enumerate(one_nodule_feature):
@@ -285,7 +288,8 @@ for out_index in range(1):
             senet50_test_feature,
             senet101_test_feature,
             senet152_test_feature,
-            xception_test_feature
+            xception_test_feature,
+            wideresidual_test_feature
         )):
             temp = torch.zeros((len(one_nodule_feature),512))
             for i, feature in enumerate(one_nodule_feature):
@@ -313,15 +317,17 @@ for out_index in range(1):
             #     'optim_dict' : optimizer.state_dict()
             # },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar')
         print('epoch:{:d}'.format(epoch) 
-            , ', train loss:{:.4f}'.format(np.mean(loss_train_list)) 
+            , ', train loss:{:.8f}'.format(np.mean(loss_train_list)) 
             , ', train acc:{:.6f}'.format(acc_train.item()) 
-            , ', test loss:{:.4f}'.format(np.mean(loss_test_list)) 
+            , ', test loss:{:.8f}'.format(np.mean(loss_test_list)) 
             , ', test acc:{:.6f}'.format(acc_test.item()))
     #这里输出的混淆矩阵值是最后一个epoch的
     print('best test acc:{:.4f}, epoch:{:d}, TN:{:d}, TP:{:d}, FN:{:d}, FP:{:d}'.format(best_test_acc, best_epoc, conf_mat[0], conf_mat[1], conf_mat[2], conf_mat[3]))
     best_acc_list.append(best_test_acc)
-#     f.write('adj:'+ str(adj) + ' test_acc:' + str(best_test_acc) + '\n')
-#     f.flush()
-# f.write('best_acc_list:'+ str(best_acc_list))
+    for adj_i in range(43):
+        f.write(str(adj[adj_i]) + '\n')
+    f.write('test_acc:' + str(best_test_acc) + '\n\n')
+    f.flush()
+f.write('best_acc_list:'+ str(best_acc_list))
 
     
