@@ -7,6 +7,9 @@ import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix
 from utils import caculate_six_method_predict_similarity
+from utils import Visualizer
+
+vis = Visualizer('GCN-weight_decay=1.5')
 
 def normalize_features(mx):
     rowsum = np.array(mx.sum(1))
@@ -26,9 +29,9 @@ def accuracy(pred, target):
     FP = con_matrix[0][1]
     return correct / len(target),[TN,TP,FN,FP]
 
-f = open('./experiments/gcn/random_adj/random_adj_43_feature_result.txt', 'w')
+# f = open('./experiments/gcn/random_adj/random_adj_43_feature_0~1_result_2.txt', 'w')
 best_acc_list = []
-for out_index in range(1000):
+for out_index in range(1):
     input_dim = 512
     node_num = 43
     model = GCN(nfeat=input_dim,
@@ -46,7 +49,7 @@ for out_index in range(1000):
     #             alpha=0.2)
     optimizer = optim.Adam(model.parameters(), 
                         lr=1e-4, 
-                        weight_decay=5e-2)
+                        weight_decay=1.5)
     train_len = 639
     test_len = 160
     feature_len = 512
@@ -172,7 +175,7 @@ for out_index in range(1000):
 
     best_test_acc = 0
     best_epoc = 0
-    for epoch in range(100):
+    for epoch in range(200):
         loss_train_list = []
         pre_train_list = torch.zeros(len(train_label))
 
@@ -310,24 +313,29 @@ for out_index in range(1000):
         if acc_test >= best_test_acc:
             best_test_acc = acc_test
             best_epoc = epoch
+            best_conf_mat = conf_mat
             #最好准确率时保存模型
             # torch.save({
             #     'epoch' : epoch,
             #     'state_dict': model.state_dict(),
             #     'optim_dict' : optimizer.state_dict()
             # },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar')
+        vis.plot('train loss',np.mean(loss_train_list),1)
+        vis.plot('test loss',np.mean(loss_test_list),1)
+        vis.plot('train acc',acc_train.item(),1)
+        vis.plot('test acc',acc_test.item(),1)
         print('epoch:{:d}'.format(epoch) 
             , ', train loss:{:.8f}'.format(np.mean(loss_train_list)) 
             , ', train acc:{:.6f}'.format(acc_train.item()) 
             , ', test loss:{:.8f}'.format(np.mean(loss_test_list)) 
             , ', test acc:{:.6f}'.format(acc_test.item()))
     #这里输出的混淆矩阵值是最后一个epoch的
-    print('best test acc:{:.4f}, epoch:{:d}, TN:{:d}, TP:{:d}, FN:{:d}, FP:{:d}'.format(best_test_acc, best_epoc, conf_mat[0], conf_mat[1], conf_mat[2], conf_mat[3]))
-    best_acc_list.append(best_test_acc)
-    for adj_i in range(43):
-        f.write(str(adj[adj_i]) + '\n')
-    f.write('test_acc:' + str(best_test_acc) + '\n\n')
-    f.flush()
-f.write('best_acc_list:'+ str(best_acc_list))
+    print('best test acc:{:.4f}, epoch:{:d}, TN:{:d}, TP:{:d}, FN:{:d}, FP:{:d}'.format(best_test_acc, best_epoc, best_conf_mat[0], best_conf_mat[1], best_conf_mat[2], best_conf_mat[3]))
+    # best_acc_list.append(best_test_acc)
+#     for adj_i in range(43):
+#         f.write(str(adj[adj_i]) + '\n')
+#     f.write('test_acc:' + str(best_test_acc) + '\n\n')
+#     f.flush()
+# f.write('best_acc_list:'+ str(best_acc_list))
 
     
