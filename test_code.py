@@ -8,14 +8,12 @@ from scipy import linalg, mat, dot
 
 
 
-def normalize_features(mx):
-    rowsum = np.array(mx.sum(1))
-    r_inv = np.power(rowsum, -1).flatten()
-    r_inv[np.isinf(r_inv)] = 0.
-    r_mat_inv = np.diagflat(r_inv)
-    mx = r_mat_inv.dot(mx)
-    return mx
-
-for i in range(600,900):
-    print(i)
-
+adj = np.ones((4,4))
+#将邻接矩阵改一改,随机置1
+for i in range(4):
+    for j in range(4):
+        random_num = np.random.rand()
+        print(random_num)
+        if random_num > 0.5:
+            adj[i,j] = 0
+print(adj)

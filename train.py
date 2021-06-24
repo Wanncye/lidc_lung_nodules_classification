@@ -261,8 +261,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             #用最好的模型来提取512维特征
             with torch.no_grad():
                 model.eval()
-                train_feature = torch.zeros((639,512))
-                test_feature = torch.zeros((160,512))
+                train_feature = torch.zeros((641,512))
+                test_feature = torch.zeros((157,512))
                 for i, (x, target, _) in enumerate(train_dataloader):
                     _, feature = model(x.cuda())
                     train_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
@@ -287,8 +287,11 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         if epoch > 10:
             if val_acc_list[epoch] == val_acc_list[epoch-1] and \
                 val_acc_list[epoch] == val_acc_list[epoch-2] and \
-                val_acc_list[epoch] == val_acc_list[epoch-3] and\
-                val_acc_list[epoch] == val_acc_list[epoch-4]:
+                val_acc_list[epoch] == val_acc_list[epoch-3] and \
+                val_acc_list[epoch] == val_acc_list[epoch-4] and \
+                val_acc_list[epoch] == val_acc_list[epoch-5] and\
+                val_acc_list[epoch] == val_acc_list[epoch-6] and\
+                val_acc_list[epoch] == val_acc_list[epoch-7]:
                 logging.info("- early stop because 5 epochs had the same accuracy.")
                 break
 
@@ -298,6 +301,9 @@ if __name__ == '__main__':
     #             'googlenet', 
     #             'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200',
     #             'alexnet']
+
+    # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
+
     # model_list=['lenet5']                         #有问题 50%
     # model_list=['alexnet']                        #86.88%
     # model_list=['attention56']                    #83.75%
@@ -323,7 +329,10 @@ if __name__ == '__main__':
     # model_list=['inceptionv3']                    #78.13%     
     # model_list=['inceptionv4']                    #有问题 50%
     # model_list=['inception_resnet_v2']            #有问题 50%
-        
+    
+    model_list = ['resnet_in_resnet',
+    'senet18', 'senet34', 'senet50', 'senet101', 'senet152', 'xception', 'wideresidual','inceptionv3']
+
     # model_list=['resnext50']                      #83.13%  
     # model_list=['resnext101']                     #72.50%
     # model_list=['resnext152']                     #74.38%
@@ -335,7 +344,7 @@ if __name__ == '__main__':
     # model_list=['senet152']                       #81.88%
     # model_list=['wideresidual']                   
     # model_list=['xception']                       #85.63%
-    model_list=['xception', 'wideresidual']
+    # model_list=['xception', 'wideresidual']
         
     for model_name in model_list:
 
@@ -376,7 +385,7 @@ if __name__ == '__main__':
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
             # 得到训练测试数据
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir, train_shuffle=False)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
@@ -456,9 +465,6 @@ if __name__ == '__main__':
             elif model_name == 'mobilenetv2':
                 model = mobilenetv2().cuda()
                 print('Using mobilenetv2')
-            elif model_name == 'nasnet':
-                model = nasnet().cuda()
-                print('Using nasnet')
             elif model_name == 'preactresnet18':
                 model = preactresnet18().cuda()
                 print('Using preactresnet18')
