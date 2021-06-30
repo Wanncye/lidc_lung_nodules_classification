@@ -7,13 +7,15 @@ import numpy as np
 from scipy import linalg, mat, dot
 
 
-
+count = 0
 adj = np.ones((4,4))
+count += adj.sum(axis=0).sum(axis=0)
+print(count)
 #将邻接矩阵改一改,随机置1
-for i in range(4):
-    for j in range(4):
-        random_num = np.random.rand()
-        print(random_num)
-        if random_num > 0.5:
-            adj[i,j] = 0
-print(adj)
+# for i in range(4):
+#     for j in range(4):
+#         random_num = np.random.rand()
+#         print(random_num)
+#         if random_num > 0.5:
+#             adj[i,j] = 0
+# print(adj)

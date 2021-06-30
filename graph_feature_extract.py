@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix
-from utils import caculate_six_method_predict_similarity
+from utils import caculate_six_method_predict_similarity,calculate_percentage
 from utils import Visualizer
 import model.data_loader as data_loader
 import csv
@@ -55,11 +55,28 @@ def accuracy(pred, target):
     FP = con_matrix[0][1]
     return correct / len(target),[TN,TP,FN,FP]
 
+import matplotlib.pyplot as plt
+import os
+def save_incorrect_nodule(pre_label, truth_label, nodule_name):
+    dest_path = './experiments/gcn/incorrect'
+    for root, dirs, files in os.walk(dest_path, topdown=False):
+        for name in files:
+            os.remove(os.path.join(root, name))
+    for i in range(157):
+        if pre_label[i] != truth_label[i]:
+            incorrect_path = './data/nodules3d_128_npy_no_same_patient_in_two_dataset/test/' + str(nodule_name[i])
+            npy = np.load(incorrect_path)
+            for index in range(8):
+                save_name = dest_path + '/' + nodule_name[i] + '_' + str(index) + '.png'
+                slice = npy[:, :, index]
+                plt.imsave(save_name, slice, cmap='gray')
+
+
 # f = open('./experiments/gcn/random_adj/random_adj_43_feature_0~1_result_2.txt', 'w')
 best_acc_list = []
 for out_index in range(1):
     input_dim = 512
-    node_num = 31
+    node_num = 43
     model = GCN(nfeat=input_dim,
                 nhid=64,
                 nclass=2,
@@ -205,9 +222,9 @@ for out_index in range(1):
             googlenet_train_feature,
             resnet10_train_feature,
             vgg16_train_feature,
-            # hog_train_feature,
-            # lbp_train_feature,
-            # glcm_train_feature,
+            hog_train_feature,
+            lbp_train_feature,
+            glcm_train_feature,
             resnet18_train_feature,
             resnet34_train_feature,
             resnet50_train_feature,
@@ -226,7 +243,7 @@ for out_index in range(1):
             squeezenet_train_feature,
             preactresnet18_train_feature,
             preactresnet34_train_feature,
-            # inceptionv3_train_feature,
+            inceptionv3_train_feature,
             densenet121_train_feature,
             densenet161_train_feature,
             densenet169_train_feature,
@@ -237,14 +254,14 @@ for out_index in range(1):
             resnext50_train_feature,
             resnext101_train_feature,
             resnext152_train_feature,
-            # resnet_in_resnet_train_feature,
-            # senet18_train_feature,
-            # senet34_train_feature,
-            # senet50_train_feature,
-            # senet101_train_feature,
-            # senet152_train_feature,
-            # xception_train_feature,
-            # wideresidual_train_feature
+            resnet_in_resnet_train_feature,
+            senet18_train_feature,
+            senet34_train_feature,
+            senet50_train_feature,
+            senet101_train_feature,
+            senet152_train_feature,
+            xception_train_feature,
+            wideresidual_train_feature
         )):  #必须得在这里用zip才行，好家伙
             temp = torch.zeros((len(one_nodule_feature),512))
             for i, feature in enumerate(one_nodule_feature):
@@ -267,14 +284,15 @@ for out_index in range(1):
             optimizer.step()
         acc_train,_ = accuracy(pre_train_list, train_label)
 
+
         #测试
         for index, one_nodule_feature in enumerate(zip(
             googlenet_test_feature,
             resnet10_test_feature,
             vgg16_test_feature,
-            # hog_test_feature,
-            # lbp_test_feature,
-            # glcm_test_feature,
+            hog_test_feature,
+            lbp_test_feature,
+            glcm_test_feature,
             resnet18_test_feature,
             resnet34_test_feature,
             resnet50_test_feature,
@@ -293,7 +311,7 @@ for out_index in range(1):
             squeezenet_test_feature,
             preactresnet18_test_feature,
             preactresnet34_test_feature,
-            # inceptionv3_test_feature,
+            inceptionv3_test_feature,
             densenet121_test_feature,
             densenet161_test_feature,
             densenet169_test_feature,
@@ -304,14 +322,14 @@ for out_index in range(1):
             resnext50_test_feature,
             resnext101_test_feature,
             resnext152_test_feature,
-            # resnet_in_resnet_test_feature,
-            # senet18_test_feature,
-            # senet34_test_feature,
-            # senet50_test_feature,
-            # senet101_test_feature,
-            # senet152_test_feature,
-            # xception_test_feature,
-            # wideresidual_test_feature
+            resnet_in_resnet_test_feature,
+            senet18_test_feature,
+            senet34_test_feature,
+            senet50_test_feature,
+            senet101_test_feature,
+            senet152_test_feature,
+            xception_test_feature,
+            wideresidual_test_feature
         )):
             temp = torch.zeros((len(one_nodule_feature),512))
             for i, feature in enumerate(one_nodule_feature):
@@ -336,15 +354,18 @@ for out_index in range(1):
             best_conf_mat = conf_mat
 
             #将最好的结果保存到csv中
-            predict_csv = open('./experiments/gcn/result/best_result.csv','w',encoding='utf-8')
+            predict_csv = open('./experiments/gcn/result/best_result_add_traditional.csv','w',encoding='utf-8')
             csv_writer = csv.writer(predict_csv)
-            csv_writer.writerow(["filename","truth_label","predict_label","is_right"])
+            csv_writer.writerow(["filename","truth_label","predict_label","is_right",'percentage'])
 
             for index,(name, truth_label, predict_label) in enumerate(zip(nodule_name, test_label.data.cpu().numpy(), pre_test_list.data.cpu().numpy())):
                 is_right = True if truth_label == predict_label else False
-                data = [name, truth_label, int(predict_label), is_right]
+                percentage = calculate_percentage(name)
+                data = [name, truth_label, int(predict_label), is_right, percentage]
                 csv_writer.writerow(data)
             predict_csv.close()
+
+            save_incorrect_nodule(pre_test_list, test_label, nodule_name)
 
 
             #最好准确率时保存模型
@@ -372,4 +393,4 @@ for out_index in range(1):
 #     f.flush()
 # f.write('best_acc_list:'+ str(best_acc_list))
 
-    
+

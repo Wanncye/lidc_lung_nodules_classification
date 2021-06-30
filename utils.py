@@ -562,135 +562,49 @@ def feature_extract():
     # 提取两种类型的特征：一种是非mask的结节特征，另一种是mask的结节特征。
     # 共提取6种特征，即resnet,vgg,googlenet,lbp,hog,glcm
     batch_size = 1
-    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = batch_size, data_dir='./data/nodules3d_128_mask_npy', train_shuffle=False)
+    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = batch_size, data_dir='./data/nodules3d_128_npy_no_same_patient_in_two_dataset', train_shuffle=False)
     train_dl = dataloaders['train']
-    train_len = 639
+    train_len = 641
     test_dl = dataloaders['test']
-    test_len = 160
+    test_len = 157
     feature_len = 512
-    googlenet_test_feature = torch.zeros((test_len,feature_len))
-    resnet10_test_feature = torch.zeros((test_len,feature_len))
-    resnet18_test_feature = torch.zeros((test_len,feature_len))
-    resnet34_test_feature = torch.zeros((test_len,feature_len))
-    resnet50_test_feature = torch.zeros((test_len,feature_len))
-    resnet101_test_feature = torch.zeros((test_len,feature_len))
-    resnet152_test_feature = torch.zeros((test_len,feature_len))
-    resnet200_test_feature = torch.zeros((test_len,feature_len))
-    vgg11_test_feature = torch.zeros((test_len,feature_len))
-    vgg13_test_feature = torch.zeros((test_len,feature_len))
-    vgg16_test_feature = torch.zeros((test_len,feature_len))
-    vgg19_test_feature = torch.zeros((test_len,feature_len))
+    lbp_train_feature = torch.zeros((train_len,feature_len))
+    hog_train_feature = torch.zeros((train_len,feature_len))
+    glcm_train_feature = torch.zeros((train_len,feature_len))
+    lbp_test_feature = torch.zeros((test_len,feature_len))
+    hog_test_feature = torch.zeros((test_len,feature_len))
+    glcm_test_feature = torch.zeros((test_len,feature_len))
 
-    # #googlenet提取特征
-    model = googlenet()
-    #strict=False 使得预训练模型参数中和新模型对应上的参数会被载入，对应不上或没有的参数被抛弃
-    model.load_state_dict(torch.load('./experiments/googlenet_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            googlenet_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
-
-    model = generate_model(10)
-    model.load_state_dict(torch.load('./experiments/resnet10_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            resnet10_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
-
-    model = generate_model(18)
-    model.load_state_dict(torch.load('./experiments/resnet18_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            resnet18_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
-
-    model = generate_model(34)
-    model.load_state_dict(torch.load('./experiments/resnet34_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            resnet34_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+    # # #googlenet提取特征
+    # model = googlenet()
+    # #strict=False 使得预训练模型参数中和新模型对应上的参数会被载入，对应不上或没有的参数被抛弃
+    # model.load_state_dict(torch.load('./experiments/googlenet_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
+    with tqdm(total=len(train_dl)) as t:
+        for i, (x, target, _) in enumerate(train_dl):
+            feature = LBP(x)
+            lbp_train_feature[(i*batch_size):((i+1)*batch_size), :] = torch.from_numpy(feature)
+            feature = HOG(x)
+            hog_train_feature[(i*batch_size):((i+1)*batch_size), :] = torch.from_numpy(feature)
+            feature = GLCM(x)
+            glcm_train_feature[(i*batch_size):((i+1)*batch_size), :] = torch.from_numpy(feature)
             t.update()
     
-    model = generate_model(50)
-    model.load_state_dict(torch.load('./experiments/resnet50_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
     with tqdm(total=len(test_dl)) as t:
         for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            resnet50_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
-    
-    model = generate_model(101)
-    model.load_state_dict(torch.load('./experiments/resnet101_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            resnet101_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
+            feature = LBP(x)
+            lbp_test_feature[(i*batch_size):((i+1)*batch_size), :] = torch.from_numpy(feature)
+            feature = HOG(x)
+            hog_test_feature[(i*batch_size):((i+1)*batch_size), :] = torch.from_numpy(feature)
+            feature = GLCM(x)
+            glcm_test_feature[(i*batch_size):((i+1)*batch_size), :] = torch.from_numpy(feature)
             t.update()
 
-    model = generate_model(152)
-    model.load_state_dict(torch.load('./experiments/resnet152_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            resnet152_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
-
-    model = generate_model(200)
-    model.load_state_dict(torch.load('./experiments/resnet200_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            resnet200_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
-
-    model = vgg11_bn(0.5)
-    model.load_state_dict(torch.load('./experiments/vgg11_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            vgg11_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
-    
-    model = vgg13_bn(0.5)
-    model.load_state_dict(torch.load('./experiments/vgg13_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            vgg13_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
-
-    model = vgg16_bn(0.5)
-    model.load_state_dict(torch.load('./experiments/vgg16_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            vgg16_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
-
-    model = vgg19_bn(0.5)
-    model.load_state_dict(torch.load('./experiments/vgg19_mask/folder.0.FocalLoss_alpha_0.25.best.pth.tar'), strict=False)
-    with tqdm(total=len(test_dl)) as t:
-        for i, (x, target, _) in enumerate(test_dl):
-            _, feature = model(x)
-            vgg19_test_feature[(i*batch_size):((i+1)*batch_size), :] = feature.detach()
-            t.update()
-
-    torch.save(googlenet_test_feature,'./data/mask_feature/googlenet_test.pt')
-    torch.save(resnet10_test_feature,'./data/mask_feature/resnet10_test.pt')
-    torch.save(resnet18_test_feature,'./data/mask_feature/resnet18_test.pt')
-    torch.save(resnet34_test_feature,'./data/mask_feature/resnet34_test.pt')
-    torch.save(resnet50_test_feature,'./data/mask_feature/resnet50_test.pt')
-    torch.save(resnet101_test_feature,'./data/mask_feature/resnet101_test.pt')
-    torch.save(resnet152_test_feature,'./data/mask_feature/resnet152_test.pt')
-    torch.save(resnet200_test_feature,'./data/mask_feature/resnet200_test.pt')
-    torch.save(vgg11_test_feature,'./data/mask_feature/vgg11_test.pt')
-    torch.save(vgg13_test_feature,'./data/mask_feature/vgg13_test.pt')
-    torch.save(vgg16_test_feature,'./data/mask_feature/vgg16_test.pt')
-    torch.save(vgg19_test_feature,'./data/mask_feature/vgg19_test.pt')
+    torch.save(lbp_train_feature,'./data/feature/lbp_train_feature.pt')
+    torch.save(hog_train_feature,'./data/feature/hog_train_feature.pt')
+    torch.save(glcm_train_feature,'./data/feature/glcm_train_feature.pt')
+    torch.save(lbp_test_feature,'./data/feature/lbp_test_feature.pt')
+    torch.save(hog_test_feature,'./data/feature/hog_test_feature.pt')
+    torch.save(glcm_test_feature,'./data/feature/glcm_test_feature.pt')
 
 def numpy_to_tensor_and_save():
     hog_train_feature = torch.from_numpy(np.load('./data/feature/hog_train_feature.pt.npy'))
@@ -1323,8 +1237,99 @@ def converage_all_result():
     best_json = glob.glob(r'./experiments/*_nomask/*best*')
     print(len(best_json))
 
+import json
+#计算所有特征之间的预测相似度，包括gcn
+def caculate_all_method_predict_similarity():
+    best_json = glob.glob(r'./experiments/*_nomask/folder.0.FocalLoss_alpha_0.25.metrics_val_best_weights*')
+    model_name_list = ['googlenet', 'resnet10', 'resnet18', 'resnet34', 'resnet50',
+    'resnet101', 'resnet152', 'resnet200', 'vgg11', 'vgg13', 'vgg16', 'vgg19', 'alexnet',
+    'attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet',
+    'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',
+    'inceptionv3', 'densenet121', 'densenet161', 'densenet169', 'densenet201', 'resnext50',
+    'resnext101', 'resnext152', 'resnet_in_resnet', 'senet18', 'senet34', 'senet50', 'senet101',
+    'senet152', 'xception', 'wideresidual']
+    model_name_list.sort()
+    print(model_name_list)
+    wanted_path = []
+    for i in best_json:
+        for j in model_name_list:
+            if j in i:
+                wanted_path.append(i)
+                break
+    wanted_path.sort() #对路径排序
+    model_name = open('./experiments/gcn/model_name_order.txt','w')
+    for i in wanted_path:
+        name = i.split('/')[2].split('_')[0]
+        model_name.write(name + '\n')
+    model_name.flush()
+
+    predict_list = []
+    for json_path in wanted_path:
+        parent_path = json_path.split('/f')[0]
+        f = open(json_path, 'r')
+        epoch = int(float(f.readlines()[-2].split(':')[1].strip()))
+        csv_path = parent_path + '/result/folder_0_result_' + str(epoch-1) + '.csv'
+
+        csv_reader = csv.reader(open(csv_path))
+        header = next(csv_reader) #csv头
+        temp_predict_list = []
+        for row in csv_reader:
+            temp_predict_list.append(row[2])
+        predict_list.append(temp_predict_list)
+
+    gcn_predict_list = []
+    csv_reader = csv.reader(open('experiments/gcn/result/best_result.csv'))
+    header = next(csv_reader) 
+    for row in csv_reader:
+        gcn_predict_list.append(row[2])
+    predict_list.append(gcn_predict_list)
+
+    feature_num = 41
+    nodule_num = 157
+    sim_matrix = np.zeros((feature_num,feature_num))
+    cord = 0
+    for i_predict_list in predict_list:
+        for j_predict_list in predict_list:
+            correct = 0
+            for index in range(nodule_num):
+                if i_predict_list[index] == j_predict_list[index]:
+                    correct += 1
+            row = int(cord / feature_num)
+            coloum = cord % feature_num
+            sim_matrix[row][coloum] = correct/nodule_num
+            cord += 1
+    np.savetxt('./experiments/gcn/sim_matrix.txt', sim_matrix, delimiter = ',', fmt='%.04f') 
+
+#将测试集的图片转化成2d图片并保存下来
+def get_2d_test_png():
+    npy_path = glob.glob(r'./data/nodules3d_128_npy_no_same_patient_in_two_dataset/test/*.npy')
+    save_root = './data/nodules3d_128_npy_no_same_patient_in_two_dataset_test_2d/'
+    for one_path in npy_path:
+        name = one_path.split('/')[-1].split('.')[0]
+        npy = np.load(one_path)
+        for i in range(8):
+            save_name = save_root + name + '_' + str(i) + '.png'
+            slice = npy[:, :, i]
+            plt.imsave(save_name, slice, cmap='gray')
+
+
+#计算一个结节图片中结节像素占整个图像的比例
+def calculate_percentage(nodule_name):
+    nodule_path = './data/nodules3d_128_mask_no_split/' + nodule_name
+    npy = np.load(nodule_path)
+    count = 0
+    for i in range(8):
+        slice = npy[:, :, i]
+        for slice_i in range(128):
+            for slice_j in range(128):
+                if slice[slice_i][slice_j] != 0.0:
+                    count += 1
+    percentage = (count / (128*128*8))
+    return percentage*100
+        
+
 if __name__ == '__main__':
-    converage_all_result()
+    calculate_percentage()
     # get_dataset_label_pt()
     # search_different_resnet_feature_correlation()
     # exract_15_feature_10_sample_write_in_txt()

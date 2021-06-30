@@ -308,6 +308,7 @@ if __name__ == '__main__':
     # model_list=['alexnet']                        #86.88%
     # model_list=['attention56']                    #83.75%
     # model_list=['attention92']                    #81.25%
+    model_list=['resnet50']                    
 
     # model_list=['mobilenet']                      #69.75%
     # model_list=['mobilenetv2']                    #77.63%
@@ -330,8 +331,8 @@ if __name__ == '__main__':
     # model_list=['inceptionv4']                    #有问题 50%
     # model_list=['inception_resnet_v2']            #有问题 50%
     
-    model_list = ['resnet_in_resnet',
-    'senet18', 'senet34', 'senet50', 'senet101', 'senet152', 'xception', 'wideresidual','inceptionv3']
+    # model_list = ['resnet_in_resnet',
+    # 'senet18', 'senet34', 'senet50', 'senet101', 'senet152', 'xception', 'wideresidual','inceptionv3']
 
     # model_list=['resnext50']                      #83.13%  
     # model_list=['resnext101']                     #72.50%
