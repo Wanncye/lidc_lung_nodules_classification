@@ -1329,7 +1329,8 @@ def calculate_percentage(nodule_name):
         
 
 if __name__ == '__main__':
-    calculate_percentage()
+    pass
+    # calculate_percentage()
     # get_dataset_label_pt()
     # search_different_resnet_feature_correlation()
     # exract_15_feature_10_sample_write_in_txt()

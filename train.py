@@ -209,7 +209,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
     # reload weights from restore_file if specified
     if restore_file is not None:
-        restore_path = os.path.join(args.model_dir, args.restore_file + '.pth.tar')
+        restore_path = os.path.join(args.model_dir,  f'{restore_file}.pth.tar')
         logging.info("Restoring parameters from {}".format(restore_path))
         utils.load_checkpoint(restore_path, model, optimizer)
 
@@ -308,7 +308,7 @@ if __name__ == '__main__':
     # model_list=['alexnet']                        #86.88%
     # model_list=['attention56']                    #83.75%
     # model_list=['attention92']                    #81.25%
-    model_list=['resnet50']                    
+    # model_list=['resnet50']                    
 
     # model_list=['mobilenet']                      #69.75%
     # model_list=['mobilenetv2']                    #77.63%
@@ -323,7 +323,7 @@ if __name__ == '__main__':
     # model_list=['preactresnet152']                #81.88%  
 
     # model_list=['densenet161']                    #85.63%  
-    # model_list=['densenet201']                    #84.38%
+    model_list=['densenet201']                    #84.38%
     # model_list=['densenet169']                    #85.00%
     # model_list=['densenet121']                    #82.50%
 
@@ -554,7 +554,8 @@ if __name__ == '__main__':
             
             # train(model, optimizer, loss_fn, train_dl, metrics, params)
             print('lr:',params.learning_rate)
-            train_and_evaluate(model, train_dl, test_dl, optimizer, loss_fn, metrics, params, args.model_dir, N_folder, scheduler, model_name)
+            # train_and_evaluate(model, train_dl, test_dl, optimizer, loss_fn, metrics, params, args.model_dir, N_folder, scheduler, model_name)
+            train_and_evaluate(model, train_dl, test_dl, optimizer, loss_fn, metrics, params, args.model_dir, N_folder, scheduler, model_name, restore_file="folder.0.FocalLoss_alpha_0.25.best")
         all_time_finish = time.time()
         all_used_time = all_time_finish - all_time_start
         print('used: ' + str(all_used_time/60) + ' mins.  =' + str(all_used_time/3600) + 'hs')

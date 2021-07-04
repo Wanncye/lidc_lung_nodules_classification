@@ -197,7 +197,8 @@ class ResNet(nn.Module):
     def forward(self, x):
 
         # print("before conv:",x.shape)
-        plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap.png', x[0,0,0,:,:].cpu().detach().numpy(),cmap='gray')
+        for i in range(8):
+            plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap_'+str(i)+'.png', x[0,0,i,:,:].cpu().detach().numpy(),cmap='gray')
 
         x = self.conv1(x)
         # print("after conv1:",x.shape)
