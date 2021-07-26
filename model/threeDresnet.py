@@ -197,12 +197,12 @@ class ResNet(nn.Module):
     def forward(self, x):
 
         # print("before conv:",x.shape)
-        for i in range(8):
-            plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap_'+str(i)+'.png', x[0,0,i,:,:].cpu().detach().numpy(),cmap='gray')
+        # for i in range(8):
+        #     plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap_'+str(i)+'.png', x[0,0,i,:,:].cpu().detach().numpy(),cmap='gray')
 
         x = self.conv1(x)
         # print("after conv1:",x.shape)
-        plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap1.png', x[0,0,0,:,:].cpu().detach().numpy(),cmap = 'gray')
+        # plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap1.png', x[0,0,0,:,:].cpu().detach().numpy(),cmap = 'gray')
 
         x = self.bn1(x)
         # plt.imsave('featureMap2.png', x[0,0,0,:,:].cpu().detach().numpy())
@@ -221,21 +221,21 @@ class ResNet(nn.Module):
 
         x = self.layer1(x)
         # print("after layer1:",x.shape)
-        for index in range(256):
-            plt.imsave('./experiments/resnet50_nomask/feature_map/layer1/featureMap'+str(index)+'.png', x[0,index,0,:,:].cpu().detach().numpy(),cmap = 'gray')
+        # for index in range(256):
+        #     plt.imsave('./experiments/resnet50_nomask/feature_map/layer1/featureMap'+str(index)+'.png', x[0,index,0,:,:].cpu().detach().numpy(),cmap = 'gray')
 
         x = self.layer2(x)
         # print("after layer2:",x.shape)
-        for index in range(512):
-            plt.imsave('./experiments/resnet50_nomask/feature_map/layer2/featureMap'+str(index)+'.png', x[0,index,0,:,:].cpu().detach().numpy(),cmap = 'gray')
+        # for index in range(512):
+        #     plt.imsave('./experiments/resnet50_nomask/feature_map/layer2/featureMap'+str(index)+'.png', x[0,index,0,:,:].cpu().detach().numpy(),cmap = 'gray')
 
         x = self.layer3(x)
         # print("after layer3:",x.shape)
-        plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap8.png', x[0,0,0,:,:].cpu().detach().numpy(),cmap = 'gray')
+        # plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap8.png', x[0,0,0,:,:].cpu().detach().numpy(),cmap = 'gray')
 
         x = self.layer4(x)
         # print("after layer4:",x.shape)
-        plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap9.png', x[0,0,0,:,:].cpu().detach().numpy(),cmap = 'gray')
+        # plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap9.png', x[0,0,0,:,:].cpu().detach().numpy(),cmap = 'gray')
 
 
         x = self.avgpool(x)

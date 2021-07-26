@@ -36,7 +36,7 @@ class LRN(nn.Module):
 
 class AlexNet(nn.Module):
 
-    def __init__(self, num_classes=1000):
+    def __init__(self, num_classes=2):
         super(AlexNet, self).__init__()
         self.features = nn.Sequential(
             nn.Conv3d(1, 96, kernel_size=5, stride=2, padding=1),

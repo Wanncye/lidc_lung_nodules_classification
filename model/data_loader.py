@@ -63,7 +63,7 @@ class LIDCDataset(Dataset):
         cube = np.load(os.path.join(self.data_dir,filename))
         cube = torch.tensor(cube)
         cube = cube.transpose(0,2)
-        # cube = torch.unsqueeze(cube,0)  #2d卷积的时候把这行注释掉
+        cube = torch.unsqueeze(cube,0)  #2d卷积的时候把这行注释掉
         cube = cube.type(torch.FloatTensor)
         label = self.npy_list[idx].split('.')[0][-1]
         label = np.array(int(label))

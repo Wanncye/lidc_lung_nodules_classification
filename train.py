@@ -178,6 +178,8 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             vis.plot(model_name + '_val_loss_folder_' + str(N_folder), summary_batch['loss'], 1)
 
         # compute mean of all metrics in summary
+        for metric in summ[0]:
+            print(metric)
         metrics_mean = {metric:np.mean([x[metric] for x in summ]) for metric in summ[0]} 
         metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_mean.items())
         logging.info("- Eval metrics : " + metrics_string)
@@ -261,16 +263,16 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             #用最好的模型来提取512维特征
             with torch.no_grad():
                 model.eval()
-                train_feature = torch.zeros((641,512))
-                test_feature = torch.zeros((157,512))
+                train_feature = torch.zeros((len(train_dl.dataset),512))
+                test_feature = torch.zeros((len(test_dl.dataset),512))
                 for i, (x, target, _) in enumerate(train_dataloader):
                     _, feature = model(x.cuda())
                     train_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
                 for i, (x, target, _) in enumerate(val_dataloader):
                     _, feature = model(x.cuda())
                     test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
-                torch.save(train_feature,'./data/feature/' + model_name + '_train.pt')
-                torch.save(test_feature,'./data/feature/' + model_name + '_test.pt')
+                torch.save(train_feature,'./data/feature/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
+                torch.save(test_feature,'./data/feature/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
         last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_last_weights.json")
         utils.save_dict_to_json(val_metrics, last_json_path)
@@ -303,7 +305,7 @@ if __name__ == '__main__':
     #             'alexnet']
 
     # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
-
+    model_list = ['resnet34', 'densenet201']
     # model_list=['lenet5']                         #有问题 50%
     # model_list=['alexnet']                        #86.88%
     # model_list=['attention56']                    #83.75%
@@ -323,7 +325,7 @@ if __name__ == '__main__':
     # model_list=['preactresnet152']                #81.88%  
 
     # model_list=['densenet161']                    #85.63%  
-    model_list=['densenet201']                    #84.38%
+    # model_list=['densenet201']                    #84.38%
     # model_list=['densenet169']                    #85.00%
     # model_list=['densenet121']                    #82.50%
 
@@ -381,12 +383,15 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(1):
+        for N_folder in range(5):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
             # 得到训练测试数据
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
+            # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
+            
+            #5折交叉验证
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=False)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
@@ -554,8 +559,8 @@ if __name__ == '__main__':
             
             # train(model, optimizer, loss_fn, train_dl, metrics, params)
             print('lr:',params.learning_rate)
-            # train_and_evaluate(model, train_dl, test_dl, optimizer, loss_fn, metrics, params, args.model_dir, N_folder, scheduler, model_name)
-            train_and_evaluate(model, train_dl, test_dl, optimizer, loss_fn, metrics, params, args.model_dir, N_folder, scheduler, model_name, restore_file="folder.0.FocalLoss_alpha_0.25.best")
+            train_and_evaluate(model, train_dl, test_dl, optimizer, loss_fn, metrics, params, args.model_dir, N_folder, scheduler, model_name)
+            # train_and_evaluate(model, train_dl, test_dl, optimizer, loss_fn, metrics, params, args.model_dir, N_folder, scheduler, model_name, restore_file="folder.0.FocalLoss_alpha_0.25.best")
         all_time_finish = time.time()
         all_used_time = all_time_finish - all_time_start
         print('used: ' + str(all_used_time/60) + ' mins.  =' + str(all_used_time/3600) + 'hs')
