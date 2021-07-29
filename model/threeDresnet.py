@@ -149,6 +149,7 @@ class ResNet(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
         self.fc1 = nn.Linear(block_inplanes[3] * block.expansion, 512)
         self.fc2 = nn.Linear(512 + 56 * 4, n_classes)
+        self.fc3 = nn.Linear(512, n_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
@@ -194,7 +195,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, gcn_feature):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature):
 
         x = self.conv1(x)
         x = self.bn1(x)
@@ -208,9 +209,12 @@ class ResNet(nn.Module):
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         feature = self.fc1(x)
-        #拼接两个tensor
-        x1 = torch.cat((feature,gcn_feature),axis=1)
-        x2 = self.fc2(x1)
+        if add_gcn_middle_feature:
+            #拼接两个tensor
+            x1 = torch.cat((feature,gcn_feature),axis=1)
+            x2 = self.fc2(x1)
+        else:
+            x2 = self.fc3(feature)
         return x2, feature
 
 

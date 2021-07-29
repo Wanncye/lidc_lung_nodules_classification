@@ -1327,11 +1327,42 @@ def calculate_percentage(nodule_name):
                     count += 1
     percentage = (count / (128*128*8))
     return percentage*100
+
+#确认蔡兄的另外4折是否有同一病例的结节即在训练集又在测试集
+def confirm_patient_nodule_not_in_two_dataset():
+    for fold in range(1,6):
+        fold_path = 'data/5fold_128_new/fold'+str(fold)
+        train_npy = glob.glob(os.path.join(fold_path,'train/*npy'))
+        test_npy = glob.glob(os.path.join(fold_path,'test/*npy'))
+        train_patient = []
+        test_patient = []
+        train_positive, train_negative, test_positive, test_negative = 0, 0, 0, 0
+        for npy_name in train_npy:
+            train_patient.append(npy_name.split('/')[-1].split('_')[0])
+            if npy_name.split('/')[-1].split('_')[-1].split('.')[0] == '0':
+                train_negative += 1
+            else:
+                train_positive += 1
+        for npy_name in test_npy:
+            test_patient.append(npy_name.split('/')[-1].split('_')[0])
+            if npy_name.split('/')[-1].split('_')[-1].split('.')[0] == '0':
+                test_negative += 1
+            else:
+                test_positive += 1
+        train_patient = set(train_patient)
+        test_patient = set(test_patient)
+        print("fold {0} exit {1}".format(fold, train_patient.intersection(test_patient)))
+        print("训练集：0类 {0}，1类 {1}；测试集：0类{2}，1类{3}".format(train_negative, train_positive, test_negative, test_positive))
+        print('='*15)
+
+    #修改策略：将测试集中重复的病人结节全部移到训练集中去
+    return
         
 
 if __name__ == '__main__':
+    confirm_patient_nodule_not_in_two_dataset()
     # calculate_percentage()
-    get_dataset_label_pt()
+    # get_dataset_label_pt()
     # search_different_resnet_feature_correlation()
     # exract_15_feature_10_sample_write_in_txt()
     # caculate_six_method_predict_similarity()

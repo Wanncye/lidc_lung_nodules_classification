@@ -18,16 +18,20 @@ class VGG(nn.Module):
         )
         self.fc1 = nn.Linear(4096, 512)
         self.fc2 = nn.Linear(512 + 56 * 4, num_classes)
+        self.fc3 = nn.Linear(512, num_classes)
         if init_weights:
             self._initialize_weights()
 
-    def forward(self, x, gcn_feature):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature):
         x = self.features(x)
         x = x.view(x.size(0), -1)  #16*8192
         x = self.classifier(x)
         feature = self.fc1(x)    #得到的512维特征
-        x1 = torch.cat((feature,gcn_feature),axis=1)
-        x2 = self.fc2(x1)
+        if add_gcn_middle_feature:
+            x1 = torch.cat((feature,gcn_feature),axis=1)
+            x2 = self.fc2(x1)
+        else:
+            x2 = self.fc3(feature)
         return x2, feature
 
     def _initialize_weights(self):

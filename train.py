@@ -46,7 +46,10 @@ from model.xception import xception
 import netron     
 import torch.onnx
 
-save_model_feature = False
+#是否保存模型中间特征
+save_model_feature = True
+#是否加入GCN中间特征
+add_gcn_middle_feature = False
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name):
     """Train the model on `num_steps` batches
@@ -81,7 +84,7 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
             train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
 
             #将载入的数据输入3DResNet,得到结果
-            output_batch, _ = model(train_batch, gcn_feature)
+            output_batch, _ = model(train_batch, gcn_feature, add_gcn_middle_feature)
             #计算网络输出结果和目标值之间的损失
 
             loss = loss_fn(output_batch, labels_batch)
@@ -148,7 +151,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             data_batch, labels_batch = Variable(data_batch), Variable(labels_batch)
             
             # compute model output
-            output_batch, _ = model(data_batch, gcn_feature)
+            output_batch, _ = model(data_batch, gcn_feature, add_gcn_middle_feature)
             loss = loss_fn(output_batch, labels_batch)
 
             m = nn.Softmax(dim=1)
@@ -267,14 +270,14 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                     model.eval()
                     train_feature = torch.zeros((len(train_dl.dataset),512))
                     test_feature = torch.zeros((len(test_dl.dataset),512))
-                    for i, (x, target, _, _) in enumerate(train_dataloader):
-                        _, feature = model(x.cuda())
+                    for i, (x, target, _, gcn_middle_feature) in enumerate(train_dataloader):
+                        _, feature = model(x.cuda(), gcn_middle_feature, add_gcn_middle_feature)
                         train_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
-                    for i, (x, target, _, _) in enumerate(val_dataloader):
-                        _, feature = model(x.cuda())
+                    for i, (x, target, _, gcn_middle_feature) in enumerate(val_dataloader):
+                        _, feature = model(x.cuda(), gcn_middle_feature, add_gcn_middle_feature)
                         test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
-                    torch.save(train_feature,'./data/feature/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
-                    torch.save(test_feature,'./data/feature/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
+                    torch.save(train_feature,'./data/feature/5fold_128_new/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
+                    torch.save(test_feature,'./data/feature/5fold_128_new/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
         last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_last_weights.json")
         utils.save_dict_to_json(val_metrics, last_json_path)
@@ -532,7 +535,8 @@ if __name__ == '__main__':
             print('# model parameters:', sum(param.numel() for param in model.parameters()))
             input = torch.randn(1, 1, 8, 128, 128).cuda()
             fake_feature = torch.randn(1,56*4).cuda()
-            flops_num, params_num = profile(model, inputs=(input, fake_feature))
+            fake_add_gcn_feature = False
+            flops_num, params_num = profile(model, inputs=(input, fake_feature, fake_add_gcn_feature))
             print('# flops:', flops_num)
             print('# params:', params_num)
 

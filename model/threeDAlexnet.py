@@ -62,8 +62,9 @@ class AlexNet(nn.Module):
         self.relu2 = nn.ReLU(inplace=True)
         self.dropout2 = nn.Dropout()
         self.linear3 = nn.Linear(512 + 56 * 4, num_classes)
+        self.linear4 = nn.Linear(512, num_classes)
 
-    def forward(self, x, gcn_feature):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature):
         x = self.features(x)
         x = x.view(x.size(0), 256 * 7 * 7)
         x = self.linear1(x)
@@ -72,8 +73,11 @@ class AlexNet(nn.Module):
         feature = self.linear2(x)
         x = self.relu2(feature)
         x = self.dropout2(x)
-        x = torch.cat((x,gcn_feature),axis=1)
-        output = self.linear3(x)
+        if add_gcn_middle_feature:
+            x = torch.cat((x,gcn_feature),axis=1)
+            output = self.linear3(x)
+        else:
+            output = self.linear4(x)
         return output, feature
 
 
