@@ -148,7 +148,7 @@ class ResNet(nn.Module):
 
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
         self.fc1 = nn.Linear(block_inplanes[3] * block.expansion, 512)
-        self.fc2 = nn.Linear(512, n_classes)
+        self.fc2 = nn.Linear(512 + 56 * 4, n_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
@@ -194,61 +194,24 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
-
-        # print("before conv:",x.shape)
-        # for i in range(8):
-        #     plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap_'+str(i)+'.png', x[0,0,i,:,:].cpu().detach().numpy(),cmap='gray')
+    def forward(self, x, gcn_feature):
 
         x = self.conv1(x)
-        # print("after conv1:",x.shape)
-        # plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap1.png', x[0,0,0,:,:].cpu().detach().numpy(),cmap = 'gray')
-
         x = self.bn1(x)
-        # plt.imsave('featureMap2.png', x[0,0,0,:,:].cpu().detach().numpy())
-
-        # print("after bn1:",x.shape)
-        # plt.imsave('featureMap3.png', x[0,0,0,:,:].cpu().detach().numpy())
-
         x = self.relu(x)
-        # print("after relu:",x.shape)
-        # plt.imsave('featureMap4.png', x[0,0,0,:,:].cpu().detach().numpy())
-
         if not self.no_max_pool:
             x = self.maxpool(x)
-            # print("after maxpool:",x.shape)
-            # plt.imsave('featureMap5.png', x[0,0,0,:,:].cpu().detach().numpy())
-
         x = self.layer1(x)
-        # print("after layer1:",x.shape)
-        # for index in range(256):
-        #     plt.imsave('./experiments/resnet50_nomask/feature_map/layer1/featureMap'+str(index)+'.png', x[0,index,0,:,:].cpu().detach().numpy(),cmap = 'gray')
-
         x = self.layer2(x)
-        # print("after layer2:",x.shape)
-        # for index in range(512):
-        #     plt.imsave('./experiments/resnet50_nomask/feature_map/layer2/featureMap'+str(index)+'.png', x[0,index,0,:,:].cpu().detach().numpy(),cmap = 'gray')
-
         x = self.layer3(x)
-        # print("after layer3:",x.shape)
-        # plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap8.png', x[0,0,0,:,:].cpu().detach().numpy(),cmap = 'gray')
-
         x = self.layer4(x)
-        # print("after layer4:",x.shape)
-        # plt.imsave('./experiments/resnet50_nomask/feature_map/featureMap9.png', x[0,0,0,:,:].cpu().detach().numpy(),cmap = 'gray')
-
-
         x = self.avgpool(x)
-        # print("after avgpool:",x.shape)
-        # plt.imsave('featureMap10.png', x[0,0,0,:,:].cpu().detach().numpy())
-
         x = x.view(x.size(0), -1)
-        # print("after view:",x.shape)
-        x1 = self.fc1(x)
+        feature = self.fc1(x)
+        #拼接两个tensor
+        x1 = torch.cat((feature,gcn_feature),axis=1)
         x2 = self.fc2(x1)
-        # print("after fc:",x.shape)
-        # print(x)
-        return x2, x1
+        return x2, feature
 
 
 def generate_model(model_depth, **kwargs):

@@ -1,5 +1,6 @@
 import torch.nn as nn
 import math
+import torch
 
 
 class VGG(nn.Module):
@@ -16,17 +17,18 @@ class VGG(nn.Module):
             nn.Dropout(dropout_rate),
         )
         self.fc1 = nn.Linear(4096, 512)
-        self.fc2 = nn.Linear(512, num_classes)
+        self.fc2 = nn.Linear(512 + 56 * 4, num_classes)
         if init_weights:
             self._initialize_weights()
 
-    def forward(self, x):
+    def forward(self, x, gcn_feature):
         x = self.features(x)
         x = x.view(x.size(0), -1)  #16*8192
         x = self.classifier(x)
-        x1 = self.fc1(x)    #得到的512维特征
+        feature = self.fc1(x)    #得到的512维特征
+        x1 = torch.cat((feature,gcn_feature),axis=1)
         x2 = self.fc2(x1)
-        return x2, x1
+        return x2, feature
 
     def _initialize_weights(self):
         for m in self.modules():

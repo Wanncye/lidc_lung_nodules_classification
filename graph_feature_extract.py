@@ -25,16 +25,10 @@ def get_random_adj(node_num, out_index):
     return adj
 
 
-
-
-
 weightDecay = 1
 vis = Visualizer('GCN-weight_decay='+str(weightDecay))
 
-dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 641, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
-test_dl = dataloaders['test']
-for i, (train_batch, labels_batch, file_name) in enumerate(test_dl):
-    nodule_name = file_name
+
 
 
 def normalize_features(mx):
@@ -73,7 +67,13 @@ def save_incorrect_nodule(pre_label, truth_label, nodule_name):
 
 
 # f = open('./experiments/gcn/random_adj/random_adj_43_feature_0~1_result_2.txt', 'w')
-for fold in range(5):
+for fold in range(1,5):
+    # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 641, data_dir="data/5fold_128/fold"+str(fold+1), train_shuffle=False, fold= fold)
+    # test_dl = dataloaders['test']
+    # for i, (train_batch, labels_batch, file_name, _) in enumerate(test_dl):
+    #     nodule_name = file_name
+
+    print(fold)
     best_acc_list = []
     for out_index in range(1):
         input_dim = 512
@@ -192,17 +192,17 @@ for fold in range(5):
 
 
         #pretrain_feature
-        densenet201_train_feature = torch.load('data/pretrain_feature/fold'+str(fold+1)+'/densenet201_train.pt')
-        densenet201_test_feature = torch.load('data/pretrain_feature/fold'+str(fold+1)+'/densenet201_test.pt')
-        resnet34_train_feature = torch.load('data/pretrain_feature/fold'+str(fold+1)+'/resnet34_train.pt')
-        resnet34_test_feature = torch.load('data/pretrain_feature/fold'+str(fold+1)+'/resnet34_test.pt')
-        vgg13_train_feature = torch.load('data/pretrain_feature/fold'+str(fold+1)+'/vgg13_train.pt')
-        vgg13_test_feature = torch.load('data/pretrain_feature/fold'+str(fold+1)+'/vgg13_test.pt')
-        alexnet_train_feature = torch.load('data/pretrain_feature/fold'+str(fold+1)+'/alexnet_train.pt')
-        alexnet_test_feature = torch.load('data/pretrain_feature/fold'+str(fold+1)+'/alexnet_test.pt')
+        densenet201_train_feature = torch.load('data/feature/fold_'+str(fold)+'_densenet201_train.pt')
+        densenet201_test_feature = torch.load('data/feature/fold_'+str(fold)+'_densenet201_test.pt')
+        resnet34_train_feature = torch.load('data/feature/fold_'+str(fold)+'_resnet34_train.pt')
+        resnet34_test_feature = torch.load('data/feature/fold_'+str(fold)+'_resnet34_test.pt')
+        vgg13_train_feature = torch.load('data/feature/fold_'+str(fold)+'_vgg13_train.pt')
+        vgg13_test_feature = torch.load('data/feature/fold_'+str(fold)+'_vgg13_test.pt')
+        alexnet_train_feature = torch.load('data/feature/fold_'+str(fold)+'_alexnet_train.pt')
+        alexnet_test_feature = torch.load('data/feature/fold_'+str(fold)+'_alexnet_test.pt')
 
-        train_label = torch.load('data/pretrain_feature/fold'+str(fold+1)+'/train_label.pt')
-        test_label = torch.load('data/pretrain_feature/fold'+str(fold+1)+'/test_label.pt')
+        train_label = torch.load('data/feature/fold_'+str(fold)+'_train_label.pt')
+        test_label = torch.load('data/feature/fold_'+str(fold)+'_test_label.pt')
 
 
         #glcm竖直方向上归一化
@@ -223,7 +223,8 @@ for fold in range(5):
         # adj = torch.from_numpy(caculate_six_method_predict_similarity()).float()
         np.random.seed(np.random.randint(1,500))
         adj = get_random_adj(node_num, out_index)
-        adj = torch.tensor([[1., 0., 1., 1.],
+        adj = torch.tensor(
+            [[1., 0., 1., 1.],
             [1., 0., 1., 1.],
             [0., 1., 0., 1.],
             [1., 0., 1., 0.]])
@@ -231,6 +232,10 @@ for fold in range(5):
 
         best_test_acc = 0
         best_epoc = 0
+
+        gcn_train_middle_feature = torch.zeros(len(train_label),56*4)
+        gcn_test_middle_feature = torch.zeros(len(test_label),56*4)
+
         for epoch in range(200):
             loss_train_list = []
             pre_train_list = torch.zeros(len(train_label))
@@ -294,7 +299,10 @@ for fold in range(5):
                 model.train()
                 optimizer.zero_grad()
 
-                _ , _, output = model(features, adj)
+                _ , one_gcn_train_middle_feature, output = model(features, adj)
+                #将gcn中间特征保存下来
+                gcn_train_middle_feature[index] = one_gcn_train_middle_feature
+
                 one_label = train_label[index].unsqueeze(0).long()
                 pre_train_list[index] = output.max(1)[1].type_as(one_label)
                 loss_train = F.nll_loss(output,one_label)
@@ -361,7 +369,10 @@ for fold in range(5):
                 features, adj = Variable(one_nodule_feature), Variable(adj)
 
                 model.eval()
-                _ , _, output = model(features, adj)
+                _ , one_gcn_test_middle_feature, output = model(features, adj)
+                #将gcn中间特征保存下来
+                gcn_test_middle_feature[index] = one_gcn_test_middle_feature
+
                 one_label = test_label[index].unsqueeze(0).long()
                 pre_test_list[index] = output.max(1)[1].type_as(one_label)
                 loss_test_list.append(F.nll_loss(output,one_label).item())
@@ -374,18 +385,18 @@ for fold in range(5):
                 best_conf_mat = conf_mat
 
                 #将最好的结果保存到csv中
-                predict_csv = open('./experiments/gcn/result/best_result_add_traditional.csv','w',encoding='utf-8')
-                csv_writer = csv.writer(predict_csv)
-                csv_writer.writerow(["filename","truth_label","predict_label","is_right",'percentage'])
+                # predict_csv = open('./experiments/gcn/result/best_result_fold_'+str(fold+1)+'.csv','w',encoding='utf-8')
+                # csv_writer = csv.writer(predict_csv)
+                # csv_writer.writerow(["filename","truth_label","predict_label","is_right",'percentage'])
+                # for index,(name, truth_label, predict_label) in enumerate(zip(nodule_name, test_label.data.cpu().numpy(), pre_test_list.data.cpu().numpy())):
+                #     is_right = True if truth_label == predict_label else False
+                #     percentage = calculate_percentage(name)
+                #     data = [name, truth_label, int(predict_label), is_right, percentage]
+                #     csv_writer.writerow(data)
+                # predict_csv.close()
 
-                for index,(name, truth_label, predict_label) in enumerate(zip(nodule_name, test_label.data.cpu().numpy(), pre_test_list.data.cpu().numpy())):
-                    is_right = True if truth_label == predict_label else False
-                    percentage = calculate_percentage(name)
-                    data = [name, truth_label, int(predict_label), is_right, percentage]
-                    csv_writer.writerow(data)
-                predict_csv.close()
-
-                save_incorrect_nodule(pre_test_list, test_label, nodule_name)
+                # 将错误分类的结节保存下来
+                # save_incorrect_nodule(pre_test_list, test_label, nodule_name)
 
 
                 #最好准确率时保存模型
@@ -394,6 +405,10 @@ for fold in range(5):
                     'state_dict': model.state_dict(),
                     'optim_dict' : optimizer.state_dict()
                 },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar')
+
+                #保存gcn中间特征到文件中，用于其他模型的训练
+                torch.save(gcn_train_middle_feature,'data/feature/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_test_middle_feature,'data/feature/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
 
             vis.plot('train loss',np.mean(loss_train_list),1)
             vis.plot('test loss',np.mean(loss_test_list),1)

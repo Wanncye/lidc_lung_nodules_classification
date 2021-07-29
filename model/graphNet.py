@@ -127,8 +127,8 @@ class GCN(nn.Module):
         super(GCN, self).__init__()
         self.nclass = nclass
         self.gc1 = GC(nfeat, nhid)
-        self.gc2 = GC(nhid, fc_num)
-        # self.gc3 = GC(128, 56)
+        self.gc2 = GC(nhid, 56)
+        self.gc3 = GC(56, fc_num)
         # self.gc4 = GC(56, fc_num)
         self.dropout = dropout
         node_num = ft
@@ -141,10 +141,11 @@ class GCN(nn.Module):
         x2 = F.dropout(x1, self.dropout, training=self.training)#dropout了哪些信息？ 确定，这里的dropout是随机失活某一维度的一些值，而不是所有值
         # print(x2)
         x3 = F.relu(self.gc2(x2, adj))  #这儿可以也加一个激活函数,但是这里加激活函数之后测试集准确率全50%，所以去掉relu
-        # x3 = F.dropout(x3, self.dropout, training=self.training)
-        # x3 = F.relu(self.gc3(x3, adj))
+        middle_feature = x3.view(1, -1)
+        x3 = F.dropout(x3, self.dropout, training=self.training)
+        x3 = F.relu(self.gc3(x3, adj))
         # x3 = F.dropout(x3, self.dropout, training=self.training)
         # x3 = F.relu(self.gc4(x3, adj))
         x4 = x3.view(1, -1)
         x5 = self.fc(x4)
-        return x1, x3, F.log_softmax(x5, dim=1)
+        return x1, middle_feature, F.log_softmax(x5, dim=1)

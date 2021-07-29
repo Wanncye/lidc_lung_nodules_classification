@@ -1,3 +1,4 @@
+from matplotlib.pyplot import axis
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,6 +8,8 @@ import numpy as np
 from scipy import linalg, mat, dot
 
 
-npy = np.load('data/5fold_128/fold1/test/0001_01_1.npy')
-a=1
+a = torch.randn((16,512))
+b = torch.randn((16,224))
+c = torch.cat((a,b),axis=0)
+print(c.shape)
  

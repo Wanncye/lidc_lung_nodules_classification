@@ -40,7 +40,7 @@ class LIDCDataset(Dataset):
     """
     A standard PyTorch definition of Dataset which defines the functions __len__ and __getitem__.
     """
-    def __init__(self, data_dir, transform):
+    def __init__(self, data_dir, transform, fold, split):
         """
         Store the filenames of the jpgs to use. Specifies transforms to apply on images.
 
@@ -52,6 +52,10 @@ class LIDCDataset(Dataset):
         self.transform = transform
         self.npy_list = os.listdir(data_dir)
         self.npy_list.sort(key= lambda x:int(x[:-6]))
+        self.fold = fold
+        self.gcn_middle_feature = torch.load('data/feature/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
+        self.gcn_middle_feature.requires_grad = False
+
 
 
     def __len__(self):
@@ -68,10 +72,11 @@ class LIDCDataset(Dataset):
         label = self.npy_list[idx].split('.')[0][-1]
         label = np.array(int(label))
         label = torch.tensor(label)
-        return cube, label, filename
+        one_gcn_middle_feature = self.gcn_middle_feature[idx]
+        return cube, label, filename, one_gcn_middle_feature
 
 
-def fetch_dataloader(types = ["train"], data_dir = "data/nodules3d_128_mask_npy", df = None, params = None, batch_size = 128, train_shuffle=True, tfms = []):
+def fetch_dataloader(types = ["train"], data_dir = "data/nodules3d_128_mask_npy", df = None, params = None, batch_size = 128, train_shuffle=True, tfms = [], fold = None):
 
     print('data_dir:',data_dir)
     dataloaders = {}
@@ -83,14 +88,14 @@ def fetch_dataloader(types = ["train"], data_dir = "data/nodules3d_128_mask_npy"
             path = os.path.join(path,split)
             # use the train_transformer if training data, else use eval_transformer without random flip
             if split == 'train':
-                dl = DataLoader(LIDCDataset(path, tfms_train), 
+                dl = DataLoader(LIDCDataset(path, tfms_train, fold, split), 
                                         batch_size = batch_size,
                                         shuffle=train_shuffle,
                                         num_workers=0,
                                         pin_memory=True)
             else:
                 # dl = DataLoader(SEGMENTATIONDataset(path, eval_transformer, df[df.split.isin([split])]), 
-                dl = DataLoader(LIDCDataset(path, tfms_eval), 
+                dl = DataLoader(LIDCDataset(path, tfms_eval, fold, split), 
                                 batch_size = batch_size,
                                 shuffle=False,
                                 num_workers=2,

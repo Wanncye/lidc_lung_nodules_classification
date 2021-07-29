@@ -1224,13 +1224,14 @@ def search_different_resnet_feature_correlation():
 
 #修改测试集训练集之后，需要重新获取数据集的标签，并且保存下来
 def get_dataset_label_pt():
-    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 641, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
-    train_dl = dataloaders['train']
-    test_dl = dataloaders['test']
-    for i, (train_batch, labels_batch, _) in enumerate(train_dl):
-        torch.save(labels_batch,'./data/feature/train_label.pt')
-    for i, (train_batch, labels_batch, _) in enumerate(test_dl):
-        torch.save(labels_batch,'./data/feature/test_label.pt')
+    for index in range(5):
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 650, data_dir="data/5fold_128/fold"+str(index+1), train_shuffle=False)
+        train_dl = dataloaders['train']
+        test_dl = dataloaders['test']
+        for i, (train_batch, labels_batch, _) in enumerate(train_dl):
+            torch.save(labels_batch,'./data/feature/fold_'+str(index)+'_train_label.pt')
+        for i, (train_batch, labels_batch, _) in enumerate(test_dl):
+            torch.save(labels_batch,'./data/feature/fold_'+str(index)+'_test_label.pt')
 
 #将所有模型的（目前是已经训练好的模型）预测结果汇总到同一个csv中
 def converage_all_result():
@@ -1329,9 +1330,8 @@ def calculate_percentage(nodule_name):
         
 
 if __name__ == '__main__':
-    pass
     # calculate_percentage()
-    # get_dataset_label_pt()
+    get_dataset_label_pt()
     # search_different_resnet_feature_correlation()
     # exract_15_feature_10_sample_write_in_txt()
     # caculate_six_method_predict_similarity()

@@ -46,6 +46,7 @@ from model.xception import xception
 import netron     
 import torch.onnx
 
+save_model_feature = False
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name):
     """Train the model on `num_steps` batches
@@ -72,15 +73,15 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
 
     # Use tqdm for progress bar
     with tqdm(total=len(dataloader)) as t:
-        for i, (train_batch, labels_batch, _) in enumerate(dataloader):
+        for i, (train_batch, labels_batch, _, gcn_feature) in enumerate(dataloader):
             # move to GPU if available
             if params.cuda:
-                train_batch, labels_batch = train_batch.cuda(), labels_batch.cuda()
+                train_batch, labels_batch, gcn_feature = train_batch.cuda(), labels_batch.cuda(), gcn_feature.cuda()
             #将载入的数据变成tensor
             train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
 
             #将载入的数据输入3DResNet,得到结果
-            output_batch, _ = model(train_batch)
+            output_batch, _ = model(train_batch, gcn_feature)
             #计算网络输出结果和目标值之间的损失
 
             loss = loss_fn(output_batch, labels_batch)
@@ -138,16 +139,16 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         # compute metrics over the dataset
         predict_prob = torch.zeros(len(dataloader.dataset))
         target = torch.zeros(len(dataloader.dataset))
-        for dataloader_index, (data_batch, labels_batch, filename) in enumerate(dataloader):
+        for dataloader_index, (data_batch, labels_batch, filename, gcn_feature) in enumerate(dataloader):
 
             # move to GPU if available
             if params.cuda:
-                data_batch, labels_batch = data_batch.cuda(), labels_batch.cuda()
+                data_batch, labels_batch, gcn_feature = data_batch.cuda(), labels_batch.cuda(), gcn_feature.cuda()
             # fetch the next evaluation batch
             data_batch, labels_batch = Variable(data_batch), Variable(labels_batch)
             
             # compute model output
-            output_batch, _ = model(data_batch)
+            output_batch, _ = model(data_batch, gcn_feature)
             loss = loss_fn(output_batch, labels_batch)
 
             m = nn.Softmax(dim=1)
@@ -261,18 +262,19 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             utils.save_dict_to_json(val_metrics, best_json_path)
 
             #用最好的模型来提取512维特征
-            with torch.no_grad():
-                model.eval()
-                train_feature = torch.zeros((len(train_dl.dataset),512))
-                test_feature = torch.zeros((len(test_dl.dataset),512))
-                for i, (x, target, _) in enumerate(train_dataloader):
-                    _, feature = model(x.cuda())
-                    train_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
-                for i, (x, target, _) in enumerate(val_dataloader):
-                    _, feature = model(x.cuda())
-                    test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
-                torch.save(train_feature,'./data/feature/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
-                torch.save(test_feature,'./data/feature/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
+            if save_model_feature:
+                with torch.no_grad():
+                    model.eval()
+                    train_feature = torch.zeros((len(train_dl.dataset),512))
+                    test_feature = torch.zeros((len(test_dl.dataset),512))
+                    for i, (x, target, _, _) in enumerate(train_dataloader):
+                        _, feature = model(x.cuda())
+                        train_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
+                    for i, (x, target, _, _) in enumerate(val_dataloader):
+                        _, feature = model(x.cuda())
+                        test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
+                    torch.save(train_feature,'./data/feature/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
+                    torch.save(test_feature,'./data/feature/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
         last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_last_weights.json")
         utils.save_dict_to_json(val_metrics, last_json_path)
@@ -305,7 +307,8 @@ if __name__ == '__main__':
     #             'alexnet']
 
     # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
-    model_list = ['resnet34', 'densenet201']
+    model_list = ['alexnet', 'vgg13', 'resnet34', 'densenet201']
+    # model_list = ['resnet34']
     # model_list=['lenet5']                         #有问题 50%
     # model_list=['alexnet']                        #86.88%
     # model_list=['attention56']                    #83.75%
@@ -391,7 +394,7 @@ if __name__ == '__main__':
             # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=False)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
@@ -528,7 +531,8 @@ if __name__ == '__main__':
 
             print('# model parameters:', sum(param.numel() for param in model.parameters()))
             input = torch.randn(1, 1, 8, 128, 128).cuda()
-            flops_num, params_num = profile(model, inputs=(input, ))
+            fake_feature = torch.randn(1,56*4).cuda()
+            flops_num, params_num = profile(model, inputs=(input, fake_feature))
             print('# flops:', flops_num)
             print('# params:', params_num)
 

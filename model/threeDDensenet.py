@@ -76,7 +76,7 @@ class DenseNet_BC(nn.Module):
         self.features.add_module('avg_pool', nn.AdaptiveAvgPool3d((1, 1, 1)))
 
         self.fc1 = nn.Linear(num_feature, 512)
-        self.fc2 = nn.Linear(512, num_classes)
+        self.fc2 = nn.Linear(512 + 56 * 4, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
@@ -87,11 +87,12 @@ class DenseNet_BC(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x):
+    def forward(self, x, gcn_feature):
         features = self.features(x)
         out = features.view(features.size(0), -1)
         feature = self.fc1(out)
-        out = self.fc2(feature)
+        x = torch.cat((feature,gcn_feature),axis=1)
+        out = self.fc2(x)
         return out, feature
 
 
