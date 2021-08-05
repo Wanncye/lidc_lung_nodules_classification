@@ -403,8 +403,6 @@ def normalization(array):
 def LBP(cube):
     cube = cube.squeeze(0).squeeze(0)
     feature=[]
-    start_time = time.time()
-    print('Started......lbp')
     for i in range(cube.shape[0]):
         for j in range(cube.shape[1]):
             for k in range(cube.shape[2]):
@@ -486,20 +484,15 @@ def LBP(cube):
                     if cube[i+1,j,k+1] > middle_pixel: binary_code[24] = 1
                     if cube[i+1,j+1,k+1] > middle_pixel: binary_code[25] = 1
                     feature.append(binary_to_decimal(binary_code))
-    finish_time = time.time()
-    print('Finished......')
-    print('using time:',finish_time-start_time)
 
     max_bins = int(max(feature) + 1)
-    nor_feature, _ = np.histogram(feature, density=False, bins=512, range=(0, max_bins))
+    nor_feature, _ = np.histogram(feature, density=False, bins=64, range=(0, max_bins))
     nor_feature = normalization(nor_feature)
     return nor_feature
     
 def HOG(cube):
     cube = cube.squeeze(0).squeeze(0)
     all_gredient = []
-    start_time = time.time()
-    print('Started......hog')
     for i in range(cube.shape[0]):
         for j in range(cube.shape[1]):
             for k in range(cube.shape[2]):
@@ -531,32 +524,48 @@ def HOG(cube):
                     all_gredient.append(pixel_gradient)
                     # pixel_direcet = math.degrees(math.atan(dis_y/dis_x))
                     # print(pixel_direcet)
-    finish_time = time.time()
-    print('Finished......')
-    print('using time:',finish_time-start_time)
 
     gredient_max = np.max(all_gredient)
     gredient_min = np.min(all_gredient)
-    nor_feature, _ = np.histogram(all_gredient, density=True, bins=512, range=(gredient_min, gredient_max))
+    nor_feature, _ = np.histogram(all_gredient, density=True, bins=64, range=(gredient_min, gredient_max))
     nor_feature = normalization(nor_feature)
     return nor_feature
 
 def GLCM(cube):
     cube = cube.squeeze(0).squeeze(0)
-    feature = np.zeros(512)
+    feature = np.zeros(64)
     for index in range(8):
         img = torch.tensor(cube[index],dtype=torch.int)
+        # glcm = greycomatrix(img,            #共生矩阵（代码中glcm）为四维，前两维表示行列，后两维分别表示距离和角度
+        #                     [1, 2, 4, 8],      #距离
+        #                     [0, np.pi / 4, np.pi / 2, np.pi * 3 / 4],  #方向
+        #                     256,        #灰度级别
+        #                     symmetric=True,     #是否对称
+        #                     normed=True)        #是否标准化
+        # attribute = ['contrast', 'dissimilarity', 'energy', 'correlation']
+
         glcm = greycomatrix(img,            #共生矩阵（代码中glcm）为四维，前两维表示行列，后两维分别表示距离和角度
-                            [1, 2, 4, 8],      #距离
-                            [0, np.pi / 4, np.pi / 2, np.pi * 3 / 4],  #方向
+                            [1, 2],      #距离
+                            [0, np.pi / 2],  #方向
                             256,        #灰度级别
                             symmetric=True,     #是否对称
                             normed=True)        #是否标准化
-        attribute = ['contrast', 'dissimilarity', 'energy', 'correlation']
+        attribute = ['contrast', 'correlation']
+
         for jndex, prop in enumerate(attribute):
             temp = greycoprops(glcm, prop).flatten()      #输出的每种特征（代码中temp）行表示距离，列表示角度。
-            feature[index*64 + jndex*16 : index*64 + (jndex+1)*16] = temp
-    return feature
+            feature[index*8 + jndex*4 : index*8 + (jndex+1)*4] = temp
+    return normalization(feature)
+
+import cv2
+def HU(cube):
+    cube = cube.squeeze(0).squeeze(0)
+    feature = np.zeros(56)
+    for index in range(8):
+        moments = cv2.moments(cube[index].numpy())
+        hu_moments = cv2.HuMoments(moments)
+        feature[index*len(hu_moments):(index+1)*len(hu_moments)] = hu_moments.flatten()
+    return normalization(feature)
 
 def feature_extract():
     # 提取两种类型的特征：一种是非mask的结节特征，另一种是mask的结节特征。
@@ -1357,10 +1366,140 @@ def confirm_patient_nodule_not_in_two_dataset():
 
     #修改策略：将测试集中重复的病人结节全部移到训练集中去
     return
-        
+
+#8月2日 老师提供了许多特征，下面得函数就是提取这一系列特征的函数  
+import pandas as pd
+def get_various_feature():
+    df = pd.read_csv('./data/pylidc_feature.csv')
+    for fold in range(5):
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir="data/5fold_128/fold"+str(fold+1), train_shuffle=False, fold= fold)
+        train_dl = dataloaders['train']
+        test_dl = dataloaders['test']
+        #255 = 64 * 3 + 56 +7
+        feature_train = torch.zeros((len(train_dl),255))
+        feature_test = torch.zeros((len(test_dl),255))
+        for i, (cube, _, file_name, _) in enumerate(train_dl):
+            print('---fold ' + str(fold) + '---extracting ' + file_name[0])
+            if fold == 0: #因为5折交叉验证的来源不同，文件命名有些差异
+                patient = file_name[0].split('_')[0][:4]
+                nodule = file_name[0].split('_')[0][4:]
+            else:
+                patient = file_name[0].split('_')[0]
+                nodule = file_name[0].split('_')[1]
+            nodule_idx = int(patient + nodule)
+            diameter = np.array([df[df["nodule_idx"]==nodule_idx]["diameter"].iloc[0]])
+            surface_area = np.array([df[df["nodule_idx"]==nodule_idx]["surface_area"].iloc[0]])
+            volume = np.array([df[df["nodule_idx"]==nodule_idx]["volume"].iloc[0]])
+
+            hu = HU(cube)     #56维特征
+            glcm = GLCM(cube) #64维特征，后续要归一化
+            lbp = LBP(cube)   #64维特征
+            hog = HOG(cube)   #64维特征
+
+            cube = np.squeeze(cube).numpy()
+            mean = np.array([np.mean(cube)])   #整个结节图片，包括结节外部的组织的均值
+            variance = np.array([np.var(cube)])
+            pd_cube = pd.Series(cube.flatten())
+            skewness = np.array([pd_cube.skew()])
+            kurtosis = np.array([pd_cube.kurt()])
+            temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
+            
+            feature_train[i] = torch.from_numpy(temp_feature)
+
+        for i, (cube, _, file_name, _) in enumerate(test_dl):
+            if fold == 0: #因为5折交叉验证的来源不同，文件命名有些差异
+                patient = file_name[0].split('_')[0][:4]
+                nodule = file_name[0].split('_')[0][4:]
+            else:
+                patient = file_name[0].split('_')[0]
+                nodule = file_name[0].split('_')[1]
+            nodule_idx = int(patient + nodule)
+            diameter = np.array([df[df["nodule_idx"]==nodule_idx]["diameter"].iloc[0]])
+            surface_area = np.array([df[df["nodule_idx"]==nodule_idx]["surface_area"].iloc[0]])
+            volume = np.array([df[df["nodule_idx"]==nodule_idx]["volume"].iloc[0]])
+
+            hu = HU(cube)     #56维特征
+            glcm = GLCM(cube) #64维特征，后续要归一化
+            lbp = LBP(cube)   #64维特征
+            hog = HOG(cube)   #64维特征
+
+            cube = np.squeeze(cube).numpy()
+            mean = np.array([np.mean(cube)])   #整个结节图片，包括结节外部的组织的均值
+            variance = np.array([np.var(cube)])
+            pd_cube = pd.Series(cube.flatten())
+            skewness = np.array([pd_cube.skew()])
+            kurtosis = np.array([pd_cube.kurt()])
+            temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
+            
+            feature_test[i] = torch.from_numpy(temp_feature)
+
+        torch.save(feature_train, './data/feature/addition_feature/fold_' + str(fold) + '_train_addition_feature.pt')
+        torch.save(feature_test, './data/feature/addition_feature/fold_' + str(fold) + '_test_addition_feature.pt')
+            
+    return
+
+
+from sklearn.manifold import TSNE 
+def t_SNE():
+    fold = 0
+    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 650, data_dir="data/5fold_128/fold"+str(fold+1), train_shuffle=False, fold=0)
+    train_dl = dataloaders['train']
+    test_dl = dataloaders['test']
+    for i, (train_batch, labels_batch, _, _) in enumerate(train_dl):
+        train_label = labels_batch
+    for i, (train_batch, labels_batch, _, _) in enumerate(test_dl):
+        test_label = labels_batch
+    train = torch.load('data/feature/addition_feature/fold_0_train_addition_feature.pt')
+    test = torch.load('data/feature/addition_feature/fold_0_test_addition_feature.pt')
+    for jndex in range(248,255):
+            max = train[:, jndex].max()  
+            min = train[:, jndex].min()  
+            train[:, jndex] = (train[:, jndex] - min) / (max-min)
+    for jndex in range(248,255):
+            max = test[:, jndex].max()  
+            min = test[:, jndex].min()  
+            test[:, jndex] = (test[:, jndex] - min) / (max-min)
+
+
+    
+    tsne = TSNE(n_components=2).fit_transform(train)
+    x_min, x_max = tsne.min(0), tsne.max(0)
+    tsne_norm = (tsne - x_min) / (x_max - x_min)
+
+    plt.plot(tsne_norm[train_label == 0][:,0], tsne_norm[train_label == 0][:,1], 'r.', label='benign')
+    plt.plot(tsne_norm[train_label == 1][:,0], tsne_norm[train_label == 1][:,1], 'b.', label='maligancy')
+    plt.legend()
+    plt.title('add_0_train_t-sne')
+    plt.savefig('data/feature/vis_feature/add_0_train_t-sne.png')
+    plt.cla()
+
+    tsne = TSNE(n_components=2).fit_transform(test)
+    x_min, x_max = tsne.min(0), tsne.max(0)
+    tsne_norm = (tsne - x_min) / (x_max - x_min)
+
+    plt.plot(tsne_norm[test_label == 0][:,0], tsne_norm[test_label == 0][:,1], 'r.', label='benign')
+    plt.plot(tsne_norm[test_label == 1][:,0], tsne_norm[test_label == 1][:,1], 'b.', label='maligancy')
+    plt.legend()
+    plt.title('add_0_test_t-sne')
+    plt.savefig('data/feature/vis_feature/add_0_test_t-sne.png')
+    plt.cla()
+
+    
+    
+    return
+
+
+def make_128_npy_mask_5_fold_dataset():
+    
+    
+    
+    
+    return
+
+
 
 if __name__ == '__main__':
-    confirm_patient_nodule_not_in_two_dataset()
+    t_SNE()
     # calculate_percentage()
     # get_dataset_label_pt()
     # search_different_resnet_feature_correlation()

@@ -17,7 +17,7 @@ class VGG(nn.Module):
             nn.Dropout(dropout_rate),
         )
         self.fc1 = nn.Linear(4096, 512)
-        self.fc2 = nn.Linear(512 + 56 * 4, num_classes)
+        self.fc2 = nn.Linear(512 + 56 * 4 + 255, num_classes)
         self.fc3 = nn.Linear(512, num_classes)
         if init_weights:
             self._initialize_weights()

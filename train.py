@@ -47,9 +47,9 @@ import netron
 import torch.onnx
 
 #是否保存模型中间特征
-save_model_feature = True
-#是否加入GCN中间特征
-add_gcn_middle_feature = False
+save_model_feature = False
+#是否加入中间特征(包括GCN，传统，统计特征)
+add_middle_feature = True
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name):
     """Train the model on `num_steps` batches
@@ -76,15 +76,15 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
 
     # Use tqdm for progress bar
     with tqdm(total=len(dataloader)) as t:
-        for i, (train_batch, labels_batch, _, gcn_feature) in enumerate(dataloader):
+        for i, (train_batch, labels_batch, file_name, one_feature) in enumerate(dataloader):
             # move to GPU if available
             if params.cuda:
-                train_batch, labels_batch, gcn_feature = train_batch.cuda(), labels_batch.cuda(), gcn_feature.cuda()
+                train_batch, labels_batch, one_feature = train_batch.cuda(), labels_batch.cuda(), one_feature.cuda()
             #将载入的数据变成tensor
             train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
 
             #将载入的数据输入3DResNet,得到结果
-            output_batch, _ = model(train_batch, gcn_feature, add_gcn_middle_feature)
+            output_batch, _ = model(train_batch, one_feature, add_middle_feature)
             #计算网络输出结果和目标值之间的损失
 
             loss = loss_fn(output_batch, labels_batch)
@@ -142,16 +142,16 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         # compute metrics over the dataset
         predict_prob = torch.zeros(len(dataloader.dataset))
         target = torch.zeros(len(dataloader.dataset))
-        for dataloader_index, (data_batch, labels_batch, filename, gcn_feature) in enumerate(dataloader):
+        for dataloader_index, (data_batch, labels_batch, filename, one_feature) in enumerate(dataloader):
 
             # move to GPU if available
             if params.cuda:
-                data_batch, labels_batch, gcn_feature = data_batch.cuda(), labels_batch.cuda(), gcn_feature.cuda()
+                data_batch, labels_batch, one_feature = data_batch.cuda(), labels_batch.cuda(), one_feature.cuda()
             # fetch the next evaluation batch
             data_batch, labels_batch = Variable(data_batch), Variable(labels_batch)
             
             # compute model output
-            output_batch, _ = model(data_batch, gcn_feature, add_gcn_middle_feature)
+            output_batch, _ = model(data_batch, one_feature, add_middle_feature)
             loss = loss_fn(output_batch, labels_batch)
 
             m = nn.Softmax(dim=1)
@@ -271,10 +271,10 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                     train_feature = torch.zeros((len(train_dl.dataset),512))
                     test_feature = torch.zeros((len(test_dl.dataset),512))
                     for i, (x, target, _, gcn_middle_feature) in enumerate(train_dataloader):
-                        _, feature = model(x.cuda(), gcn_middle_feature, add_gcn_middle_feature)
+                        _, feature = model(x.cuda(), gcn_middle_feature, add_middle_feature)
                         train_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
                     for i, (x, target, _, gcn_middle_feature) in enumerate(val_dataloader):
-                        _, feature = model(x.cuda(), gcn_middle_feature, add_gcn_middle_feature)
+                        _, feature = model(x.cuda(), gcn_middle_feature, add_middle_feature)
                         test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
                     torch.save(train_feature,'./data/feature/5fold_128_new/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
                     torch.save(test_feature,'./data/feature/5fold_128_new/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
@@ -291,16 +291,16 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         print("\n")
 
         val_acc_list.append(val_acc)
-        if epoch > 10:
-            if val_acc_list[epoch] == val_acc_list[epoch-1] and \
-                val_acc_list[epoch] == val_acc_list[epoch-2] and \
-                val_acc_list[epoch] == val_acc_list[epoch-3] and \
-                val_acc_list[epoch] == val_acc_list[epoch-4] and \
-                val_acc_list[epoch] == val_acc_list[epoch-5] and\
-                val_acc_list[epoch] == val_acc_list[epoch-6] and\
-                val_acc_list[epoch] == val_acc_list[epoch-7]:
-                logging.info("- early stop because 5 epochs had the same accuracy.")
-                break
+        # if epoch > 10:
+        #     if val_acc_list[epoch] == val_acc_list[epoch-1] and \
+        #         val_acc_list[epoch] == val_acc_list[epoch-2] and \
+        #         val_acc_list[epoch] == val_acc_list[epoch-3] and \
+        #         val_acc_list[epoch] == val_acc_list[epoch-4] and \
+        #         val_acc_list[epoch] == val_acc_list[epoch-5] and\
+        #         val_acc_list[epoch] == val_acc_list[epoch-6] and\
+        #         val_acc_list[epoch] == val_acc_list[epoch-7]:
+        #         logging.info("- early stop because 5 epochs had the same accuracy.")
+        #         break
 
 if __name__ == '__main__':
 
@@ -383,13 +383,14 @@ if __name__ == '__main__':
         torch.cuda.manual_seed_all(init_seed)  # gpu
         torch.cuda.manual_seed(init_seed)  # gpu
         torch.backends.cudnn.deterministic = True  # consistent results on the cpu and gpu
+        # torch.backends.cudnn.benchmark = False
 
         # 设置logger
         print('train file path:',os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(5):
+        for N_folder in range(3,5):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
@@ -548,7 +549,7 @@ if __name__ == '__main__':
             # torch.onnx.export(model, vis_x, onnx_path)
             # netron.start(onnx_path)
             
-            optimizer = optim.Adam(model.parameters(), lr=params.learning_rate)
+            optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0)
             scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
 
             # fetch loss function and metrics

@@ -76,7 +76,7 @@ class DenseNet_BC(nn.Module):
         self.features.add_module('avg_pool', nn.AdaptiveAvgPool3d((1, 1, 1)))
 
         self.fc1 = nn.Linear(num_feature, 512)
-        self.fc2 = nn.Linear(512 + 56 * 4, num_classes)
+        self.fc2 = nn.Linear(512 + 56 * 4 + 255, num_classes)
         self.fc3 = nn.Linear(512, num_classes)
 
         for m in self.modules():
