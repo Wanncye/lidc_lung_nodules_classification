@@ -55,7 +55,7 @@ class LIDCDataset(Dataset):
         self.fold = fold
         self.gcn_middle_feature = torch.load('data/feature/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
         self.gcn_middle_feature.requires_grad = False
-        self.addition_feature = torch.load('data/feature/addition_feature/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
+        self.addition_feature = torch.load('data/feature/addition_feature_mask/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
         self.addition_feature.requires_grad = False
         
         #对新加进来的feature某些特征做一下归一化，因为这些特征不在同一个数量级上

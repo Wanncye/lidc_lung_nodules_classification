@@ -10,10 +10,6 @@ import glob
 from tqdm.std import tqdm
 
 import csv
-from model.threeDresnet import generate_model
-from model.threeDGoogleNet import googlenet
-from model.threeDVGG import vgg16_bn, vgg11_bn, vgg13_bn, vgg19_bn
-from model.threeDDensenet import DenseNet121, DenseNet161, DenseNet169, DenseNet201
 
 import visdom
 import time
@@ -24,12 +20,10 @@ import re
 from torch.autograd import Variable
 
 import torch 
-import model.data_loader as data_loader
 from tqdm import tqdm
 # torch.cuda.set_device(0)
 from matplotlib import pyplot as plt
 
-from model.graphNet import GAT,GCN
 import warnings
 import logging
 warnings.filterwarnings('ignore')
@@ -1552,33 +1546,3 @@ def get_different_5flod_128_with_5fold_128_mask():
         print((fold+1), 'npy中有，而npy_mask中没有的：', list(set(npy_mask).difference(set(npy))))
     return
 
-if __name__ == '__main__':
-    get_various_feature()
-    # get_different_5flod_128_with_5fold_128_mask()
-    # make_128_npy_mask_5_fold_dataset()
-    # t_SNE()
-    # calculate_percentage()
-    # get_dataset_label_pt()
-    # search_different_resnet_feature_correlation()
-    # exract_15_feature_10_sample_write_in_txt()
-    # caculate_six_method_predict_similarity()
-    # get_test_name_and_save()
-    # svm_classification_gcn_middle_feature()
-    # gcn_feature_histogram()
-    # gcn_feature_line()
-    # get_gcn_feature()
-    # feature_extract()
-    # numpy_to_tensor_and_save()
-    # 制作5折交叉验证数据集
-    # data_path = './data/nodules3d_128_npy'
-    # dest_path = './data/nodules3d_128_npy_5_folders'
-    # split_data_to_5folders(data_path,dest_path)
-    # 画结果图
-    # log_file = './experiments/VGG16_no_mask_5folders/train_epoch_why.log'
-    # png_dir = './experiments/VGG16_no_mask_5folders/Visualize'
-    # log_file = './experiments/resnet50_no_mask_5folders/train.log'
-    # png_dir = './experiments/resnet50_no_mask_5folders/Visualize'
-    # log_file = './experiments/VGG16_no_mask_5folders/train_FocalLoss_alpha_0.25_correct-alpha.log'
-    # png_dir = './experiments/VGG16_no_mask_5folders/Visualize'
-    # plot_figure(png_dir, log_file)
-    
