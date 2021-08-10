@@ -63,6 +63,17 @@ class AlexNet(nn.Module):
         self.dropout2 = nn.Dropout()
         self.linear3 = nn.Linear(512, num_classes)
 
+        for m in self.modules():
+            if isinstance(m, nn.Conv3d):
+                nn.init.kaiming_normal_(m.weight,
+                                        mode='fan_out',
+                                        nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm3d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.bias, 0)
+
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), 256 * 7 * 7)

@@ -117,10 +117,5 @@ def accuracy(outputs, labels):
     return np.sum(outputs==labels)/float(labels.size)
 
 
-# maintain all metrics required in this dictionary- these are used in the training and evaluation loops
-metrics = {
-    'accuracy': accuracy,
-    # could add more metrics such as accuracy for each token type
-}
 
 

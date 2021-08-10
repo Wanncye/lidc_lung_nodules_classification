@@ -18,8 +18,17 @@ class VGG(nn.Module):
         )
         self.fc1 = nn.Linear(4096, 512)
         self.fc2 = nn.Linear(512, num_classes)
-        if init_weights:
-            self._initialize_weights()
+        
+        for m in self.modules():
+            if isinstance(m, nn.Conv3d):
+                nn.init.kaiming_normal_(m.weight,
+                                        mode='fan_out',
+                                        nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm3d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.bias, 0)
 
     def forward(self, x):
         x = self.features(x)
@@ -29,19 +38,6 @@ class VGG(nn.Module):
         x2 = self.fc2(feature)
         return x2, feature
 
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv3d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-                if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm3d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
-                m.bias.data.zero_()
 
 
 def make_layers(cfg, batch_norm=False):
