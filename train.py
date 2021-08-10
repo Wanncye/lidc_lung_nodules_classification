@@ -310,8 +310,8 @@ if __name__ == '__main__':
     #             'alexnet']
 
     # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
-    # model_list = ['alexnet', 'vgg13', 'resnet34', 'densenet201']
-    model_list = ['densenet201']
+    model_list = ['alexnet', 'vgg13', 'resnet34', 'densenet201']
+    # model_list = ['densenet201']
     # model_list = ['resnet34']
     # model_list=['lenet5']                         #有问题 50%
     # model_list=['alexnet']                        #86.88%
@@ -391,7 +391,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(1,2):
+        for N_folder in range(2,5):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")

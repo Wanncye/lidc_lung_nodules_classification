@@ -1523,16 +1523,6 @@ def make_128_npy_mask_5_fold_dataset():
                 for mask_one_npy in mask_npy:
                     if patient + nodule == mask_one_npy.split('/')[-1].split('_')[0]:
                         copy(mask_one_npy, one_dest_path)
-
-                
-
-            
-
-
-
-
-    
-    
     
     return
 
@@ -1552,33 +1542,71 @@ def get_different_5flod_128_with_5fold_128_mask():
         print((fold+1), 'npy中有，而npy_mask中没有的：', list(set(npy_mask).difference(set(npy))))
     return
 
-if __name__ == '__main__':
-    get_various_feature()
-    # get_different_5flod_128_with_5fold_128_mask()
-    # make_128_npy_mask_5_fold_dataset()
-    # t_SNE()
-    # calculate_percentage()
-    # get_dataset_label_pt()
-    # search_different_resnet_feature_correlation()
-    # exract_15_feature_10_sample_write_in_txt()
-    # caculate_six_method_predict_similarity()
-    # get_test_name_and_save()
-    # svm_classification_gcn_middle_feature()
-    # gcn_feature_histogram()
-    # gcn_feature_line()
-    # get_gcn_feature()
-    # feature_extract()
-    # numpy_to_tensor_and_save()
-    # 制作5折交叉验证数据集
-    # data_path = './data/nodules3d_128_npy'
-    # dest_path = './data/nodules3d_128_npy_5_folders'
-    # split_data_to_5folders(data_path,dest_path)
-    # 画结果图
-    # log_file = './experiments/VGG16_no_mask_5folders/train_epoch_why.log'
-    # png_dir = './experiments/VGG16_no_mask_5folders/Visualize'
-    # log_file = './experiments/resnet50_no_mask_5folders/train.log'
-    # png_dir = './experiments/resnet50_no_mask_5folders/Visualize'
-    # log_file = './experiments/VGG16_no_mask_5folders/train_FocalLoss_alpha_0.25_correct-alpha.log'
-    # png_dir = './experiments/VGG16_no_mask_5folders/Visualize'
-    # plot_figure(png_dir, log_file)
+from endToEnd.data_loader import fetch_dataloader
+#每折都提取特征太慢了，这里手动组合mask第5折的特征
+def get_fold_5_mask_feature():
+    fold_4_train_feature = torch.load('data/feature/addition_feature_mask/fold_3_train_addition_feature.pt')
+    fold_4_test_feature = torch.load('data/feature/addition_feature_mask/fold_3_test_addition_feature.pt')
+
+    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 700, data_dir="data/5fold_128_mask/fold4", train_shuffle=False, fold= 3)
+    train_dl = dataloaders['train']
+    test_dl = dataloaders['test']
+    file_name_list_train_4 = []
+    file_name_list_test_4 = []
+
+    for i, (_, _, file_name, _) in enumerate(train_dl):
+        file_name_list_train_4 = file_name
+    for i, (_, _, file_name, _) in enumerate(test_dl):
+        file_name_list_test_4 = file_name
     
+
+    dataloaders = fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir="data/5fold_128_mask/fold5", train_shuffle=False)
+    train_dl = dataloaders['train']
+    test_dl = dataloaders['test']
+    feature_train_5 = torch.zeros((len(train_dl),255))
+    feature_test_5 = torch.zeros((len(test_dl),255))
+    for i, (_, _, file_name) in enumerate(train_dl):
+        for index, temp_name in enumerate(file_name_list_train_4):
+            if temp_name == file_name[0]:
+                print('find {0} in train set'.format(file_name))
+                feature_train_5[i] = fold_4_train_feature[index]
+                break
+        for index, temp_name in enumerate(file_name_list_test_4):
+            if temp_name == file_name[0]:
+                print('find {0} in test set'.format(file_name))
+                feature_train_5[i] = fold_4_test_feature[index]
+                break
+
+    for i, (_, _, file_name) in enumerate(test_dl):
+        for index, temp_name in enumerate(file_name_list_train_4):
+            if temp_name == file_name[0]:
+                print('find {0} in train set'.format(file_name))
+                feature_test_5[i] = fold_4_train_feature[index]
+                break
+        for index, temp_name in enumerate(file_name_list_test_4):
+            if temp_name == file_name[0]:
+                print('find {0} in test set'.format(file_name))
+                feature_test_5[i] = fold_4_test_feature[index]
+                break
+
+    torch.save(feature_train_5, './data/feature/addition_feature_mask/fold_' + str(4) + '_train_addition_feature.pt')
+    torch.save(feature_test_5, './data/feature/addition_feature_mask/fold_' + str(4) + '_test_addition_feature.pt')
+        
+
+
+    return
+
+# 将data/nodules3d_128_npy_no_same_patient_in_two_dataset路径下的结节处理成2d的图片
+def npy2png():
+    npy_list = glob.glob('data/5fold_128/fold2/*/*npy')
+    dest_path = 'data/5fold_128/2d_slice'
+    for npy_path in npy_list:
+        npy = np.load(npy_path)
+        npy_name = npy_path.split('/')[-1].split('.')[0]
+        for index in range(8):
+            save_path = dest_path + '/' + npy_name + '_slice' + str(index) + '.png'
+            plt.imsave(save_path, npy[:, :, index], cmap='gray')
+    return 
+
+if __name__ == '__main__':
+    get_different_5flod_128_with_5fold_128_mask()

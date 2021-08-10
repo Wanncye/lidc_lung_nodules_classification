@@ -182,11 +182,11 @@ if __name__ == '__main__':
                     t.set_postfix(loss='{:5.3f}'.format(totalLoss.item()))
                     t.update()
 
-                metrics_mean = {metric:np.mean([x[metric] for x in summ]) for metric in summ[0]} 
-                metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_mean.items())
-                print("- Eval metrics : " + metrics_string)
-                vis.plot('val_acc' ,metrics_mean['accuracy'] , 2)
-                vis.plot('val_loss_epoch', metrics_mean['loss'], 3)
+            metrics_mean = {metric:np.mean([x[metric] for x in summ]) for metric in summ[0]} 
+            metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_mean.items())
+            print("- Eval metrics : " + metrics_string)
+            vis.plot('val_acc' ,metrics_mean['accuracy'] , 2)
+            vis.plot('val_loss_epoch', metrics_mean['loss'], 3)
 
 
 
