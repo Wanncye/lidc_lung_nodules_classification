@@ -95,14 +95,14 @@ if __name__ == '__main__':
     scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
 
     
-    dataloaders = fetch_dataloader(types = ["train", "test"], batch_size = 3, data_dir="../data/5fold_128/fold1", train_shuffle=True, fold= 1)
+    dataloaders = fetch_dataloader(types = ["train", "test"], batch_size = 6, data_dir="../data/5fold_128/fold1", train_shuffle=True, fold= 1)
     train_dl = dataloaders['train']
     test_dl = dataloaders['test']
 
     vis = Visualizer('endToEndVis')
 
     metrics = ['accuracy', 'loss']
-    for epoch in range(100):
+    for epoch in range(150):
         
         endToEndModel.train()
         loss_epoch = []
@@ -237,6 +237,7 @@ if __name__ == '__main__':
             }
             metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_mean.items())
             print("- Eval metrics : " + metrics_string)
+            print('\n\n')
             vis.plot('val_acc' ,metrics_mean['accuracy'] , 2)
             vis.plot('val_loss_epoch', metrics_mean['loss'], 3)
 

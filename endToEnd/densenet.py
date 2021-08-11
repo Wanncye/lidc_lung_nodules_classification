@@ -87,7 +87,8 @@ class DenseNet_BC(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.bias, 0)
+                m.weight.data.normal_(0, 0.01)
+                m.bias.data.zero_()
                 
     def forward(self, x):
         features = self.features(x)
