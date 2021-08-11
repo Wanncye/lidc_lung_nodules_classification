@@ -1608,5 +1608,33 @@ def npy2png():
             plt.imsave(save_path, npy[:, :, index], cmap='gray')
     return 
 
+#统计结节直径分布
+def nodule_diameter_statistic():
+    f1 = open('data/pylidc_feature.csv','r')
+    reader = csv.DictReader(f1)
+    diameter_list = []
+    benign_diameter_list = []
+    malignancy_diameter_list = []
+    for row in reader:
+        if row['malignant_s'] == 'True':
+            malignancy_diameter_list.append(float(row['diameter']))
+        elif row['malignant_s'] == 'False': 
+            benign_diameter_list.append(float(row['diameter']))
+        diameter_list.append(float(row['diameter']))
+
+    
+    group = np.arange(3,50,1)
+    plt.hist(diameter_list, group,rwidth=0.85, color='#0504aa', label='Total', alpha=0.5)
+
+    plt.hist(benign_diameter_list, group,rwidth=0.85, color='green', label='Benign', alpha=0.5)
+
+    plt.hist(malignancy_diameter_list, group,rwidth=0.85, color='red', label='Malignancy', alpha=0.5)
+    plt.grid(axis='y', alpha=0.75)
+
+    plt.title('comb nodule diameter statistic.png')
+    plt.legend()
+    plt.savefig('data/comb_nodule_diameter_statistic.png')
+
+    return
 if __name__ == '__main__':
-    get_different_5flod_128_with_5fold_128_mask()
+    nodule_diameter_statistic()
