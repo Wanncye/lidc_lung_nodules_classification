@@ -1652,10 +1652,60 @@ def mistake_classification_statistic():
     plt.savefig('data/mistake_nodule_diameter_statistic.png')
 
 
+#制作小于20mm的肺结节5折交叉验证数据集获取结节直径工具
+def get_nodule_diameter(noduleName):
+    f = open('data/pylidc_feature.csv','r')
+    reader = csv.DictReader(f)
+    for row in reader:
+        if row['nodule_idx'] == noduleName:
+            diameter = row['diameter']
+            break
+    return float(diameter)
+
+#统计一折下面训练集测试集的良恶性结节数量
+def get_fold_nodule_BorM_number(fold_path):
+    npyPathList = glob.glob(fold_path + '/*/*npy')
+    train_Benign = 0
+    train_Malignancy = 0
+    test_Benign = 0
+    test_Malignancy = 0
+    for oneNpyPath in npyPathList:
+        split = oneNpyPath.split('/')[-2]
+        label = oneNpyPath.split('_')[-1].split('.')[0]
+        if split == 'train':
+            if label == '1':
+                train_Malignancy += 1
+            if label == '0':
+                train_Benign += 1
+        if split == 'test':
+            if label == '1':
+                test_Malignancy += 1
+            if label == '0':
+                test_Benign += 1
+    print('{0} trainSet: {1}Benign,{2}Maligancy; testSet: {3}Benign,{4}Maligancy'.format(fold_path, train_Benign, train_Malignancy, test_Benign, test_Malignancy))
+
 #制作小于20mm的肺结节5折交叉验证数据集
 def make_smaller_than_20mm_nodule_dataset():
-    
+    sourceFoldpath = 'data/5fold_128_mask'
+    destFoldpath = 'data/5fold_128<=20mm_mask'
+    for fold in range(5):
+        npyPathList = glob.glob(sourceFoldpath + '/fold' + str(fold+1) + '/*/*npy')
+        for oneNpyPath in npyPathList:
+            if fold == 0:
+                noduleName = oneNpyPath.split('/')[-1].split('_')[0]
+            else:
+                noduleName = oneNpyPath.split('/')[-1].split('_')[0] + oneNpyPath.split('/')[-1].split('_')[1]
+            fileName = oneNpyPath.split('/')[-1]
+            split = oneNpyPath.split('/')[-2]
+            diameter = get_nodule_diameter(noduleName)
+            #小于20mm的结节才复制
+            if diameter < 20:
+                destFileName = destFoldpath + '/fold' + str(fold+1) + '/' + split + '/' + fileName
+                copy(oneNpyPath, destFileName) 
+        get_fold_nodule_BorM_number(sourceFoldpath + '/fold' + str(fold+1))
+        get_fold_nodule_BorM_number(destFoldpath + '/fold' + str(fold+1))
+        print('\n')
     return
 
 if __name__ == '__main__':
-    mistake_classification_statistic()
+    make_smaller_than_20mm_nodule_dataset()
