@@ -95,7 +95,7 @@ if __name__ == '__main__':
     scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
 
     
-    dataloaders = fetch_dataloader(types = ["train", "test"], batch_size = 6, data_dir="../data/5fold_128/fold1", train_shuffle=True, fold= 1)
+    dataloaders = fetch_dataloader(types = ["train", "test"], batch_size = 6, data_dir="../data/5fold_128/fold3", train_shuffle=True)
     train_dl = dataloaders['train']
     test_dl = dataloaders['test']
 
