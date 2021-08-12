@@ -1663,7 +1663,7 @@ def get_nodule_diameter(noduleName):
     return float(diameter)
 
 #统计一折下面训练集测试集的良恶性结节数量
-def get_fold_nodule_BorM_number(fold_path):
+def get_fold_nodule_BorM_number(fold_path, isAug=False):
     npyPathList = glob.glob(fold_path + '/*/*npy')
     train_Benign = 0
     train_Malignancy = 0
@@ -1671,7 +1671,13 @@ def get_fold_nodule_BorM_number(fold_path):
     test_Malignancy = 0
     for oneNpyPath in npyPathList:
         split = oneNpyPath.split('/')[-2]
-        label = oneNpyPath.split('_')[-1].split('.')[0]
+        if isAug:
+            #对于增强的数据集
+            label = oneNpyPath.split('/')[-1].split('_')[2].split('.')[0]
+        else:
+            #对于没增强的数据集
+            label = oneNpyPath.split('_')[-1].split('.')[0]
+        
         if split == 'train':
             if label == '1':
                 train_Malignancy += 1
@@ -1683,6 +1689,7 @@ def get_fold_nodule_BorM_number(fold_path):
             if label == '0':
                 test_Benign += 1
     print('{0} trainSet: {1}Benign,{2}Maligancy; testSet: {3}Benign,{4}Maligancy'.format(fold_path, train_Benign, train_Malignancy, test_Benign, test_Malignancy))
+    return train_Benign, train_Malignancy, test_Benign, test_Malignancy
 
 #制作小于20mm的肺结节5折交叉验证数据集
 def make_smaller_than_20mm_nodule_dataset():
@@ -1707,5 +1714,107 @@ def make_smaller_than_20mm_nodule_dataset():
         print('\n')
     return
 
+from PIL import Image
+import random
+ 
+def randomRotation(npy, angle):
+    '''
+    输入npy cube，返回旋转之后的npy cube
+    '''
+    newNpy = np.zeros_like(npy)
+    for i in range(8):
+        slice = npy[:, :, i]
+        pil_img = Image.fromarray(np.uint8(slice))
+        # plt.imsave('test/origi.png', pil_img,cmap='gray')
+        new_pil_img = pil_img.rotate(angle, Image.BICUBIC)
+        # plt.imsave('test/origi_rotat_'+str(angle)+'.png', new_pil_img,cmap='gray')
+        newNpy[:, :, i] = new_pil_img
+    return newNpy
+
+def randomFlip(npy):
+    newNpy = np.zeros_like(npy)
+    for i in range(8):
+        slice = npy[:, :, i]
+        pil_img = Image.fromarray(np.uint8(slice))
+        new_pil_img = pil_img.transpose(Image.FLIP_LEFT_RIGHT)
+        # plt.imsave('test/origi_flip_FLIP_LEFT_RIGHT.png', new_pil_img,cmap='gray')
+        newNpy[:, :, i] = new_pil_img
+    return newNpy
+
+
+def randomCrop(npy):
+    '''
+    先裁剪中间的96*96的区域，然后resize成128*128的
+    '''
+    newNpy = np.zeros_like(npy)
+    for i in range(8):
+        random_region = (24,24,104,104)
+        slice = npy[:, :, i]
+        pil_img = Image.fromarray(np.uint8(slice))
+        new_pil_img = pil_img.crop(random_region)
+        resize_pil_img = new_pil_img.resize((128,128))
+        newNpy[:, :, i] = resize_pil_img
+        # plt.imsave('test/origi_crop.png', new_pil_img,cmap='gray')
+        # plt.imsave('test/origi_crop_resize.png', resize_pil_img,cmap='gray')
+    return newNpy
+    
+
+def randomGaussian(npy, mean=10, sigma=5):
+    def gaussianNoisy(im, mean, sigma):
+        for _i in range(len(im)):
+            im[_i] += random.gauss(mean, sigma)
+        return im
+
+    newNpy = np.zeros_like(npy)
+    for i in range(8):
+        slice = npy[:, :, i]
+        slice.flags.writeable = True
+        slice_flatten = gaussianNoisy(slice.flatten(), mean, sigma)
+        # plt.imsave('test/origin_Gaussian.png', slice_flatten.reshape([128,128]),cmap='gray')
+        newNpy[:, :, i] = slice_flatten.reshape([128,128])
+    return newNpy
+
+#数据增强,当前就做第三折的数据增强
+def dataset_5fold_auto_augment():
+    sourcePath = 'data/5fold_128'
+    destPath = 'data/5fold_128_aug'
+    for fold in range(3,4):
+        sourceFoldPath = sourcePath + '/fold' + str(fold)
+        augTrainPath = destPath + '/fold' + str(fold) + '/train' + '/'
+        train_Benign, train_Malignancy, test_Benign, test_Malignancy = get_fold_nodule_BorM_number(sourceFoldPath)
+        trainNpyPathList = glob.glob(sourceFoldPath + '/train/*npy')
+
+        for oneNpyPath in trainNpyPathList:
+            print(oneNpyPath)
+            npyName = oneNpyPath.split('/')[-1]
+            noduleName = oneNpyPath.split('/')[-1].split('.')[0]
+            label = oneNpyPath.split('_')[-1].split('.')[0]
+            #先复制一份训练集
+            copy(oneNpyPath, augTrainPath + npyName)
+            npy = np.load(oneNpyPath)
+
+            #恶性结节做5组增强，良性做3组
+            if label == '1':
+                afterRotat180Npy = randomRotation(npy, 180)
+                np.save(augTrainPath + noduleName + '_rotate180.npy', afterRotat180Npy)
+                afterRotat90Npy = randomRotation(npy, 90)
+                np.save(augTrainPath + noduleName + '_rotate90.npy', afterRotat90Npy)
+                afterFlip = randomFlip(npy)
+                np.save(augTrainPath + noduleName + '_Flip.npy', afterFlip)
+                afterCrop = randomCrop(npy)
+                np.save(augTrainPath + noduleName + '_Crop.npy', afterCrop)
+                afterGuassian = randomGaussian(npy)
+                np.save(augTrainPath + noduleName + '_Guassian.npy', afterGuassian)
+            elif label == '0':
+                afterRotat180Npy = randomRotation(npy, 180)
+                np.save(augTrainPath + noduleName + '_rotate180.npy', afterRotat180Npy)
+                afterCrop = randomCrop(npy)
+                np.save(augTrainPath + noduleName + '_Crop.npy', afterCrop)
+                afterGuassian = randomGaussian(npy)
+                np.save(augTrainPath + noduleName + '_Guassian.npy', afterGuassian)
+        get_fold_nodule_BorM_number(destPath + '/fold' + str(fold),True)        
+        
+
+    return
 if __name__ == '__main__':
-    make_smaller_than_20mm_nodule_dataset()
+    dataset_5fold_auto_augment()

@@ -22,6 +22,7 @@ import time
 import torch.nn as nn
 import model.data_loader as data_loader
 import csv
+from sklearn.metrics import confusion_matrix
 
 from model.threeDresnet import generate_model
 from model.threeDGoogleNet import googlenet
@@ -47,9 +48,9 @@ import netron
 import torch.onnx
 
 #是否保存模型中间特征
-save_model_feature = False
+save_model_feature = True
 #是否加入中间特征(包括GCN，传统，统计特征)
-add_middle_feature = True
+add_middle_feature = False
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name):
     """Train the model on `num_steps` batches
@@ -73,7 +74,8 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
     loss_avg = utils.RunningAverage()
     
     
-
+    ground_truch_list = []
+    predict_list = []
     # Use tqdm for progress bar
     with tqdm(total=len(dataloader)) as t:
         for i, (train_batch, labels_batch, file_name, one_feature) in enumerate(dataloader):
@@ -99,6 +101,11 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
             output_batch = output_batch.data.cpu().numpy()
             labels_batch = labels_batch.data.cpu().numpy()
 
+            predict_batch = np.argmax(output_batch, axis=1)
+            for i in range(len(labels_batch)):
+                ground_truch_list.append(labels_batch[i])
+                predict_list.append(predict_batch[i])
+
             # compute all metrics on this batch
             summary_batch = {metric:metrics[metric](output_batch, labels_batch)
                                 for metric in metrics}
@@ -116,15 +123,23 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
             #更新进度条
             t.update()
 
+    class_1_number = np.sum(ground_truch_list)
+    class_0_number = len(ground_truch_list) - class_1_number
+    print("class 0 : {0}, class 1 : {1}".format(class_0_number,class_1_number))
+    cMtric = confusion_matrix(ground_truch_list, predict_list)
+    print(cMtric)
     # compute mean of all metrics in summary
     metrics_mean = {metric:np.mean([x[metric] for x in summ]) for metric in summ[0]}
     metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_mean.items())
     logging.info("- Train metrics: " + metrics_string)
     vis.plot(model_name + '_train_acc_folder_' + str(N_folder), metrics_mean['accuracy'] , 2)
+    vis.plot(model_name + '_train_loss_epoch_folder_' + str(N_folder), metrics_mean['loss'] , 3)
 
 def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, N_folder, model_name):
 
     ## 解决测试的时候显存不够的问题，加上下面这一句
+    ground_truch_list = []
+    predict_list = []
     with torch.no_grad():
         # set model to evaluation mode
         model.eval()
@@ -160,7 +175,10 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
 
             # extract data from torch Variable, move to cpu, convert to numpy arrays
             output_batch = output_batch.data.cpu().numpy()
+
             predict = np.argmax(output_batch, axis=1)
+
+            
 
             # 因为要得到指阳性标签的预测概率值，所以有下面一段代码
             st = dataloader_index * params.batch_size
@@ -168,6 +186,9 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             target[st:st + params.batch_size] = labels_batch
 
             labels_batch = labels_batch.data.cpu().numpy()
+            for i in range(len(labels_batch)):
+                ground_truch_list.append(labels_batch[i])
+                predict_list.append(predict[i])
 
 
             for index,(name, truth_label, predict_label,probability) in enumerate(zip(filename,labels_batch,predict,probability)):
@@ -182,12 +203,19 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             vis.plot(model_name + '_val_loss_folder_' + str(N_folder), summary_batch['loss'], 1)
 
         # compute mean of all metrics in summary
+        class_1_number = np.sum(ground_truch_list)
+        class_0_number = len(ground_truch_list) - class_1_number
+        print("class 0 : {0}, class 1 : {1}".format(class_0_number,class_1_number))
+        cMtric = confusion_matrix(ground_truch_list, predict_list)
+        print(cMtric)
+
         for metric in summ[0]:
             print(metric)
         metrics_mean = {metric:np.mean([x[metric] for x in summ]) for metric in summ[0]} 
         metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_mean.items())
         logging.info("- Eval metrics : " + metrics_string)
         vis.plot(model_name + '_val_acc_folder_' + str(N_folder),metrics_mean['accuracy'] , 2)
+        vis.plot(model_name + '_val_loss_epoch_folder_' + str(N_folder), metrics_mean['loss'] , 3)
         predict_csv.close()
 
         predict_prob = predict_prob.data.cpu().numpy()
@@ -240,7 +268,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         prec, recall, auc = utils.get_metrics(truth_label, predict_label)
         specificity = utils.get_specificity(truth_label, predict_label)
         logging.info("- precision: " + str(prec) + " ; recall(or sensitivity): " + str(recall) + " ; auc: " + str(auc) + " ; specificity(or 1-FPR): " + str(specificity))
-
+        vis.plot(model_name + '_val_sensitivity_epoch_folder_' + str(N_folder), recall , 3)
+        vis.plot(model_name + '_val_specificity_epoch_folder_' + str(N_folder), specificity , 3)
         val_acc = val_metrics['accuracy']
         is_best = val_acc>=best_val_acc
 
@@ -310,7 +339,7 @@ if __name__ == '__main__':
     #             'alexnet']
 
     # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
-    model_list = ['alexnet', 'vgg13', 'resnet34', 'densenet201']
+    model_list = ['vgg13', 'alexnet', 'resnet34', 'densenet201']
     # model_list = ['densenet201']
     # model_list = ['resnet34']
     # model_list=['lenet5']                         #有问题 50%
@@ -391,7 +420,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(2,5):
+        for N_folder in range(2,3):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
@@ -399,7 +428,7 @@ if __name__ == '__main__':
             # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128_aug/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']

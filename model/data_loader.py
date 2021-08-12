@@ -75,7 +75,10 @@ class LIDCDataset(Dataset):
         cube = cube.transpose(0,2)
         cube = torch.unsqueeze(cube,0)  #2d卷积的时候把这行注释掉
         cube = cube.type(torch.FloatTensor)
-        label = self.npy_list[idx].split('.')[0][-1]
+        #非数据增强
+        # label = self.npy_list[idx].split('.')[0][-1]
+        #数据增强
+        label = self.npy_list[idx].split('_')[2][0]
         label = np.array(int(label))
         label = torch.tensor(label)
         one_gcn_middle_feature = self.gcn_middle_feature[idx]
