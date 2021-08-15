@@ -1776,9 +1776,9 @@ def randomGaussian(npy, mean=10, sigma=5):
 
 #数据增强,当前就做第三折的数据增强
 def dataset_5fold_auto_augment():
-    sourcePath = 'data/5fold_128'
-    destPath = 'data/5fold_128_aug'
-    for fold in range(3,4):
+    sourcePath = 'data/5fold_128<=20mm'
+    destPath = 'data/5fold_128<=20mm_aug'
+    for fold in range(1,6):
         sourceFoldPath = sourcePath + '/fold' + str(fold)
         augTrainPath = destPath + '/fold' + str(fold) + '/train' + '/'
         train_Benign, train_Malignancy, test_Benign, test_Malignancy = get_fold_nodule_BorM_number(sourceFoldPath)
@@ -1808,13 +1808,35 @@ def dataset_5fold_auto_augment():
             elif label == '0':
                 afterRotat180Npy = randomRotation(npy, 180)
                 np.save(augTrainPath + noduleName + '_rotate180.npy', afterRotat180Npy)
-                afterCrop = randomCrop(npy)
-                np.save(augTrainPath + noduleName + '_Crop.npy', afterCrop)
+                # afterCrop = randomCrop(npy)
+                # np.save(augTrainPath + noduleName + '_Crop.npy', afterCrop)
                 afterGuassian = randomGaussian(npy)
                 np.save(augTrainPath + noduleName + '_Guassian.npy', afterGuassian)
+        
+        #测试集copy
+        augTestPath = destPath + '/fold' + str(fold) + '/test' + '/'
+        testNpyPathList = glob.glob(sourceFoldPath + '/test/*npy')
+        for oneNpyPath in testNpyPathList:
+            print(oneNpyPath)
+            npyName = oneNpyPath.split('/')[-1]
+            copy(oneNpyPath, augTestPath + npyName)
+
+
         get_fold_nodule_BorM_number(destPath + '/fold' + str(fold),True)        
         
 
     return
+
+#对第一折文件
+def rename_fold1():
+    npyPathList = glob.glob('data/5fold_128<=20mm/fold1/*/*npy')
+    for onePath in npyPathList:
+        fisrtPart = onePath[:-8]
+        secondPart = onePath[-8:]
+        renamePath = fisrtPart + '_' + secondPart
+        os.rename(onePath, renamePath)
+    return
+
+
 if __name__ == '__main__':
     dataset_5fold_auto_augment()
