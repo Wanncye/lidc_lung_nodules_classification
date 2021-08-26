@@ -8,5 +8,9 @@ from scipy import linalg, mat, dot
 import os
 import matplotlib.pyplot as plt
 
-data_dir = 'data/5fold_128/fold3/train'
-print(os.listdir(data_dir))
+relu = torch.nn.ReLU()
+a = torch.tensor([
+    [-1,2],
+    [5,-1]
+])
+print(torch.clamp(a,0,3))

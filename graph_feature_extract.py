@@ -67,7 +67,7 @@ def save_incorrect_nodule(pre_label, truth_label, nodule_name):
 
 
 # f = open('./experiments/gcn/random_adj/random_adj_43_feature_0~1_result_2.txt', 'w')
-for fold in range(1,5):
+for fold in range(4,5):
     # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 641, data_dir="data/5fold_128/fold"+str(fold+1), train_shuffle=False, fold= fold)
     # test_dl = dataloaders['test']
     # for i, (train_batch, labels_batch, file_name, _) in enumerate(test_dl):
@@ -192,17 +192,17 @@ for fold in range(1,5):
 
 
         #pretrain_feature
-        densenet201_train_feature = torch.load('data/feature/fold_'+str(fold)+'_densenet201_train.pt')
-        densenet201_test_feature = torch.load('data/feature/fold_'+str(fold)+'_densenet201_test.pt')
-        resnet34_train_feature = torch.load('data/feature/fold_'+str(fold)+'_resnet34_train.pt')
-        resnet34_test_feature = torch.load('data/feature/fold_'+str(fold)+'_resnet34_test.pt')
-        vgg13_train_feature = torch.load('data/feature/fold_'+str(fold)+'_vgg13_train.pt')
-        vgg13_test_feature = torch.load('data/feature/fold_'+str(fold)+'_vgg13_test.pt')
-        alexnet_train_feature = torch.load('data/feature/fold_'+str(fold)+'_alexnet_train.pt')
-        alexnet_test_feature = torch.load('data/feature/fold_'+str(fold)+'_alexnet_test.pt')
+        attention56_train_feature = torch.load('./data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_attention56_train.pt')
+        attention56_test_feature = torch.load('./data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_attention56_test.pt')
+        resnet34_train_feature = torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_resnet34_train.pt')
+        resnet34_test_feature = torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_resnet34_test.pt')
+        vgg13_train_feature = torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_vgg13_train.pt')
+        vgg13_test_feature = torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_vgg13_test.pt')
+        alexnet_train_feature = torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_alexnet_train.pt')
+        alexnet_test_feature = torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_alexnet_test.pt')
 
-        train_label = torch.load('data/feature/fold_'+str(fold)+'_train_label.pt')
-        test_label = torch.load('data/feature/fold_'+str(fold)+'_test_label.pt')
+        train_label = torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_train_label.pt')
+        test_label = torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_test_label.pt')
 
 
         #glcm竖直方向上归一化
@@ -260,7 +260,7 @@ for fold in range(1,5):
                 vgg13_train_feature,
                 # vgg19_train_feature,
                 alexnet_train_feature,
-                # attention56_train_feature,
+                attention56_train_feature,
                 # attention92_train_feature,
                 # mobilenet_train_feature,
                 # mobilenetv2_train_feature,
@@ -272,7 +272,7 @@ for fold in range(1,5):
                 # densenet121_train_feature,
                 # densenet161_train_feature,
                 # densenet169_train_feature,
-                densenet201_train_feature,
+                # densenet201_train_feature,
                 # preactresnet50_train_feature,
                 # preactresnet101_train_feature,
                 # preactresnet152_train_feature,
@@ -331,7 +331,7 @@ for fold in range(1,5):
                 vgg13_test_feature,
                 # vgg19_test_feature,
                 alexnet_test_feature,
-                # attention56_test_feature,
+                attention56_test_feature,
                 # attention92_test_feature,
                 # mobilenet_test_feature,
                 # mobilenetv2_test_feature,
@@ -343,7 +343,7 @@ for fold in range(1,5):
                 # densenet121_test_feature,
                 # densenet161_test_feature,
                 # densenet169_test_feature,
-                densenet201_test_feature,
+                # densenet201_test_feature,
                 # preactresnet50_test_feature,
                 # preactresnet101_test_feature,
                 # preactresnet152_test_feature,
@@ -407,8 +407,8 @@ for fold in range(1,5):
                 },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar')
 
                 #保存gcn中间特征到文件中，用于其他模型的训练
-                torch.save(gcn_train_middle_feature,'data/feature/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
-                torch.save(gcn_test_middle_feature,'data/feature/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_train_middle_feature,'data/feature/5fold_128<=20mm_aug/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_test_middle_feature,'data/feature/5fold_128<=20mm_aug/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
 
             vis.plot('train loss',np.mean(loss_train_list),1)
             vis.plot('test loss',np.mean(loss_test_list),1)

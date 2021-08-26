@@ -536,6 +536,7 @@ def GLCM(cube):
     feature = np.zeros(64)
     for index in range(8):
         img = torch.tensor(cube[index],dtype=torch.int)
+        img = torch.clamp(img,0,255)
         # glcm = greycomatrix(img,            #共生矩阵（代码中glcm）为四维，前两维表示行列，后两维分别表示距离和角度
         #                     [1, 2, 4, 8],      #距离
         #                     [0, np.pi / 4, np.pi / 2, np.pi * 3 / 4],  #方向
@@ -626,12 +627,10 @@ def numpy_to_tensor_and_save():
     torch.save(lbp_test_feature,'./data/feature/lbp_test_feature.pt')
 
 #对6种特征使用svm进行分类,并将最好的预测结果存储在csv文件中
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import confusion_matrix
+from sklearn.svm import SVC
 def svm_classification():
-    from sklearn.model_selection import GridSearchCV
-    from sklearn.metrics import confusion_matrix
-    from sklearn.svm import SVC
-    
-
     # googlenet_train_feature = torch.load('./data/feature/googlenet_train_feature.pt')
     # googlenet_test_feature = torch.load('./data/feature/googlenet_test_feature.pt')
     # resnet_train_feature = torch.load('./data/feature/resnet_train_feature.pt')
@@ -1234,13 +1233,13 @@ def search_different_resnet_feature_correlation():
 #修改测试集训练集之后，需要重新获取数据集的标签，并且保存下来
 def get_dataset_label_pt():
     for index in range(5):
-        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 650, data_dir="data/5fold_128/fold"+str(index+1), train_shuffle=False)
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128<=20mm_aug/fold"+str(index+1), train_shuffle=False,fold=index)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
-        for i, (train_batch, labels_batch, _) in enumerate(train_dl):
-            torch.save(labels_batch,'./data/feature/fold_'+str(index)+'_train_label.pt')
-        for i, (train_batch, labels_batch, _) in enumerate(test_dl):
-            torch.save(labels_batch,'./data/feature/fold_'+str(index)+'_test_label.pt')
+        for i, (train_batch, labels_batch, _,_) in enumerate(train_dl):
+            torch.save(labels_batch,'data/feature/5fold_128<=20mm_aug/fold_'+str(index)+'_train_label.pt')
+        for i, (train_batch, labels_batch, _,_) in enumerate(test_dl):
+            torch.save(labels_batch,'data/feature/5fold_128<=20mm_aug/fold_'+str(index)+'_test_label.pt')
 
 #将所有模型的（目前是已经训练好的模型）预测结果汇总到同一个csv中
 def converage_all_result():
@@ -1371,15 +1370,16 @@ def confirm_patient_nodule_not_in_two_dataset():
 import pandas as pd
 def get_various_feature():
     df = pd.read_csv('./data/pylidc_feature.csv')
-    for fold in range(1, 5):
-        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir="data/5fold_128_mask/fold"+str(fold+1), train_shuffle=False, fold= fold)
+    for fold in range(2,3):
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir="data/5fold_128<=20mm_mask_aug/fold"+str(fold+1), train_shuffle=False, fold= fold)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
         #255 = 64 * 3 + 56 +7
         feature_train = torch.zeros((len(train_dl),255))
         feature_test = torch.zeros((len(test_dl),255))
         for i, (cube, _, file_name, _) in enumerate(train_dl):
-            print('---fold ' + str(fold) + '---extracting ' + file_name[0])
+            
+            print('---fold ' + str(fold) + '---train extracting ' + file_name[0])
             if fold == 0: #因为5折交叉验证的来源不同，文件命名有些差异
                 patient = file_name[0].split('_')[0][:4]
                 nodule = file_name[0].split('_')[0][4:]
@@ -1391,22 +1391,27 @@ def get_various_feature():
             surface_area = np.array([df[df["nodule_idx"]==nodule_idx]["surface_area"].iloc[0]])
             volume = np.array([df[df["nodule_idx"]==nodule_idx]["volume"].iloc[0]])
 
-            hu = HU(cube)     #56维特征
-            glcm = GLCM(cube) #64维特征，后续要归一化
-            lbp = LBP(cube)   #64维特征
-            hog = HOG(cube)   #64维特征
+            try:
+                hu = HU(cube)     #56维特征
+                glcm = GLCM(cube) #64维特征，后续要归一化
+                lbp = LBP(cube)   #64维特征
+                hog = HOG(cube)   #64维特征
 
-            cube = np.squeeze(cube).numpy()
-            mean = np.array([np.mean(cube)])   #整个结节图片，包括结节外部的组织的均值
-            variance = np.array([np.var(cube)])
-            pd_cube = pd.Series(cube.flatten())
-            skewness = np.array([pd_cube.skew()])
-            kurtosis = np.array([pd_cube.kurt()])
-            temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
-            
-            feature_train[i] = torch.from_numpy(temp_feature)
+                cube = np.squeeze(cube).numpy()
+                mean = np.array([np.mean(cube)])   #整个结节图片，包括结节外部的组织的均值
+                variance = np.array([np.var(cube)])
+                pd_cube = pd.Series(cube.flatten())
+                skewness = np.array([pd_cube.skew()])
+                kurtosis = np.array([pd_cube.kurt()])
+                temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
+                feature_test[i] = torch.from_numpy(temp_feature)
+
+            except:
+                temp_feature = torch.zeros((1,255))
+                feature_train[i] = temp_feature
 
         for i, (cube, _, file_name, _) in enumerate(test_dl):
+            print('---fold ' + str(fold) + '---test extracting ' + file_name[0])
             if fold == 0: #因为5折交叉验证的来源不同，文件命名有些差异
                 patient = file_name[0].split('_')[0][:4]
                 nodule = file_name[0].split('_')[0][4:]
@@ -1417,72 +1422,75 @@ def get_various_feature():
             diameter = np.array([df[df["nodule_idx"]==nodule_idx]["diameter"].iloc[0]])
             surface_area = np.array([df[df["nodule_idx"]==nodule_idx]["surface_area"].iloc[0]])
             volume = np.array([df[df["nodule_idx"]==nodule_idx]["volume"].iloc[0]])
+            try:
+                hu = HU(cube)     #56维特征
+                glcm = GLCM(cube) #64维特征，后续要归一化
+                lbp = LBP(cube)   #64维特征
+                hog = HOG(cube)   #64维特征
 
-            hu = HU(cube)     #56维特征
-            glcm = GLCM(cube) #64维特征，后续要归一化
-            lbp = LBP(cube)   #64维特征
-            hog = HOG(cube)   #64维特征
-
-            cube = np.squeeze(cube).numpy()
-            mean = np.array([np.mean(cube)])   #整个结节图片，包括结节外部的组织的均值
-            variance = np.array([np.var(cube)])
-            pd_cube = pd.Series(cube.flatten())
-            skewness = np.array([pd_cube.skew()])
-            kurtosis = np.array([pd_cube.kurt()])
-            temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
+                cube = np.squeeze(cube).numpy()
+                mean = np.array([np.mean(cube)])   #整个结节图片，包括结节外部的组织的均值
+                variance = np.array([np.var(cube)])
+                pd_cube = pd.Series(cube.flatten())
+                skewness = np.array([pd_cube.skew()])
+                kurtosis = np.array([pd_cube.kurt()])
+                temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
+                feature_test[i] = torch.from_numpy(temp_feature)
+            except:
+                temp_feature = torch.zeros((1,255))
             
-            feature_test[i] = torch.from_numpy(temp_feature)
+                feature_test[i] = temp_feature
 
-        torch.save(feature_train, './data/feature/addition_feature_mask/fold_' + str(fold) + '_train_addition_feature.pt')
-        torch.save(feature_test, './data/feature/addition_feature_mask/fold_' + str(fold) + '_test_addition_feature.pt')
+        torch.save(feature_train, './data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_train_addition_feature.pt')
+        torch.save(feature_test, './data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_test_addition_feature.pt')
             
     return
 
 
 from sklearn.manifold import TSNE 
 def t_SNE():
-    fold = 0
-    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 650, data_dir="data/5fold_128/fold"+str(fold+1), train_shuffle=False, fold=0)
-    train_dl = dataloaders['train']
-    test_dl = dataloaders['test']
-    for i, (train_batch, labels_batch, _, _) in enumerate(train_dl):
-        train_label = labels_batch
-    for i, (train_batch, labels_batch, _, _) in enumerate(test_dl):
-        test_label = labels_batch
-    train = torch.load('data/feature/addition_feature/fold_0_train_addition_feature.pt')
-    test = torch.load('data/feature/addition_feature/fold_0_test_addition_feature.pt')
-    for jndex in range(248,255):
+    for fold in range(5):
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128<=20mm_mask/fold"+str(fold+1), train_shuffle=False, fold=0)
+        train_dl = dataloaders['train']
+        test_dl = dataloaders['test']
+        for i, (train_batch, labels_batch, _, _) in enumerate(train_dl):
+            train_label = labels_batch
+        for i, (train_batch, labels_batch, _, _) in enumerate(test_dl):
+            test_label = labels_batch
+        train = torch.load('data/feature/addition_feature_mask<=20/fold_'+str(fold)+'_train_addition_feature.pt')
+        test = torch.load('data/feature/addition_feature_mask<=20/fold_'+str(fold)+'_test_addition_feature.pt')
+        for jndex in range(248,255):
             max = train[:, jndex].max()  
             min = train[:, jndex].min()  
             train[:, jndex] = (train[:, jndex] - min) / (max-min)
-    for jndex in range(248,255):
+        for jndex in range(248,255):
             max = test[:, jndex].max()  
             min = test[:, jndex].min()  
             test[:, jndex] = (test[:, jndex] - min) / (max-min)
 
 
-    
-    tsne = TSNE(n_components=2).fit_transform(train)
-    x_min, x_max = tsne.min(0), tsne.max(0)
-    tsne_norm = (tsne - x_min) / (x_max - x_min)
+        
+        tsne = TSNE(n_components=2).fit_transform(train)
+        x_min, x_max = tsne.min(0), tsne.max(0)
+        tsne_norm = (tsne - x_min) / (x_max - x_min)
 
-    plt.plot(tsne_norm[train_label == 0][:,0], tsne_norm[train_label == 0][:,1], 'r.', label='benign')
-    plt.plot(tsne_norm[train_label == 1][:,0], tsne_norm[train_label == 1][:,1], 'b.', label='maligancy')
-    plt.legend()
-    plt.title('add_0_train_t-sne')
-    plt.savefig('data/feature/vis_feature/add_0_train_t-sne.png')
-    plt.cla()
+        plt.plot(tsne_norm[train_label == 0][:,0], tsne_norm[train_label == 0][:,1], 'r.', label='benign')
+        plt.plot(tsne_norm[train_label == 1][:,0], tsne_norm[train_label == 1][:,1], 'b.', label='maligancy')
+        plt.legend()
+        plt.title('add_'+str(fold)+'_train_t-sne')
+        plt.savefig('data/feature/vis_feature/add'+str(fold)+'mask<=20_train_t-sne.png')
+        plt.cla()
 
-    tsne = TSNE(n_components=2).fit_transform(test)
-    x_min, x_max = tsne.min(0), tsne.max(0)
-    tsne_norm = (tsne - x_min) / (x_max - x_min)
+        tsne = TSNE(n_components=2).fit_transform(test)
+        x_min, x_max = tsne.min(0), tsne.max(0)
+        tsne_norm = (tsne - x_min) / (x_max - x_min)
 
-    plt.plot(tsne_norm[test_label == 0][:,0], tsne_norm[test_label == 0][:,1], 'r.', label='benign')
-    plt.plot(tsne_norm[test_label == 1][:,0], tsne_norm[test_label == 1][:,1], 'b.', label='maligancy')
-    plt.legend()
-    plt.title('add_0_test_t-sne')
-    plt.savefig('data/feature/vis_feature/add_0_test_t-sne.png')
-    plt.cla()
+        plt.plot(tsne_norm[test_label == 0][:,0], tsne_norm[test_label == 0][:,1], 'r.', label='benign')
+        plt.plot(tsne_norm[test_label == 1][:,0], tsne_norm[test_label == 1][:,1], 'b.', label='maligancy')
+        plt.legend()
+        plt.title('add_'+str(fold)+'_test_t-sne')
+        plt.savefig('data/feature/vis_feature/add'+str(fold)+'mask<=20_test_t-sne.png')
+        plt.cla()
 
     
     
@@ -1545,10 +1553,11 @@ def get_different_5flod_128_with_5fold_128_mask():
 from endToEnd.data_loader import fetch_dataloader
 #每折都提取特征太慢了，这里手动组合mask第5折的特征
 def get_fold_5_mask_feature():
-    fold_4_train_feature = torch.load('data/feature/addition_feature_mask/fold_3_train_addition_feature.pt')
-    fold_4_test_feature = torch.load('data/feature/addition_feature_mask/fold_3_test_addition_feature.pt')
+    get_fold_feature = 5
+    fold_3_train_feature = torch.load('data/feature/addition_feature_mask/fold_'+str(get_fold_feature)+'_train_addition_feature.pt')
+    fold_3_test_feature = torch.load('data/feature/addition_feature_mask/fold_'+str(get_fold_feature)+'_test_addition_feature.pt')
 
-    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 700, data_dir="data/5fold_128_mask/fold4", train_shuffle=False, fold= 3)
+    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 700, data_dir='data/5fold_128_mask/fold'+str(get_fold_feature+1), train_shuffle=False, fold= 3)
     train_dl = dataloaders['train']
     test_dl = dataloaders['test']
     file_name_list_train_4 = []
@@ -1560,37 +1569,62 @@ def get_fold_5_mask_feature():
         file_name_list_test_4 = file_name
     
 
-    dataloaders = fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir="data/5fold_128_mask/fold5", train_shuffle=False)
+    
+    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir="data/5fold_128<=20mm_mask/fold"+str(get_fold_feature+1), train_shuffle=False, fold= 3)
     train_dl = dataloaders['train']
     test_dl = dataloaders['test']
     feature_train_5 = torch.zeros((len(train_dl),255))
     feature_test_5 = torch.zeros((len(test_dl),255))
-    for i, (_, _, file_name) in enumerate(train_dl):
+    flag = 0
+    count = 0
+    for i, (_, _, file_name,_) in enumerate(train_dl):
         for index, temp_name in enumerate(file_name_list_train_4):
             if temp_name == file_name[0]:
                 print('find {0} in train set'.format(file_name))
-                feature_train_5[i] = fold_4_train_feature[index]
+                count += 1
+                feature_train_5[i] = fold_3_train_feature[index]
                 break
+            else:
+                flag += 1
         for index, temp_name in enumerate(file_name_list_test_4):
             if temp_name == file_name[0]:
                 print('find {0} in test set'.format(file_name))
-                feature_train_5[i] = fold_4_test_feature[index]
+                count += 1
+                feature_train_5[i] = fold_3_test_feature[index]
                 break
+            else:
+                flag += 1
+        if flag == 2:
+            print('train set nodule-- ' + file_name[0] + ' --not found in fold '+str(get_fold_feature+1)+' train and test set..........')
+        else:
+            flag = 0         
 
-    for i, (_, _, file_name) in enumerate(test_dl):
+    flag = 0
+    for i, (_, _, file_name,_) in enumerate(test_dl):
         for index, temp_name in enumerate(file_name_list_train_4):
             if temp_name == file_name[0]:
                 print('find {0} in train set'.format(file_name))
-                feature_test_5[i] = fold_4_train_feature[index]
+                count += 1
+                feature_test_5[i] = fold_3_train_feature[index]
                 break
+            else:
+                flag += 1
         for index, temp_name in enumerate(file_name_list_test_4):
             if temp_name == file_name[0]:
                 print('find {0} in test set'.format(file_name))
-                feature_test_5[i] = fold_4_test_feature[index]
+                count += 1
+                feature_test_5[i] = fold_3_test_feature[index]
                 break
-
-    torch.save(feature_train_5, './data/feature/addition_feature_mask/fold_' + str(4) + '_train_addition_feature.pt')
-    torch.save(feature_test_5, './data/feature/addition_feature_mask/fold_' + str(4) + '_test_addition_feature.pt')
+            else:
+                flag += 1
+        if flag == 2:
+            print('test set nodule-- ' + file_name[0] + ' --not found in fold '+str(get_fold_feature+1)+' train and test set..........')
+        else:
+            flag = 0  
+    
+    print('find ' + str(count) + ' nodules')
+    torch.save(feature_train_5, './data/feature/addition_feature_mask<=20/fold_' + str(get_fold_feature) + '_train_addition_feature.pt')
+    torch.save(feature_test_5, './data/feature/addition_feature_mask<=20/fold_' + str(get_fold_feature) + '_test_addition_feature.pt')
         
 
 
@@ -1598,17 +1632,20 @@ def get_fold_5_mask_feature():
 
 # 将data/nodules3d_128_npy_no_same_patient_in_two_dataset路径下的结节处理成2d的图片
 def npy2png():
-    npy_list = glob.glob('data/5fold_128/fold2/*/*npy')
-    dest_path = 'data/5fold_128/2d_slice'
-    for npy_path in npy_list:
-        npy = np.load(npy_path)
-        npy_name = npy_path.split('/')[-1].split('.')[0]
-        for index in range(8):
-            save_path = dest_path + '/' + npy_name + '_slice' + str(index) + '.png'
-            plt.imsave(save_path, npy[:, :, index], cmap='gray')
+    for fold in range(1,6):
+        npy_list = glob.glob('data/5fold_128/fold'+str(fold)+'/*/*npy')
+        dest_path = 'data/5fold_128_2d/fold'+str(fold)
+        for npy_path in npy_list:
+            npy = np.load(npy_path)
+            npy_name = npy_path.split('/')[-1].split('.')[0]
+            split = npy_path.split('/')[-2]
+            for index in range(8):
+                save_path = dest_path + '/' + split + '/' + npy_name + '_slice' + str(index) + '.png'
+                print(save_path)
+                plt.imsave(save_path, npy[:, :, index], cmap='gray')
     return 
 
-#统计结节直径分布
+#统计所有结节直径分布
 def nodule_diameter_statistic():
     f1 = open('data/pylidc_feature.csv','r')
     reader = csv.DictReader(f1)
@@ -1776,8 +1813,8 @@ def randomGaussian(npy, mean=10, sigma=5):
 
 #数据增强,当前就做第三折的数据增强
 def dataset_5fold_auto_augment():
-    sourcePath = 'data/5fold_128<=20mm'
-    destPath = 'data/5fold_128<=20mm_aug'
+    sourcePath = 'data/5fold_128<=20mm_mask'
+    destPath = 'data/5fold_128<=20mm_mask_aug'
     for fold in range(1,6):
         sourceFoldPath = sourcePath + '/fold' + str(fold)
         augTrainPath = destPath + '/fold' + str(fold) + '/train' + '/'
@@ -1829,14 +1866,172 @@ def dataset_5fold_auto_augment():
 
 #对第一折文件
 def rename_fold1():
-    npyPathList = glob.glob('data/5fold_128<=20mm/fold1/*/*npy')
+    npyPathList = glob.glob('data/5fold_128<=20mm_mask/fold1/*/*npy')
     for onePath in npyPathList:
         fisrtPart = onePath[:-8]
         secondPart = onePath[-8:]
         renamePath = fisrtPart + '_' + secondPart
+        print(renamePath)
         os.rename(onePath, renamePath)
     return
 
 
+#统计一折结节直径分布
+def nodule_fold_diameter_statistic():
+    for fold in range(5):
+        npyList = glob.glob('data/5fold_128<=20mm_aug/fold'+str(fold+1)+'/*/*npy')
+        train_benign_diameter_list = []
+        train_malignancy_diameter_list = []
+        test_benign_diameter_list = []
+        test_malignancy_diameter_list = []
+        for oneNpyPath in npyList:
+            # if fold == 0:
+            #     noduleName = oneNpyPath.split('/')[-1].split('_')[0]
+            #     label = oneNpyPath.split('/')[-1].split('_')[1].split('.')[0]
+            # else:
+            noduleName = oneNpyPath.split('/')[-1].split('_')[0] + oneNpyPath.split('/')[-1].split('_')[1]
+            label = oneNpyPath.split('/')[-1].split('_')[2].split('.')[0]
+            split = oneNpyPath.split('/')[-2]
+            diameter = get_nodule_diameter(noduleName)
+            if split == 'train':
+                if label == '1':
+                    train_malignancy_diameter_list.append(diameter)
+                if label == '0':
+                    train_benign_diameter_list.append(diameter)
+            if split == 'test':
+                if label == '1':
+                    test_malignancy_diameter_list.append(diameter)
+                if label == '0':
+                    test_benign_diameter_list.append(diameter)
+        group = np.arange(3,50,1)
+        plt.subplot(121)
+        plt.hist(train_malignancy_diameter_list, group,rwidth=0.85, color='#0504aa', label='train_malignancy', alpha=0.5)
+        plt.hist(train_benign_diameter_list, group,rwidth=0.85, color='green', label='train_benign', alpha=0.5)  
+        plt.title('fold_'+str(fold+1)+'_train')
+        plt.legend()
+        # plt.cla()
+
+        plt.subplot(122) 
+        plt.hist(test_malignancy_diameter_list, group,rwidth=0.85, color='#0504aa', label='test_malignancy', alpha=0.5)
+        plt.hist(test_benign_diameter_list, group,rwidth=0.85, color='green', label='test_benign', alpha=0.5)   
+
+        plt.title('fold_'+str(fold+1)+'_test')
+        plt.legend()
+        plt.savefig('data/fig/fold'+str(fold+1)+'_nodule_diameter_aug_distribute.png')    
+
+        plt.clf()
+
+    return
+
+from sklearn.tree import DecisionTreeClassifier
+#SVM、决策树
+def traditional_feature_traditional_method_classification():
+    rootPath = 'data/feature/addition_feature_mask<=20/'
+    set_logger(rootPath + 'SVM_DecisionTreeClassifier.log')
+    for fold in range(5):
+        logging.info('fold {0}'.format(fold+1))
+        train_feature = torch.load(rootPath + 'fold_'+str(fold)+'_train_addition_feature.pt')
+        test_feature = torch.load(rootPath + 'fold_'+str(fold)+'_test_addition_feature.pt')
+        for jndex in range(248,255):
+            max = train_feature[:, jndex].max()  
+            min = train_feature[:, jndex].min()  
+            train_feature[:, jndex] = (train_feature[:, jndex] - min) / (max-min)
+        for jndex in range(248,255):
+            max = test_feature[:, jndex].max()  
+            min = test_feature[:, jndex].min()  
+            test_feature[:, jndex] = (test_feature[:, jndex] - min) / (max-min)
+
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128<=20mm_mask/fold"+str(fold+1), train_shuffle=False,fold=0)
+        train_dl = dataloaders['train']
+        test_dl = dataloaders['test']
+        for i, (train_batch, labels_batch, file_name, _) in enumerate(train_dl):
+            train_label = np.array(labels_batch)
+            train_name = file_name
+        for i, (train_batch, labels_batch, file_name, _) in enumerate(test_dl):
+            test_label = np.array(labels_batch)
+            test_name = file_name
+
+        
+        kernel_function = ['linear', 'poly', 'rbf', 'sigmoid']
+        C = [1e-2,1e-1,1,1e1,1e2] #C是对错误的惩罚
+        gamma = [0.0001,0.0005,0.001,0.005,0.01,0.1] 
+        max_iter = [50,100,200,500,700,1000,1500,2000]
+        with tqdm(total = len(kernel_function)*len(C)*len(gamma)*len(max_iter)) as t:
+            train_feature = train_feature.detach().numpy()
+            test_feature = test_feature.detach().numpy()
+            best_accuracy = 0
+            for kf in kernel_function:
+                for c in C:
+                    for ga in gamma:
+                        for miter in max_iter:
+                            clf = SVC(kernel=kf, C=c, gamma=ga, max_iter=miter)
+                            clf = clf.fit(train_feature, train_label)
+
+                            Y_pred = clf.predict(test_feature)
+                            con_matrix = confusion_matrix(test_label,Y_pred,labels=range(2))
+                            
+                            accuracy = (con_matrix[0][0] + con_matrix[1][1])/len(test_label)
+                            if accuracy > best_accuracy:
+                                idx = [i for i in range(len(Y_pred)) if Y_pred[i] != test_label[i]]
+                                wrong_classify = [name for i,name in enumerate(test_name) if i in idx]
+                                save_matrix = con_matrix
+                                param_list = [c, ga, miter,kf]
+                                best_accuracy = accuracy
+                            t.update()
+            
+        TN = save_matrix[0][0]
+        TP = save_matrix[1][1]
+        FN = save_matrix[1][0]
+        FP = save_matrix[0][1]
+        logging.info('TN:{0}, TP:{1}, FN:{2}, FP:{3} '.format(TN, TP, FN, FP))
+        logging.info('classify incorrectly nodule:')
+        logging.info(wrong_classify)
+        logging.info('{0} classification, kernel_function={1}, c={2}, gamma={3}, max_iter={4}, test_accuracy={5}'.format('SVM addition_feature<=20mm_mask', 
+                                                                                                                                    param_list[3],
+                                                                                                                                    param_list[0], 
+                                                                                                                                    param_list[1], 
+                                                                                                                                    param_list[2],
+                                                                                                                                    best_accuracy))
+        
+        criterion = ['entropy', 'gini']
+        splitter = ['best', 'random'] #C是对错误的惩罚
+        class_weight = {0:0.3,
+                        1:0.7}
+        with tqdm(total = len(criterion)*len(splitter)) as t:
+            best_accuracy = 0
+            for cri in criterion:
+                for spli in splitter:
+                    clf = DecisionTreeClassifier(criterion=cri, splitter=spli,class_weight=class_weight)
+                    clf = clf.fit(train_feature, train_label)
+
+                    Y_pred = clf.predict(test_feature)
+                    con_matrix = confusion_matrix(test_label,Y_pred,labels=range(2))
+                    accuracy = (con_matrix[0][0] + con_matrix[1][1])/len(test_label)
+                    if accuracy > best_accuracy:
+                        idx = [i for i in range(len(Y_pred)) if Y_pred[i] != test_label[i]]
+                        wrong_classify = [name for i,name in enumerate(test_name) if i in idx]
+                        save_matrix = con_matrix
+                        param_list = [cri, spli]
+                        best_accuracy = accuracy
+                    t.update()
+
+        TN = save_matrix[0][0]
+        TP = save_matrix[1][1]
+        FN = save_matrix[1][0]
+        FP = save_matrix[0][1]
+        logging.info('TN:{0}, TP:{1}, FN:{2}, FP:{3} '.format(TN, TP, FN, FP))
+        logging.info('classify incorrectly nodule:')
+        logging.info(wrong_classify)
+        logging.info('{0} classification, criterion={1}, splitter={2}, test_accuracy={3}'.format('DecisionTreeClassifier addition_feature<=20mm_mask', 
+                                                                                        param_list[0],
+                                                                                        param_list[1],
+                                                                                        best_accuracy))
+        logging.info('\n')                                                                            
+
+        
+
+    return
+
+
 if __name__ == '__main__':
-    dataset_5fold_auto_augment()
+    get_various_feature()

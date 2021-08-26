@@ -294,15 +294,18 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             utils.save_dict_to_json(val_metrics, best_json_path)
 
             #用最好的模型来提取512维特征
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
+            train_dl_save = dataloaders['train']
+            test_dl_save = dataloaders['test']
             if save_model_feature:
                 with torch.no_grad():
                     model.eval()
-                    train_feature = torch.zeros((len(train_dl.dataset),512))
-                    test_feature = torch.zeros((len(test_dl.dataset),512))
-                    for i, (x, target, _, gcn_middle_feature) in enumerate(train_dataloader):
+                    train_feature = torch.zeros((len(train_dl_save.dataset),512))
+                    test_feature = torch.zeros((len(test_dl_save.dataset),512))
+                    for i, (x, target, _, gcn_middle_feature) in enumerate(train_dl_save):
                         _, feature = model(x.cuda(), gcn_middle_feature, add_middle_feature)
                         train_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
-                    for i, (x, target, _, gcn_middle_feature) in enumerate(val_dataloader):
+                    for i, (x, target, _, gcn_middle_feature) in enumerate(test_dl_save):
                         _, feature = model(x.cuda(), gcn_middle_feature, add_middle_feature)
                         test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
                     torch.save(train_feature,'./data/feature/5fold_128<=20mm_aug/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
@@ -339,12 +342,12 @@ if __name__ == '__main__':
     #             'alexnet']
 
     # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
-    model_list = [ 'densenet201','alexnet', 'vgg13','resnet34', ]
+    # model_list = [  'alexnet', 'vgg13','resnet34', 'densenet201', ]
     # model_list = ['densenet201']
     # model_list = ['resnet34']
     # model_list=['lenet5']                         #有问题 50%
     # model_list=['alexnet']                        #86.88%
-    # model_list=['attention56']                    #83.75%
+    model_list=['attention56']                    #83.75%
     # model_list=['attention92']                    #81.25%
     # model_list=['resnet50']                    
 
@@ -420,7 +423,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(5):
+        for N_folder in range(2,5):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
@@ -428,7 +431,7 @@ if __name__ == '__main__':
             # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
@@ -579,7 +582,7 @@ if __name__ == '__main__':
             # torch.onnx.export(model, vis_x, onnx_path)
             # netron.start(onnx_path)
             
-            optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0.02)
+            optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0.0001)
             scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
 
             # fetch loss function and metrics

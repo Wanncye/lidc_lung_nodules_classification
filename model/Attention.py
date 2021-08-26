@@ -316,7 +316,7 @@ class Attention(nn.Module):
         self.linear1 = nn.Linear(2048, 512)
         self.linear2 = nn.Linear(512, 2)
 
-    def forward(self, x):
+    def forward(self, x,  gcn_feature=None, add_gcn_middle_feature=None):
         x = self.pre_conv(x) #16 64 8 128 128
         x = self.stage1(x)
         x = self.stage2(x)
