@@ -47,10 +47,14 @@ from model.xception import xception
 import netron     
 import torch.onnx
 
-#是否保存模型中间特征
-save_model_feature = True
+
 #是否加入中间特征(包括GCN，传统，统计特征)
-add_middle_feature = False
+add_middle_feature = True
+if add_middle_feature:
+    #是否保存模型中间特征
+    save_model_feature = False
+else:
+    save_model_feature = True
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name):
     """Train the model on `num_steps` batches
@@ -100,7 +104,6 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
 
             output_batch = output_batch.data.cpu().numpy()
             labels_batch = labels_batch.data.cpu().numpy()
-
             predict_batch = np.argmax(output_batch, axis=1)
             for i in range(len(labels_batch)):
                 ground_truch_list.append(labels_batch[i])
@@ -303,10 +306,10 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                     train_feature = torch.zeros((len(train_dl_save.dataset),512))
                     test_feature = torch.zeros((len(test_dl_save.dataset),512))
                     for i, (x, target, _, gcn_middle_feature) in enumerate(train_dl_save):
-                        _, feature = model(x.cuda(), gcn_middle_feature, add_middle_feature)
+                        _, feature = model(x.cuda(), gcn_middle_feature.cuda(), add_middle_feature)
                         train_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
                     for i, (x, target, _, gcn_middle_feature) in enumerate(test_dl_save):
-                        _, feature = model(x.cuda(), gcn_middle_feature, add_middle_feature)
+                        _, feature = model(x.cuda(), gcn_middle_feature.cuda(), add_middle_feature)
                         test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
                     torch.save(train_feature,'./data/feature/5fold_128<=20mm_aug/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
                     torch.save(test_feature,'./data/feature/5fold_128<=20mm_aug/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
@@ -342,12 +345,12 @@ if __name__ == '__main__':
     #             'alexnet']
 
     # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
-    # model_list = [  'alexnet', 'vgg13','resnet34', 'densenet201', ]
+    model_list = [  'vgg13','resnet34', 'attention56', ]
     # model_list = ['densenet201']
     # model_list = ['resnet34']
     # model_list=['lenet5']                         #有问题 50%
     # model_list=['alexnet']                        #86.88%
-    model_list=['attention56']                    #83.75%
+    # model_list=['attention56']                    #83.75%
     # model_list=['attention92']                    #81.25%
     # model_list=['resnet50']                    
 
@@ -389,7 +392,8 @@ if __name__ == '__main__':
     # model_list=['xception', 'wideresidual']
         
     for model_name in model_list:
-
+        print(model_name)
+        print('\n')
         parser = argparse.ArgumentParser()
         parser.add_argument('--model_dir', default='experiments/' + model_name + '_nomask', help="Directory containing params.json")
 
@@ -423,7 +427,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(2,5):
+        for N_folder in range(2,3):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
@@ -431,7 +435,7 @@ if __name__ == '__main__':
             # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
