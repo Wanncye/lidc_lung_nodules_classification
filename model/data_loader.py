@@ -40,7 +40,7 @@ class LIDCDataset(Dataset):
     """
     A standard PyTorch definition of Dataset which defines the functions __len__ and __getitem__.
     """
-    def __init__(self, data_dir, transform, fold, split, add_middle_feature):
+    def __init__(self, data_dir, transform, fold, split, add_middle_feature=False):
         """
         Store the filenames of the jpgs to use. Specifies transforms to apply on images.
 
@@ -53,11 +53,13 @@ class LIDCDataset(Dataset):
         self.npy_list = os.listdir(data_dir)
         self.npy_list.sort(key= lambda x:int(x[:6]))
         self.fold = fold
-        self.gcn_middle_feature = torch.load('data/feature/5fold_128<=20mm_aug/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
-        self.gcn_middle_feature.requires_grad = False
-        self.addition_feature = torch.load('data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
-        self.addition_feature.requires_grad = False
         self.add_middle_feature = add_middle_feature
+        if self.add_middle_feature:
+            self.gcn_middle_feature = torch.load('data/feature/5fold_128<=20mm_aug/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
+            self.gcn_middle_feature.requires_grad = False
+            self.addition_feature = torch.load('data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
+            self.addition_feature.requires_grad = False
+        
 
         #对新加进来的feature某些特征做一下归一化，因为这些特征不在同一个数量级上
         # for jndex in range(248,255):

@@ -122,9 +122,10 @@ class SEResNet(nn.Module):
         self.stage4 = self._make_stage(block, block_num[3], 512, 2)
 
         self.fc1 = nn.Linear(self.in_channels, 512)
-        self.fc2 = nn.Linear(512, class_num)
+        self.fc2 = nn.Linear(512 + 56 * 4 + 255, class_num)
+        self.fc3 = nn.Linear(512, class_num)
 
-    def forward(self, x):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature):
         x = self.pre(x)
 
         x = self.stage1(x)
@@ -136,9 +137,14 @@ class SEResNet(nn.Module):
         x = x.view(x.size(0), -1)
 
         feature = self.fc1(x)
-        x = self.fc2(feature)
+        if add_gcn_middle_feature:
+            #拼接两个tensor
+            x1 = torch.cat((feature,gcn_feature),axis=1)
+            x2 = self.fc2(x1)
+        else:
+            x2 = self.fc3(feature)
 
-        return x,feature
+        return x2,feature
 
 
     def _make_stage(self, block, num, out_channels, stride):

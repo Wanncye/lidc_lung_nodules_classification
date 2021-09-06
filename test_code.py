@@ -8,9 +8,18 @@ from scipy import linalg, mat, dot
 import os
 import matplotlib.pyplot as plt
 
-relu = torch.nn.ReLU()
-a = torch.tensor([
-    [-1,2],
-    [5,-1]
+from utils import get_dataset_label_pt
+
+prob = np.array([
+    [1,5],
+    [5,8],
+    [8,6],
+    [8,6],
+    [6,4],
+    [5,7]
 ])
-print(torch.clamp(a,0,3))
+
+a = prob[:,1].repeat(2, axis=0).reshape(-1,2) * [0.1,0.2]
+print(a)
+
+

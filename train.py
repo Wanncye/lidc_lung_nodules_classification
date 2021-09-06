@@ -15,6 +15,7 @@ from tqdm import tqdm
 from torchsummary import summary
 from torch.optim.lr_scheduler import LambdaLR
 from torch.optim.lr_scheduler import StepLR,MultiStepLR
+import torch.nn.functional as F
 
 import utils
 import model.net as net
@@ -56,7 +57,8 @@ if add_middle_feature:
 else:
     save_model_feature = True
 
-def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name):
+
+def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
     """Train the model on `num_steps` batches
 
     Args:
@@ -90,10 +92,43 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
             train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
 
             #将载入的数据输入3DResNet,得到结果
-            output_batch, _ = model(train_batch, one_feature, add_middle_feature)
+            output_batch, _, confidence = model(train_batch, one_feature, add_middle_feature)
             #计算网络输出结果和目标值之间的损失
+            
 
-            loss = loss_fn(output_batch, labels_batch)
+            confidence = F.sigmoid(confidence)
+            vis.log(str(confidence))
+            pred_original = F.softmax(output_batch, dim=-1)
+            labels_onehot = torch.nn.functional.one_hot(labels_batch, 2).float().cuda()
+            eps = 1e-12
+            pred_original = torch.clamp(pred_original, 0. + eps, 1. - eps)
+            confidence = torch.clamp(confidence, 0. + eps, 1. - eps)
+            b = Variable(torch.bernoulli(torch.Tensor(confidence.size()).uniform_(0, 1))).cuda()
+            conf = confidence * b + (1 - b)
+            pred_new = pred_original * conf.expand_as(pred_original) + labels_onehot * (1 - conf.expand_as(labels_onehot))
+            pred_new = torch.log(pred_new)
+
+
+            xentropy_loss = loss_fn(pred_new, labels_batch)
+            confidence_loss = torch.mean(-torch.log(confidence))
+            vis.plot(model_name + '_train_confidence_loss_folder_' + str(N_folder), confidence_loss.item(), 1)
+
+            loss = xentropy_loss + (lmbda * confidence_loss)
+
+            if 0.3 > confidence_loss.item():
+                lmbda = lmbda / 1.01
+            elif 0.3 <= confidence_loss.item():
+                lmbda = lmbda / 0.99
+
+
+
+
+
+
+
+
+
+            # loss = loss_fn(output_batch, labels_batch)
             #将梯度初始化为0
             optimizer.zero_grad()
             #反向传播求权重梯度
@@ -156,7 +191,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
 
         predict_csv = open(result_dir+'/' + 'folder_' + str(N_folder) + '_result_'+str(epoch)+'.csv','w',encoding='utf-8')
         csv_writer = csv.writer(predict_csv)
-        csv_writer.writerow(["filename","truth_label","predict_label","probability","is_right"])
+        csv_writer.writerow(["filename","truth_label","predict_label","probability","is_right", "confidence"])
         # compute metrics over the dataset
         predict_prob = torch.zeros(len(dataloader.dataset))
         target = torch.zeros(len(dataloader.dataset))
@@ -169,7 +204,8 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             data_batch, labels_batch = Variable(data_batch), Variable(labels_batch)
             
             # compute model output
-            output_batch, _ = model(data_batch, one_feature, add_middle_feature)
+            output_batch, _, confidence = model(data_batch, one_feature, add_middle_feature)
+            confidence = F.sigmoid(confidence)
             loss = loss_fn(output_batch, labels_batch)
 
             m = nn.Softmax(dim=1)
@@ -194,9 +230,9 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
                 predict_list.append(predict[i])
 
 
-            for index,(name, truth_label, predict_label,probability) in enumerate(zip(filename,labels_batch,predict,probability)):
+            for index,(name, truth_label, predict_label,probability,mconfidence) in enumerate(zip(filename,labels_batch,predict,probability, confidence)):
                 is_right = True if truth_label == predict_label else False
-                data = [name,truth_label,predict_label,probability[predict_label].item(),is_right]
+                data = [name,truth_label,predict_label,probability[predict_label].item(),is_right, mconfidence.item()]
                 csv_writer.writerow(data)
             # compute all metrics on this batch
             summary_batch = {metric: metrics[metric](output_batch, labels_batch)
@@ -261,7 +297,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         # compute number of batches in one epoch (one full pass over the training set)
         start_time = time.time()
 
-        train(model, optimizer, loss_fn, train_dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name)
+        train(model, optimizer, loss_fn, train_dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda = 0.1)
         scheduler.step()
 
         # Evaluate for one epoch on validation set
@@ -297,7 +333,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             utils.save_dict_to_json(val_metrics, best_json_path)
 
             #用最好的模型来提取512维特征
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
             train_dl_save = dataloaders['train']
             test_dl_save = dataloaders['test']
             if save_model_feature:
@@ -311,8 +347,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                     for i, (x, target, _, gcn_middle_feature) in enumerate(test_dl_save):
                         _, feature = model(x.cuda(), gcn_middle_feature.cuda(), add_middle_feature)
                         test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
-                    torch.save(train_feature,'./data/feature/5fold_128<=20mm_aug/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
-                    torch.save(test_feature,'./data/feature/5fold_128<=20mm_aug/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
+                    torch.save(train_feature,'./data/feature/5fold_128/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
+                    torch.save(test_feature,'./data/feature/5fold_128/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
         last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_last_weights.json")
         utils.save_dict_to_json(val_metrics, last_json_path)
@@ -345,7 +381,8 @@ if __name__ == '__main__':
     #             'alexnet']
 
     # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
-    model_list = [  'vgg13','resnet34', 'attention56', ]
+    # model_list = [ 'alexnet','vgg13','resnet34','attention56']
+    model_list = [ 'vgg13']
     # model_list = ['densenet201']
     # model_list = ['resnet34']
     # model_list=['lenet5']                         #有问题 50%
@@ -427,7 +464,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(2,3):
+        for N_folder in range(4,5):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
@@ -435,7 +472,7 @@ if __name__ == '__main__':
             # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']

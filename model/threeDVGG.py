@@ -19,6 +19,9 @@ class VGG(nn.Module):
         self.fc1 = nn.Linear(4096, 512)
         self.fc2 = nn.Linear(512 + 56 * 4 + 255, num_classes)
         self.fc3 = nn.Linear(512, num_classes)
+
+        self.confidence = nn.Linear(512, 1)
+
         if init_weights:
             self._initialize_weights()
 
@@ -32,7 +35,10 @@ class VGG(nn.Module):
             x2 = self.fc2(x1)
         else:
             x2 = self.fc3(feature)
-        return x2, feature
+
+        confidence = self.confidence(feature)
+
+        return x2, feature, confidence
 
     def _initialize_weights(self):
         for m in self.modules():

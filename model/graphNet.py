@@ -149,3 +149,21 @@ class GCN(nn.Module):
         x4 = x3.view(1, -1)
         x5 = self.fc(x4)
         return x1, middle_feature, F.log_softmax(x5, dim=1)
+
+
+class GCN_all_nodule(nn.Module):
+    def __init__(self, nfeat, nhid, nclass, fc_num, dropout):
+        super(GCN_all_nodule, self).__init__()
+        self.nclass = nclass
+        self.gc1 = GC(nfeat, nhid)
+        self.gc2 = GC(nhid, 56)
+        self.gc3 = GC(56, fc_num)
+        self.dropout = dropout
+
+    def forward(self, x, adj):
+        x1 = F.relu(self.gc1(x, adj))
+        x2 = F.dropout(x1, self.dropout, training=self.training)#dropout了哪些信息？ 确定，这里的dropout是随机失活某一维度的一些值，而不是所有值
+        x3 = F.relu(self.gc2(x2, adj))
+        x3 = F.dropout(x3, self.dropout, training=self.training)
+        x3 = F.relu(self.gc3(x3, adj))
+        return  F.log_softmax(x3, dim=1)

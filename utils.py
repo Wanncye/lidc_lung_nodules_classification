@@ -1219,7 +1219,7 @@ def get_matrix_similarity(_matrixA, _matrixB):
     _matrixA_matrixB = np.dot(_matrixA, _matrixB.transpose())
     _matrixA_norm = np.sqrt(np.multiply(_matrixA,_matrixA).sum(axis=1))
     _matrixB_norm = np.sqrt(np.multiply(_matrixB,_matrixB).sum(axis=1))
-    return np.divide(_matrixA_matrixB, _matrixA_norm * _matrixB_norm.transpose())
+    return np.divide(_matrixA_matrixB, np.dot(_matrixA_norm.reshape(_matrixA_norm.shape[0],1), _matrixB_norm.reshape(1,_matrixA_norm.shape[0])))
 
 def search_different_resnet_feature_correlation():
     matirx_a = torch.load('data/feature/resnet18_test.pt').numpy()
@@ -1232,14 +1232,15 @@ def search_different_resnet_feature_correlation():
 
 #修改测试集训练集之后，需要重新获取数据集的标签，并且保存下来
 def get_dataset_label_pt():
+    datasetPath = '5fold_128'
     for index in range(5):
-        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128<=20mm_aug/fold"+str(index+1), train_shuffle=False,fold=index)
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/"+datasetPath+"/fold"+str(index+1), train_shuffle=False,fold=index)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
         for i, (train_batch, labels_batch, _,_) in enumerate(train_dl):
-            torch.save(labels_batch,'data/feature/5fold_128<=20mm_aug/fold_'+str(index)+'_train_label.pt')
+            torch.save(labels_batch,'data/feature/'+'addition_feature'+'/fold_'+str(index)+'_train_label.pt')
         for i, (train_batch, labels_batch, _,_) in enumerate(test_dl):
-            torch.save(labels_batch,'data/feature/5fold_128<=20mm_aug/fold_'+str(index)+'_test_label.pt')
+            torch.save(labels_batch,'data/feature/'+'addition_feature'+'/fold_'+str(index)+'_test_label.pt')
 
 #将所有模型的（目前是已经训练好的模型）预测结果汇总到同一个csv中
 def converage_all_result():
@@ -1370,7 +1371,7 @@ def confirm_patient_nodule_not_in_two_dataset():
 import pandas as pd
 def get_various_feature():
     df = pd.read_csv('./data/pylidc_feature.csv')
-    for fold in range(2,3):
+    for fold in range(2):
         dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir="data/5fold_128<=20mm_mask_aug/fold"+str(fold+1), train_shuffle=False, fold= fold)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
@@ -1380,12 +1381,12 @@ def get_various_feature():
         for i, (cube, _, file_name, _) in enumerate(train_dl):
             
             print('---fold ' + str(fold) + '---train extracting ' + file_name[0])
-            if fold == 0: #因为5折交叉验证的来源不同，文件命名有些差异
-                patient = file_name[0].split('_')[0][:4]
-                nodule = file_name[0].split('_')[0][4:]
-            else:
-                patient = file_name[0].split('_')[0]
-                nodule = file_name[0].split('_')[1]
+            # if fold == 0: #因为5折交叉验证的来源不同，文件命名有些差异
+            #     patient = file_name[0].split('_')[0][:4]
+            #     nodule = file_name[0].split('_')[0][4:]
+            # else:
+            patient = file_name[0].split('_')[0]
+            nodule = file_name[0].split('_')[1]
             nodule_idx = int(patient + nodule)
             diameter = np.array([df[df["nodule_idx"]==nodule_idx]["diameter"].iloc[0]])
             surface_area = np.array([df[df["nodule_idx"]==nodule_idx]["surface_area"].iloc[0]])
@@ -1437,6 +1438,7 @@ def get_various_feature():
                 temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
                 feature_test[i] = torch.from_numpy(temp_feature)
             except:
+                print('occur erro!!!')
                 temp_feature = torch.zeros((1,255))
             
                 feature_test[i] = temp_feature
