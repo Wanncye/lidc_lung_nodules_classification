@@ -36,9 +36,10 @@ class VGG(nn.Module):
         else:
             x2 = self.fc3(feature)
 
-        confidence = self.confidence(feature)
+        # confidence = self.confidence(feature)
 
-        return x2, feature, confidence
+        # return x2, feature, confidence
+        return x2, feature
 
     def _initialize_weights(self):
         for m in self.modules():

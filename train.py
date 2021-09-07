@@ -92,35 +92,33 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
             train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
 
             #将载入的数据输入3DResNet,得到结果
-            output_batch, _, confidence = model(train_batch, one_feature, add_middle_feature)
+            output_batch, _ = model(train_batch, one_feature, add_middle_feature)
             #计算网络输出结果和目标值之间的损失
             
-
-            confidence = F.sigmoid(confidence)
-            vis.log(str(confidence))
-            pred_original = F.softmax(output_batch, dim=-1)
-            labels_onehot = torch.nn.functional.one_hot(labels_batch, 2).float().cuda()
-            eps = 1e-12
-            pred_original = torch.clamp(pred_original, 0. + eps, 1. - eps)
-            confidence = torch.clamp(confidence, 0. + eps, 1. - eps)
-            b = Variable(torch.bernoulli(torch.Tensor(confidence.size()).uniform_(0, 1))).cuda()
-            conf = confidence * b + (1 - b)
-            pred_new = pred_original * conf.expand_as(pred_original) + labels_onehot * (1 - conf.expand_as(labels_onehot))
-            pred_new = torch.log(pred_new)
-
-
-            xentropy_loss = loss_fn(pred_new, labels_batch)
-            confidence_loss = torch.mean(-torch.log(confidence))
-            vis.plot(model_name + '_train_confidence_loss_folder_' + str(N_folder), confidence_loss.item(), 1)
-
-            loss = xentropy_loss + (lmbda * confidence_loss)
-
-            if 0.3 > confidence_loss.item():
-                lmbda = lmbda / 1.01
-            elif 0.3 <= confidence_loss.item():
-                lmbda = lmbda / 0.99
+            # output_batch, _, confidence = model(train_batch, one_feature, add_middle_feature)
+            # confidence = F.sigmoid(confidence)
+            # vis.log(str(confidence))
+            # pred_original = F.softmax(output_batch, dim=-1)
+            # labels_onehot = torch.nn.functional.one_hot(labels_batch, 2).float().cuda()
+            # eps = 1e-12
+            # pred_original = torch.clamp(pred_original, 0. + eps, 1. - eps)
+            # confidence = torch.clamp(confidence, 0. + eps, 1. - eps)
+            # b = Variable(torch.bernoulli(torch.Tensor(confidence.size()).uniform_(0, 1))).cuda()
+            # conf = confidence * b + (1 - b)
+            # pred_new = pred_original * conf.expand_as(pred_original) + labels_onehot * (1 - conf.expand_as(labels_onehot))
+            # pred_new = torch.log(pred_new)
 
 
+            # xentropy_loss = loss_fn(pred_new, labels_batch)
+            # confidence_loss = torch.mean(-torch.log(confidence))
+            # vis.plot(model_name + '_train_confidence_loss_folder_' + str(N_folder), confidence_loss.item(), 1)
+
+            # loss = xentropy_loss + (lmbda * confidence_loss)
+
+            # if 0.3 > confidence_loss.item():
+            #     lmbda = lmbda / 1.01
+            # elif 0.3 <= confidence_loss.item():
+            #     lmbda = lmbda / 0.99
 
 
 
@@ -128,7 +126,9 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
 
 
 
-            # loss = loss_fn(output_batch, labels_batch)
+
+
+            loss = loss_fn(output_batch, labels_batch)
             #将梯度初始化为0
             optimizer.zero_grad()
             #反向传播求权重梯度
@@ -204,8 +204,9 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             data_batch, labels_batch = Variable(data_batch), Variable(labels_batch)
             
             # compute model output
-            output_batch, _, confidence = model(data_batch, one_feature, add_middle_feature)
-            confidence = F.sigmoid(confidence)
+            output_batch, _ = model(data_batch, one_feature, add_middle_feature)
+            # output_batch, _, confidence = model(data_batch, one_feature, add_middle_feature)
+            # confidence = F.sigmoid(confidence)
             loss = loss_fn(output_batch, labels_batch)
 
             m = nn.Softmax(dim=1)
@@ -230,9 +231,11 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
                 predict_list.append(predict[i])
 
 
-            for index,(name, truth_label, predict_label,probability,mconfidence) in enumerate(zip(filename,labels_batch,predict,probability, confidence)):
+            for index,(name, truth_label, predict_label,probability) in enumerate(zip(filename,labels_batch,predict,probability)):
+                # for index,(name, truth_label, predict_label,probability,mconfidence) in enumerate(zip(filename,labels_batch,predict,probability, confidence)):
                 is_right = True if truth_label == predict_label else False
-                data = [name,truth_label,predict_label,probability[predict_label].item(),is_right, mconfidence.item()]
+                # data = [name,truth_label,predict_label,probability[predict_label].item(),is_right, mconfidence.item()]
+                data = [name,truth_label,predict_label,probability[predict_label].item(),is_right]
                 csv_writer.writerow(data)
             # compute all metrics on this batch
             summary_batch = {metric: metrics[metric](output_batch, labels_batch)
@@ -381,8 +384,8 @@ if __name__ == '__main__':
     #             'alexnet']
 
     # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
-    # model_list = [ 'alexnet','vgg13','resnet34','attention56']
-    model_list = [ 'vgg13']
+    model_list = [ 'attention56']
+    # model_list = [ 'vgg13']
     # model_list = ['densenet201']
     # model_list = ['resnet34']
     # model_list=['lenet5']                         #有问题 50%
