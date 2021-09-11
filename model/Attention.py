@@ -315,6 +315,7 @@ class Attention(nn.Module):
         self.avg = nn.AdaptiveAvgPool3d(1)
         self.linear1 = nn.Linear(2048, 512)
         self.linear2 = nn.Linear(512, 2)
+        self.linear3 = nn.Linear(512 + 56 * 4 + 255 + 38, 2)
 
     def forward(self, x,  gcn_feature=None, add_gcn_middle_feature=None):
         x = self.pre_conv(x) #16 64 8 128 128
@@ -325,7 +326,11 @@ class Attention(nn.Module):
         x = self.avg(x) #16, 2048, 1, 1, 1
         x = x.view(x.size(0), -1)
         feature = self.linear1(x)
-        x = self.linear2(feature)
+        if add_gcn_middle_feature:
+            x1 = torch.cat((feature,gcn_feature),axis=1)
+            x = self.linear3(x1)
+        else:
+            x = self.linear2(feature)
         return x, feature
 
     def _make_stage(self, in_channels, out_channels, num, block):

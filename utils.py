@@ -2034,6 +2034,40 @@ def traditional_feature_traditional_method_classification():
 
     return
 
+#得到8个标签的特征值
+def getEightLabelFeature(noudleFileName):
+    df = pd.read_csv('./data/pylidc_feature.csv')
+    feature = torch.zeros((len(noudleFileName), 38))
+    for index, oneNoduleFileName in enumerate(noudleFileName):
+        nodule_idx = int(oneNoduleFileName.split('_')[0] + oneNoduleFileName.split('_')[1])
 
+        sublety = np.array([df[df["nodule_idx"]==nodule_idx]["sublety_mean"].iloc[0]])-1
+        internalstructure = np.array([df[df["nodule_idx"]==nodule_idx]["internalstructure_mean"].iloc[0]])-1
+        calcification = np.array([df[df["nodule_idx"]==nodule_idx]["calcification_mean"].iloc[0]])-1
+        sphericity = np.array([df[df["nodule_idx"]==nodule_idx]["sphericity_mean"].iloc[0]])-1
+        margin = np.array([df[df["nodule_idx"]==nodule_idx]["margin_mean"].iloc[0]])-1
+        lobulation = np.array([df[df["nodule_idx"]==nodule_idx]["lobulation_mean"].iloc[0]])-1
+        spiculation = np.array([df[df["nodule_idx"]==nodule_idx]["spiculation_mean"].iloc[0]])-1
+        texture = np.array([df[df["nodule_idx"]==nodule_idx]["texture_mean"].iloc[0]])-1
+
+        sublety_feature = torch.zeros((5))
+        sublety_feature[sublety] = 1
+        internalstructure_feature = torch.zeros((3))
+        internalstructure_feature[internalstructure] = 1
+        calcification_feature = torch.zeros((6))
+        calcification_feature[calcification] = 1
+        sphericity_feature = torch.zeros((5))
+        sphericity_feature[sphericity] = 1
+        margin_feature = torch.zeros((5))
+        margin_feature[margin] = 1
+        lobulation_feature = torch.zeros((4))
+        lobulation_feature[lobulation] = 1
+        spiculation_feature = torch.zeros((5))
+        spiculation_feature[spiculation] = 1
+        texture_feature = torch.zeros((5))
+        texture_feature[texture] = 1
+    
+        feature[index] = torch.cat((sublety_feature, internalstructure_feature, calcification_feature, sphericity_feature, margin_feature, lobulation_feature, spiculation_feature, texture_feature))
+    return feature
 if __name__ == '__main__':
-    get_various_feature()
+    getEightLabelFeature('1002_04_1_rotate180.npy')

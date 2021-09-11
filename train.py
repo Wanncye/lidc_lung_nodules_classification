@@ -57,7 +57,7 @@ if add_middle_feature:
 else:
     save_model_feature = True
 
-descripe = '_<=20mm_nodule_gcn_traditional'
+descripe = '_<=20mm_nodule_gcn_traditional_fold4_addEightLabelFeature'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -87,7 +87,10 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
     # Use tqdm for progress bar
     with tqdm(total=len(dataloader)) as t:
         for i, (train_batch, labels_batch, file_name, one_feature) in enumerate(dataloader):
-            # move to GPU if available
+
+            egithFeature = utils.getEightLabelFeature(file_name)
+            one_feature = torch.cat((one_feature, egithFeature), axis = 1)
+
             if params.cuda:
                 train_batch, labels_batch, one_feature = train_batch.cuda(), labels_batch.cuda(), one_feature.cuda()
             #将载入的数据变成tensor
@@ -95,40 +98,6 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
 
             #将载入的数据输入3DResNet,得到结果
             output_batch, _ = model(train_batch, one_feature, add_middle_feature)
-            #计算网络输出结果和目标值之间的损失
-            
-            # output_batch, _, confidence = model(train_batch, one_feature, add_middle_feature)
-            # confidence = F.sigmoid(confidence)
-            # vis.log(str(confidence))
-            # pred_original = F.softmax(output_batch, dim=-1)
-            # labels_onehot = torch.nn.functional.one_hot(labels_batch, 2).float().cuda()
-            # eps = 1e-12
-            # pred_original = torch.clamp(pred_original, 0. + eps, 1. - eps)
-            # confidence = torch.clamp(confidence, 0. + eps, 1. - eps)
-            # b = Variable(torch.bernoulli(torch.Tensor(confidence.size()).uniform_(0, 1))).cuda()
-            # conf = confidence * b + (1 - b)
-            # pred_new = pred_original * conf.expand_as(pred_original) + labels_onehot * (1 - conf.expand_as(labels_onehot))
-            # pred_new = torch.log(pred_new)
-
-
-            # xentropy_loss = loss_fn(pred_new, labels_batch)
-            # confidence_loss = torch.mean(-torch.log(confidence))
-            # vis.plot(model_name + '_train_confidence_loss_folder_' + str(N_folder), confidence_loss.item(), 1)
-
-            # loss = xentropy_loss + (lmbda * confidence_loss)
-
-            # if 0.3 > confidence_loss.item():
-            #     lmbda = lmbda / 1.01
-            # elif 0.3 <= confidence_loss.item():
-            #     lmbda = lmbda / 0.99
-
-
-
-
-
-
-
-
 
             loss = loss_fn(output_batch, labels_batch)
             #将梯度初始化为0
@@ -198,6 +167,8 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         predict_prob = torch.zeros(len(dataloader.dataset))
         target = torch.zeros(len(dataloader.dataset))
         for dataloader_index, (data_batch, labels_batch, filename, one_feature) in enumerate(dataloader):
+            egithFeature = utils.getEightLabelFeature(filename)
+            one_feature = torch.cat((one_feature, egithFeature), axis = 1)
 
             # move to GPU if available
             if params.cuda:
@@ -207,8 +178,6 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             
             # compute model output
             output_batch, _ = model(data_batch, one_feature, add_middle_feature)
-            # output_batch, _, confidence = model(data_batch, one_feature, add_middle_feature)
-            # confidence = F.sigmoid(confidence)
             loss = loss_fn(output_batch, labels_batch)
 
             m = nn.Softmax(dim=1)
@@ -469,7 +438,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(1):
+        for N_folder in range(3,4):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
