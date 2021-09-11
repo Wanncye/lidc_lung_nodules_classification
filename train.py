@@ -57,6 +57,8 @@ if add_middle_feature:
 else:
     save_model_feature = True
 
+descripe = '_<=20mm_nodule_gcn_traditional'
+
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
     """Train the model on `num_steps` batches
@@ -185,7 +187,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         # summary for current eval loop
         summ = []
         print("witer csv-------------------------")
-        result_dir = os.path.join(model_dir, 'result')
+        result_dir = os.path.join(model_dir, 'result'+descripe)
         if not os.path.exists(result_dir):
             os.mkdir(result_dir)
 
@@ -384,7 +386,7 @@ if __name__ == '__main__':
     #             'alexnet']
 
     # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
-    model_list = [ 'attention56']
+    model_list = [ 'alexnet', 'vgg13', 'resnet34', 'attention56']
     # model_list = [ 'vgg13']
     # model_list = ['densenet201']
     # model_list = ['resnet34']
@@ -467,7 +469,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(4,5):
+        for N_folder in range(1):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
