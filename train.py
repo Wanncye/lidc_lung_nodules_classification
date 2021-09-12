@@ -56,6 +56,7 @@ if add_middle_feature:
     save_model_feature = False
 else:
     save_model_feature = True
+descripe = '_<=20mm_nodule_gcn_traditional_fold4_addEightLabelFeature'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -185,7 +186,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         # summary for current eval loop
         summ = []
         print("witer csv-------------------------")
-        result_dir = os.path.join(model_dir, 'result')
+        result_dir = os.path.join(model_dir, 'result'+descripe)
         if not os.path.exists(result_dir):
             os.mkdir(result_dir)
 
