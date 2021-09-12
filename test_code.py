@@ -9,17 +9,14 @@ import os
 import matplotlib.pyplot as plt
 
 from utils import get_dataset_label_pt
+import utils
 
-prob = np.array([
-    [1,5],
-    [5,8],
-    [8,6],
-    [8,6],
-    [6,4],
-    [5,7]
-])
-
-a = prob[:,1].repeat(2, axis=0).reshape(-1,2) * [0.1,0.2]
-print(a)
+datasetMean, datasetStd = utils.getDatasetMeanAndStd()
+# datasetMean = datasetMean.T.expand(8,2)
+# print(datasetMean)
+# datasetMean = datasetMean.T.expand(8,2).unsqueeze(-1)
+# print(datasetMean)
+datasetMean = datasetMean.T.expand(8,2).unsqueeze(-1).expand(8,2,2)
+print(datasetMean)
 
 
