@@ -71,6 +71,7 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
         metrics: (dict) a dictionary of functions that compute a metric using the output and labels of each batch
         params: (Params) hyperparameters
         num_steps: (int) number of batches to train on, each of size params.batch_size
+        ------- git graph test ------
     """
 
     # set model to training mode
