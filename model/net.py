@@ -64,7 +64,7 @@ def loss_fn_BCE(outputs, labels):
     # outputs = outputs[:, 1]
     num_class = 2
     
-    loss = nn.BCELoss()
+    loss = nn.BCELoss(torch.tensor([0.3, 0.7]))
     N = len(labels)
     target = torch.zeros(N, num_class).long().cuda()
     target.scatter_(dim=1,index=labels.unsqueeze(dim=1),src=torch.ones(N, num_class).long().cuda())
