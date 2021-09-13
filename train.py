@@ -57,7 +57,7 @@ if add_middle_feature:
 else:
     save_model_feature = True
 
-descripe = '_<=20mm_nodule_gcn_traditional_fold4_addEightLabelFeature'
+descripe = '_<=20mm_nodule_gcn_traditional_fold4_addEightLabelFeature_norInput'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -85,9 +85,13 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
     ground_truch_list = []
     predict_list = []
     # Use tqdm for progress bar
+    datasetMean, datasetStd = utils.getDatasetMeanAndStd()
+    datasetMean = datasetMean.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
+    datasetStd = datasetStd.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
     with tqdm(total=len(dataloader)) as t:
         for i, (train_batch, labels_batch, file_name, one_feature) in enumerate(dataloader):
-
+            train_batch = (train_batch-datasetMean)/datasetStd
+            
             egithFeature = utils.getEightLabelFeature(file_name)
             one_feature = torch.cat((one_feature, egithFeature), axis = 1)
 
@@ -166,7 +170,12 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         # compute metrics over the dataset
         predict_prob = torch.zeros(len(dataloader.dataset))
         target = torch.zeros(len(dataloader.dataset))
+        datasetMean, datasetStd = utils.getDatasetMeanAndStd()
+        datasetMean = datasetMean.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
+        datasetStd = datasetStd.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
         for dataloader_index, (data_batch, labels_batch, filename, one_feature) in enumerate(dataloader):
+            data_batch = (data_batch-datasetMean)/datasetStd
+
             egithFeature = utils.getEightLabelFeature(filename)
             one_feature = torch.cat((one_feature, egithFeature), axis = 1)
 

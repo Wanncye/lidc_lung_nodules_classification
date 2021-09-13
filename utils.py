@@ -2059,5 +2059,36 @@ def getEightLabelFeature(noudleFileName):
     
         feature[index] = torch.cat((sublety_feature, internalstructure_feature, calcification_feature, sphericity_feature, margin_feature, lobulation_feature, spiculation_feature, texture_feature))
     return feature
+
+def getDatasetMeanAndStd():
+    # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128<=20mm_aug/fold"+str(4), train_shuffle=False,fold=0)
+    # train_dl = dataloaders['train']
+    # test_dl = dataloaders['test']
+    # for i, (train_batch, labels_batch, file_name, _) in enumerate(train_dl):
+    #     train_batch = train_batch
+    # for i, (test_batch, labels_batch, file_name, _) in enumerate(test_dl):
+    #     test_batch = test_batch
+    # total_batch = torch.cat((train_batch, test_batch), dim=0)
+    # channel_1_mean = torch.mean(total_batch[:,:,0,:,:])
+    # channel_2_mean = torch.mean(total_batch[:,:,1,:,:])
+    # channel_3_mean = torch.mean(total_batch[:,:,2,:,:])
+    # channel_4_mean = torch.mean(total_batch[:,:,3,:,:])
+    # channel_5_mean = torch.mean(total_batch[:,:,4,:,:])
+    # channel_6_mean = torch.mean(total_batch[:,:,5,:,:])
+    # channel_7_mean = torch.mean(total_batch[:,:,6,:,:])
+    # channel_8_mean = torch.mean(total_batch[:,:,7,:,:])
+    # channel_1_std = torch.std(total_batch[:,:,0,:,:])
+    # channel_2_std = torch.std(total_batch[:,:,1,:,:])
+    # channel_3_std = torch.std(total_batch[:,:,2,:,:])
+    # channel_4_std = torch.std(total_batch[:,:,3,:,:])
+    # channel_5_std = torch.std(total_batch[:,:,4,:,:])
+    # channel_6_std = torch.std(total_batch[:,:,5,:,:])
+    # channel_7_std = torch.std(total_batch[:,:,6,:,:])
+    # channel_8_std = torch.std(total_batch[:,:,7,:,:])
+
+    mean = torch.tensor([[92.4995, 92.3400, 92.2389, 92.1519, 91.9990, 91.7405, 91.4233, 91.0724]])
+    std = torch.tensor([[41.8699, 41.6722, 41.5907, 41.4606, 41.3476, 41.1476, 40.9845, 40.8674]])
+    return mean,std
+
 if __name__ == '__main__':
-    traditional_feature_traditional_method_classification()
+    getDatasetMeanAndStd()
