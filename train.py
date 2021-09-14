@@ -50,13 +50,13 @@ import torch.onnx
 
 
 #是否加入中间特征(包括GCN，传统，统计特征)
-add_middle_feature = True
+add_middle_feature = False
 if add_middle_feature:
     #是否保存模型中间特征
     save_model_feature = False
 else:
     save_model_feature = True
-descripe = '_<=20mm_nodule_gcn_traditional_fold4_addEightLabelFeature'
+descripe = '_5fold_oversample'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -95,40 +95,6 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
             #将载入的数据输入3DResNet,得到结果
             output_batch, _ = model(train_batch, one_feature, add_middle_feature)
             #计算网络输出结果和目标值之间的损失
-            
-            # output_batch, _, confidence = model(train_batch, one_feature, add_middle_feature)
-            # confidence = F.sigmoid(confidence)
-            # vis.log(str(confidence))
-            # pred_original = F.softmax(output_batch, dim=-1)
-            # labels_onehot = torch.nn.functional.one_hot(labels_batch, 2).float().cuda()
-            # eps = 1e-12
-            # pred_original = torch.clamp(pred_original, 0. + eps, 1. - eps)
-            # confidence = torch.clamp(confidence, 0. + eps, 1. - eps)
-            # b = Variable(torch.bernoulli(torch.Tensor(confidence.size()).uniform_(0, 1))).cuda()
-            # conf = confidence * b + (1 - b)
-            # pred_new = pred_original * conf.expand_as(pred_original) + labels_onehot * (1 - conf.expand_as(labels_onehot))
-            # pred_new = torch.log(pred_new)
-
-
-            # xentropy_loss = loss_fn(pred_new, labels_batch)
-            # confidence_loss = torch.mean(-torch.log(confidence))
-            # vis.plot(model_name + '_train_confidence_loss_folder_' + str(N_folder), confidence_loss.item(), 1)
-
-            # loss = xentropy_loss + (lmbda * confidence_loss)
-
-            # if 0.3 > confidence_loss.item():
-            #     lmbda = lmbda / 1.01
-            # elif 0.3 <= confidence_loss.item():
-            #     lmbda = lmbda / 0.99
-
-
-
-
-
-
-
-
-
             loss = loss_fn(output_batch, labels_batch)
             #将梯度初始化为0
             optimizer.zero_grad()
@@ -379,59 +345,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
 if __name__ == '__main__':
 
-    # model_list=['vgg11',  'vgg13', 'vgg16', 'vgg19', 
-    #             'googlenet', 
-    #             'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200',
-    #             'alexnet']
-
-    # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
     model_list = [ 'attention56']
-    # model_list = [ 'vgg13']
-    # model_list = ['densenet201']
-    # model_list = ['resnet34']
-    # model_list=['lenet5']                         #有问题 50%
-    # model_list=['alexnet']                        #86.88%
-    # model_list=['attention56']                    #83.75%
-    # model_list=['attention92']                    #81.25%
-    # model_list=['resnet50']                    
 
-    # model_list=['mobilenet']                      #69.75%
-    # model_list=['mobilenetv2']                    #77.63%
-
-    # model_list=['shufflenet']                     #76.25%
-    # model_list=['squeezenet']                     #88.75%
-
-    # model_list=['preactresnet18']                 #84.38%
-    # model_list=['preactresnet34']                 #81.88%
-    # model_list=['preactresnet50']                 #73.13%       
-    # model_list=['preactresnet101']                #72.50%        
-    # model_list=['preactresnet152']                #81.88%  
-
-    # model_list=['densenet161']                    #85.63%  
-    # model_list=['densenet201']                    #84.38%
-    # model_list=['densenet169']                    #85.00%
-    # model_list=['densenet121']                    #82.50%
-
-    # model_list=['inceptionv3']                    #78.13%     
-    # model_list=['inceptionv4']                    #有问题 50%
-    # model_list=['inception_resnet_v2']            #有问题 50%
-    
-    # model_list = ['resnet_in_resnet',
-    # 'senet18', 'senet34', 'senet50', 'senet101', 'senet152', 'xception', 'wideresidual','inceptionv3']
-
-    # model_list=['resnext50']                      #83.13%  
-    # model_list=['resnext101']                     #72.50%
-    # model_list=['resnext152']                     #74.38%
-    # model_list=['resnet_in_resnet']               #81.88%
-    # model_list=['senet18']                        #85.00%
-    # model_list=['senet34']                        #86.25%
-    # model_list=['senet50']                        #78.75%
-    # model_list=['senet101']                       #80.63%
-    # model_list=['senet152']                       #81.88%
-    # model_list=['wideresidual']                   
-    # model_list=['xception']                       #85.63%
-    # model_list=['xception', 'wideresidual']
-        
     for model_name in model_list:
         print(model_name)
         print('\n')
@@ -476,7 +391,7 @@ if __name__ == '__main__':
             # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
