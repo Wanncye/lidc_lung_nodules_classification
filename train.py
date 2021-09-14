@@ -57,7 +57,7 @@ if add_middle_feature:
 else:
     save_model_feature = True
 
-descripe = '_<=20mm_nodule_gcn_traditional_fold4_addEightLabelFeature_norInput'
+descripe = '_<=20mm_nodule_gcn_traditional_fold4_addEightLabelFeature_norInput_ImblanceSampler'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -91,6 +91,7 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
     datasetStd = datasetStd.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
     with tqdm(total=len(dataloader)) as t:
         for i, (train_batch, labels_batch, file_name, one_feature) in enumerate(dataloader):
+
             train_batch = (train_batch-datasetMean)/datasetStd
             
             egithFeature = utils.getEightLabelFeature(file_name)
@@ -359,59 +360,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
 if __name__ == '__main__':
 
-    # model_list=['vgg11',  'vgg13', 'vgg16', 'vgg19', 
-    #             'googlenet', 
-    #             'resnet10', 'resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152', 'resnet200',
-    #             'alexnet']
-
-    # model_list = ['attention56', 'attention92', 'mobilenet', 'mobilenetv2', 'shufflenet', 'squeezenet', 'preactresnet18', 'preactresnet34', 'preactresnet50', 'preactresnet101', 'preactresnet152',]
     model_list = [ 'alexnet', 'vgg13', 'resnet34', 'attention56']
-    # model_list = [ 'vgg13']
-    # model_list = ['densenet201']
-    # model_list = ['resnet34']
-    # model_list=['lenet5']                         #有问题 50%
-    # model_list=['alexnet']                        #86.88%
-    # model_list=['attention56']                    #83.75%
-    # model_list=['attention92']                    #81.25%
-    # model_list=['resnet50']                    
 
-    # model_list=['mobilenet']                      #69.75%
-    # model_list=['mobilenetv2']                    #77.63%
-
-    # model_list=['shufflenet']                     #76.25%
-    # model_list=['squeezenet']                     #88.75%
-
-    # model_list=['preactresnet18']                 #84.38%
-    # model_list=['preactresnet34']                 #81.88%
-    # model_list=['preactresnet50']                 #73.13%       
-    # model_list=['preactresnet101']                #72.50%        
-    # model_list=['preactresnet152']                #81.88%  
-
-    # model_list=['densenet161']                    #85.63%  
-    # model_list=['densenet201']                    #84.38%
-    # model_list=['densenet169']                    #85.00%
-    # model_list=['densenet121']                    #82.50%
-
-    # model_list=['inceptionv3']                    #78.13%     
-    # model_list=['inceptionv4']                    #有问题 50%
-    # model_list=['inception_resnet_v2']            #有问题 50%
-    
-    # model_list = ['resnet_in_resnet',
-    # 'senet18', 'senet34', 'senet50', 'senet101', 'senet152', 'xception', 'wideresidual','inceptionv3']
-
-    # model_list=['resnext50']                      #83.13%  
-    # model_list=['resnext101']                     #72.50%
-    # model_list=['resnext152']                     #74.38%
-    # model_list=['resnet_in_resnet']               #81.88%
-    # model_list=['senet18']                        #85.00%
-    # model_list=['senet34']                        #86.25%
-    # model_list=['senet50']                        #78.75%
-    # model_list=['senet101']                       #80.63%
-    # model_list=['senet152']                       #81.88%
-    # model_list=['wideresidual']                   
-    # model_list=['xception']                       #85.63%
-    # model_list=['xception', 'wideresidual']
-        
     for model_name in model_list:
         print(model_name)
         print('\n')

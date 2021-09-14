@@ -106,11 +106,13 @@ def fetch_dataloader(types = ["train"], data_dir = "data/nodules3d_128_mask_npy"
             path = os.path.join(path,split)
             # use the train_transformer if training data, else use eval_transformer without random flip
             if split == 'train':
-                dl = DataLoader(LIDCDataset(path, tfms_train, fold, split, add_middle_feature), 
-                                        batch_size = batch_size,
-                                        shuffle=train_shuffle,
-                                        num_workers=0,
-                                        pin_memory=False)
+                train_dataset = LIDCDataset(path, tfms_train, fold, split, add_middle_feature)
+                dl = DataLoader(train_dataset, 
+                                sampler=ImbalancedDatasetSampler(train_dataset, num_samples=1728),
+                                batch_size = batch_size,
+                                # shuffle=train_shuffle,
+                                num_workers=0,
+                                pin_memory=False)
             else:
                 # dl = DataLoader(SEGMENTATIONDataset(path, eval_transformer, df[df.split.isin([split])]), 
                 dl = DataLoader(LIDCDataset(path, tfms_eval, fold, split, add_middle_feature), 
@@ -191,3 +193,50 @@ def fetch_N_folders_dataloader(test_folder, types = ["train"], data_dir = "data/
             dataloaders[split] = dl
 
     return dataloaders
+
+
+from typing import Callable
+
+import torch
+import torch.utils.data
+import torchvision
+
+
+class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
+    """Samples elements randomly from a given list of indices for imbalanced dataset
+
+    Arguments:
+        indices: a list of indices
+        num_samples: number of samples to draw
+        callback_get_label: a callback-like function which takes two arguments - dataset and index
+    """
+
+    def __init__(self, dataset, indices: list = None, num_samples: int = None, callback_get_label: Callable = None):
+        # if indices is not provided, all elements in the dataset will be considered
+        self.indices = list(range(len(dataset))) if indices is None else indices
+
+        # define custom callback
+        self.callback_get_label = callback_get_label
+
+        # if num_samples is not provided, draw `len(indices)` samples in each iteration
+        self.num_samples = len(self.indices) if num_samples is None else num_samples
+
+        # distribution of classes in the dataset
+        label_to_count = {}
+        for idx in self.indices:
+            label = int(self._get_label(dataset, idx))
+            label_to_count[label] = label_to_count.get(label, 0) + 1
+
+        # weight for each sample
+        weights = [1.0 / label_to_count[int(self._get_label(dataset, idx))] for idx in self.indices]
+        self.weights = torch.DoubleTensor(weights)
+
+    def _get_label(self, dataset, idx):
+        _, label, _, _ = dataset.__getitem__(idx)
+        return label
+
+    def __iter__(self):
+        return (self.indices[i] for i in torch.multinomial(self.weights, self.num_samples, replacement=True))
+
+    def __len__(self):
+        return self.num_samples
