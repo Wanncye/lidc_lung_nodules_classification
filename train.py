@@ -56,6 +56,7 @@ if add_middle_feature:
     save_model_feature = False
 else:
     save_model_feature = True
+save_model_feature = False
 descripe = '_5fold_oversample'
 
 
@@ -297,6 +298,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             logging.info("- Found new best accuracy")
             best_val_acc = val_acc
 
+            optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']*0.5
+
             # Save best val metrics in a json file in the model directory
             best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_best_weights.json")
             val_metrics['epoch'] = epoch + 1
@@ -345,7 +348,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
 if __name__ == '__main__':
 
-    model_list = [ 'attention56']
+    model_list = [ 'alexnet','attention56']
 
     for model_name in model_list:
         print(model_name)
@@ -383,7 +386,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(4,5):
+        for N_folder in range(3,4):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
