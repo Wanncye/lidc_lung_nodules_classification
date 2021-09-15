@@ -69,8 +69,8 @@ def loss_fn_BCE(outputs, labels):
     target = torch.zeros(N, num_class).long().cuda()
     target.scatter_(dim=1,index=labels.unsqueeze(dim=1),src=torch.ones(N, num_class).long().cuda())
     target = target.to(torch.float32)
-    # m = nn.Softmax(dim=1)
-    # outputs = m(outputs)
+    m = nn.Softmax(dim=1)
+    outputs = m(outputs)
     return loss(outputs, target)
 
 class FocalLoss(nn.Module):

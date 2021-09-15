@@ -297,8 +297,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         if is_best:
             logging.info("- Found new best accuracy")
             best_val_acc = val_acc
-
-            optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']*0.5
+            if epoch > 15:
+                optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']*0.8
 
             # Save best val metrics in a json file in the model directory
             best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_best_weights.json")
