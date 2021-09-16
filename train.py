@@ -57,7 +57,7 @@ if add_middle_feature:
 else:
     save_model_feature = True
 
-descripe = '_<=20mm_nodule_gcn_traditional_fold4_addEightLabelFeature_norInput_ImblanceSampler'
+descripe = '_<=20mm_nodule_gcn_traditional_fold4_addEightLabelFeature_norInput'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -313,7 +313,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             best_val_acc = val_acc
 
             # Save best val metrics in a json file in the model directory
-            best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_best_weights.json")
+            # best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_best_weights_"+descripe+".json")
+            best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_best_weights_.json")
             val_metrics['epoch'] = epoch + 1
             utils.save_dict_to_json(val_metrics, best_json_path)
 
@@ -360,7 +361,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
 if __name__ == '__main__':
 
-    model_list = [ 'alexnet', 'vgg13', 'resnet34', 'attention56']
+    model_list = ['alexnet','vgg13','resnet34','attention56']
 
     for model_name in model_list:
         print(model_name)
@@ -398,7 +399,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(3,4):
+        for N_folder in range(4,5):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
