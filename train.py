@@ -399,7 +399,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(4,5):
+        for N_folder in range(3,4):
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
