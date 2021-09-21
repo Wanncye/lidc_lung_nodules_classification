@@ -108,9 +108,9 @@ def fetch_dataloader(types = ["train"], data_dir = "data/nodules3d_128_mask_npy"
             if split == 'train':
                 train_dataset = LIDCDataset(path, tfms_train, fold, split, add_middle_feature)
                 dl = DataLoader(train_dataset, 
-                                sampler=ImbalancedDatasetSampler(train_dataset, num_samples=472),
+                                # sampler=ImbalancedDatasetSampler(train_dataset, num_samples=472),
                                 batch_size = batch_size,
-                                # shuffle=train_shuffle,
+                                shuffle=train_shuffle,
                                 num_workers=0,
                                 pin_memory=False)
             else:

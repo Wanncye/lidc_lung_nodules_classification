@@ -50,14 +50,14 @@ import torch.onnx
 
 
 #是否加入中间特征(包括GCN，传统，统计特征)
-add_middle_feature = False
+add_middle_feature = True
 if add_middle_feature:
     #是否保存模型中间特征
     save_model_feature = False
 else:
     save_model_feature = True
-save_model_feature = False
-descripe = '_5fold_oversample'
+
+descripe = '_<=20mm_nodule_gcn_traditional'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -291,22 +291,21 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                                 is_best=is_best,
                                 checkpoint=model_dir,
                                 N_folder=N_folder,
-                                params=params)
+                                params=params,
+                                descripe=descripe)
 
         # If best_eval, best_save_path
         if is_best:
             logging.info("- Found new best accuracy")
             best_val_acc = val_acc
-            if epoch > 15:
-                optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr']*0.8
 
             # Save best val metrics in a json file in the model directory
-            best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_best_weights.json")
+            best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + descripe +".metrics_val_best_weights.json")
             val_metrics['epoch'] = epoch + 1
             utils.save_dict_to_json(val_metrics, best_json_path)
 
             #用最好的模型来提取512维特征
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
             train_dl_save = dataloaders['train']
             test_dl_save = dataloaders['test']
             if save_model_feature:
@@ -348,7 +347,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
 if __name__ == '__main__':
 
-    model_list = [ 'alexnet','attention56']
+    model_list = ['vgg13']
 
     for model_name in model_list:
         print(model_name)
@@ -383,19 +382,17 @@ if __name__ == '__main__':
 
         # 设置logger
         print('train file path:',os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
-        utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
+        utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+descripe+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(3,4):
+        threeFold = [2]
+        for N_folder in threeFold:
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
-            # 得到训练测试数据
-            # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
-            # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
             logging.info("- done.")
