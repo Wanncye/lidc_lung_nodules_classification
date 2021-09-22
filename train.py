@@ -57,7 +57,7 @@ if add_middle_feature:
 else:
     save_model_feature = True
 
-descripe = '_<=20mm_nodule_gcn_traditional_fold4_addEightLabelFeature_norInput'
+descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -179,6 +179,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             data_batch = (data_batch-datasetMean)/datasetStd
 
             egithFeature = utils.getEightLabelFeature(filename)
+            egithFeature = torch.zeros_like(egithFeature)
             one_feature = torch.cat((one_feature, egithFeature), axis = 1)
 
             # move to GPU if available
@@ -314,7 +315,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
             # Save best val metrics in a json file in the model directory
             # best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_best_weights_"+descripe+".json")
-            best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_best_weights_.json")
+            best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + descripe+".metrics_val_best_weights.json")
             val_metrics['epoch'] = epoch + 1
             utils.save_dict_to_json(val_metrics, best_json_path)
 
@@ -336,7 +337,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                     torch.save(train_feature,'./data/feature/5fold_128/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
                     torch.save(test_feature,'./data/feature/5fold_128/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
-        last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_last_weights.json")
+        last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + descripe +".metrics_val_last_weights.json")
         utils.save_dict_to_json(val_metrics, last_json_path)
 
         # 计算剩余时间
@@ -396,10 +397,11 @@ if __name__ == '__main__':
 
         # 设置logger
         print('train file path:',os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
-        utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
+        utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+descripe+'_correct-alpha.log'))
 
         # 五折交叉验证
-        for N_folder in range(3,4):
+        foldList = [3,1,2,4,0]
+        for N_folder in foldList:
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
