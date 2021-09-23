@@ -9,6 +9,7 @@ from alexnet import alexnet
 from resnet import generate_model
 from vgg import vgg13_bn
 from densenet import DenseNet201
+from attention import attention56
 
 from data_loader import fetch_dataloader
 import numpy as np
@@ -82,7 +83,7 @@ if __name__ == '__main__':
     resnet = generate_model(34).cuda()
     vgg = vgg13_bn(0.5).cuda()
     alexnet = alexnet().cuda()
-    densenet = DenseNet201().cuda()
+    densenet = attention56().cuda()
     gcn = GCN(nfeat=512,
         nhid=64,
         nclass=2,
@@ -94,107 +95,42 @@ if __name__ == '__main__':
     optimizer = optim.Adam(endToEndModel.parameters(), lr=0.0001, weight_decay=0.01)
     scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
 
-    
-    dataloaders = fetch_dataloader(types = ["train", "test"], batch_size = 6, data_dir="../data/5fold_128/fold3", train_shuffle=True)
-    train_dl = dataloaders['train']
-    test_dl = dataloaders['test']
+    foldList = [4,2,3,5,1]
+    for fold in foldList:
+        dataloaders = fetch_dataloader(types = ["train", "test"], batch_size = 3, data_dir="../data/5fold_128<=20mm_aug/fold"+str(fold), train_shuffle=True)
+        train_dl = dataloaders['train']
+        test_dl = dataloaders['test']
 
-    vis = Visualizer('endToEndVis')
+        vis = Visualizer('endToEndVisFold_'+str(fold))
 
-    metrics = ['accuracy', 'loss']
-    for epoch in range(150):
-        
-        endToEndModel.train()
-        loss_epoch = []
-        ground_truch = []
-        predict = []
-        with tqdm(total=len(train_dl)) as t:
-            for i, (train_batch, labels_batch, file_name) in enumerate(train_dl):
-
-                train_batch, labels_batch = train_batch.cuda(), labels_batch.cuda() 
-                
-                train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
-                modelOutput, gcnOutput, finalOutput = endToEndModel(train_batch)
-
-                # alexnetLoss = loss_fn_BCE(modelOutput[0], labels_batch)
-                # vggLoss = loss_fn_BCE(modelOutput[1], labels_batch)
-                # resnetLoss = loss_fn_BCE(modelOutput[2], labels_batch)
-                # densenetLoss = loss_fn_BCE(modelOutput[3], labels_batch)
-                # gcnLoss = loss_fn_BCE(gcnOutput, labels_batch)
-
-                finalLoss = loss_fn_BCE(finalOutput, labels_batch)
-
-                totalLoss = finalLoss
-
-                optimizer.zero_grad()
-                totalLoss.backward()
-                optimizer.step()
-
-                finalOutput = finalOutput.data.cpu().numpy()
-                labels_batch = labels_batch.data.cpu().numpy()
-
-                predict_batch = np.argmax(finalOutput, axis=1)
-
-                for i in range(len(labels_batch)):
-                    ground_truch.append(labels_batch[i])
-                    predict.append(predict_batch[i])
-
-                loss_epoch.append(totalLoss.item())
-
-                # vis.plot('train_loss_iter_totalLoss', totalLoss.item(), 1)
-                # vis.plot('train_loss_iter_alexnetLoss', alexnetLoss.item(), 1)
-                # vis.plot('train_loss_iter_vggLoss', vggLoss.item(), 1)
-                # vis.plot('train_loss_iter_resnetLoss', resnetLoss.item(), 1)
-                # vis.plot('train_loss_iter_densenetLoss', densenetLoss.item(), 1)
-                # vis.plot('train_loss_iter_gcnLoss', gcnLoss.item(), 1)
-                vis.plot('train_loss_iter_finalLoss', finalLoss.item(), 1)
-
-                
-                t.set_postfix(loss='{:5.3f}'.format(totalLoss.item()))
-                t.update()
-
-        class_1_number = np.sum(ground_truch)
-        class_0_number = len(ground_truch) - class_1_number
-        print("class 0 : {0}, class 1 : {1}".format(class_0_number,class_1_number))
-        cMtric = confusion_matrix(ground_truch, predict)
-        print(cMtric)
-        TN = cMtric[0][0]
-        FP = cMtric[0][1]
-        FN = cMtric[1][0]
-        TP = cMtric[1][1]
-
-        metrics_mean = {
-            'accuracy' : (TN+TP)/(TP+TN+FP+FN),
-            'loss' : np.mean(loss_epoch),
-            'sensitivity' : TP/(TP+FN),
-            'specitivity' : TN/(TN+FP)
-        }
-        metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_mean.items())
-        print("- Train metrics: " + metrics_string)
-        vis.plot('train_acc', metrics_mean['accuracy'] , 2)
-        vis.plot('train_loss_epoch', metrics_mean['loss'] , 3)
-
-
-
-        with torch.no_grad():
-            endToEndModel.eval()
-            summ = []
+        metrics = ['accuracy', 'loss']
+        for epoch in range(50):
+            
+            endToEndModel.train()
             loss_epoch = []
             ground_truch = []
             predict = []
-            with tqdm(total=len(test_dl)) as t:
-                for dataloader_index, (test_batch, labels_batch, filename) in enumerate(test_dl):
-                    test_batch, labels_batch = test_batch.cuda(), labels_batch.cuda()
-                    test_batch, labels_batch = Variable(test_batch), Variable(labels_batch)
-                    modelOutput, gcnOutput, finalOutput = endToEndModel(test_batch)
+            with tqdm(total=len(train_dl)) as t:
+                for i, (train_batch, labels_batch, file_name) in enumerate(train_dl):
+
+                    train_batch, labels_batch = train_batch.cuda(), labels_batch.cuda() 
+                    
+                    train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
+                    modelOutput, gcnOutput, finalOutput = endToEndModel(train_batch)
 
                     # alexnetLoss = loss_fn_BCE(modelOutput[0], labels_batch)
                     # vggLoss = loss_fn_BCE(modelOutput[1], labels_batch)
                     # resnetLoss = loss_fn_BCE(modelOutput[2], labels_batch)
                     # densenetLoss = loss_fn_BCE(modelOutput[3], labels_batch)
                     # gcnLoss = loss_fn_BCE(gcnOutput, labels_batch)
+
                     finalLoss = loss_fn_BCE(finalOutput, labels_batch)
-                    totalLoss =  finalLoss
+
+                    totalLoss = finalLoss
+
+                    optimizer.zero_grad()
+                    totalLoss.backward()
+                    optimizer.step()
 
                     finalOutput = finalOutput.data.cpu().numpy()
                     labels_batch = labels_batch.data.cpu().numpy()
@@ -207,15 +143,15 @@ if __name__ == '__main__':
 
                     loss_epoch.append(totalLoss.item())
 
-                    summary_batch = {
-                        'accuracy': None,
-                        'loss': None
-                    }
-                    summary_batch['accuracy'] = accuracy(finalOutput, labels_batch)
-                    summary_batch['loss'] = totalLoss.item()
-                    summ.append(summary_batch)
+                    # vis.plot('train_loss_iter_totalLoss', totalLoss.item(), 1)
+                    # vis.plot('train_loss_iter_alexnetLoss', alexnetLoss.item(), 1)
+                    # vis.plot('train_loss_iter_vggLoss', vggLoss.item(), 1)
+                    # vis.plot('train_loss_iter_resnetLoss', resnetLoss.item(), 1)
+                    # vis.plot('train_loss_iter_densenetLoss', densenetLoss.item(), 1)
+                    # vis.plot('train_loss_iter_gcnLoss', gcnLoss.item(), 1)
+                    vis.plot('train_loss_iter_finalLoss', finalLoss.item(), 1)
 
-                    vis.plot('val_loss_iter', totalLoss.item(), 1)
+                    
                     t.set_postfix(loss='{:5.3f}'.format(totalLoss.item()))
                     t.update()
 
@@ -236,15 +172,73 @@ if __name__ == '__main__':
                 'specitivity' : TN/(TN+FP)
             }
             metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_mean.items())
-            print("- Eval metrics : " + metrics_string)
-            print('\n\n')
-            vis.plot('val_acc' ,metrics_mean['accuracy'] , 2)
-            vis.plot('val_loss_epoch', metrics_mean['loss'], 3)
+            print("- Train metrics: " + metrics_string)
+            vis.plot('train_acc', metrics_mean['accuracy'] , 2)
+            vis.plot('train_loss_epoch', metrics_mean['loss'] , 3)
 
 
 
+            with torch.no_grad():
+                endToEndModel.eval()
+                summ = []
+                loss_epoch = []
+                ground_truch = []
+                predict = []
+                with tqdm(total=len(test_dl)) as t:
+                    for dataloader_index, (test_batch, labels_batch, filename) in enumerate(test_dl):
+                        test_batch, labels_batch = test_batch.cuda(), labels_batch.cuda()
+                        test_batch, labels_batch = Variable(test_batch), Variable(labels_batch)
+                        modelOutput, gcnOutput, finalOutput = endToEndModel(test_batch)
 
+                        # alexnetLoss = loss_fn_BCE(modelOutput[0], labels_batch)
+                        # vggLoss = loss_fn_BCE(modelOutput[1], labels_batch)
+                        # resnetLoss = loss_fn_BCE(modelOutput[2], labels_batch)
+                        # densenetLoss = loss_fn_BCE(modelOutput[3], labels_batch)
+                        # gcnLoss = loss_fn_BCE(gcnOutput, labels_batch)
+                        finalLoss = loss_fn_BCE(finalOutput, labels_batch)
+                        totalLoss =  finalLoss
 
+                        finalOutput = finalOutput.data.cpu().numpy()
+                        labels_batch = labels_batch.data.cpu().numpy()
 
+                        predict_batch = np.argmax(finalOutput, axis=1)
 
-        
+                        for i in range(len(labels_batch)):
+                            ground_truch.append(labels_batch[i])
+                            predict.append(predict_batch[i])
+
+                        loss_epoch.append(totalLoss.item())
+
+                        summary_batch = {
+                            'accuracy': None,
+                            'loss': None
+                        }
+                        summary_batch['accuracy'] = accuracy(finalOutput, labels_batch)
+                        summary_batch['loss'] = totalLoss.item()
+                        summ.append(summary_batch)
+
+                        vis.plot('val_loss_iter', totalLoss.item(), 1)
+                        t.set_postfix(loss='{:5.3f}'.format(totalLoss.item()))
+                        t.update()
+
+                class_1_number = np.sum(ground_truch)
+                class_0_number = len(ground_truch) - class_1_number
+                print("class 0 : {0}, class 1 : {1}".format(class_0_number,class_1_number))
+                cMtric = confusion_matrix(ground_truch, predict)
+                print(cMtric)
+                TN = cMtric[0][0]
+                FP = cMtric[0][1]
+                FN = cMtric[1][0]
+                TP = cMtric[1][1]
+
+                metrics_mean = {
+                    'accuracy' : (TN+TP)/(TP+TN+FP+FN),
+                    'loss' : np.mean(loss_epoch),
+                    'sensitivity' : TP/(TP+FN),
+                    'specitivity' : TN/(TN+FP)
+                }
+                metrics_string = " ; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics_mean.items())
+                print("- Eval metrics : " + metrics_string)
+                print('\n\n')
+                vis.plot('val_acc' ,metrics_mean['accuracy'] , 2)
+                vis.plot('val_loss_epoch', metrics_mean['loss'], 3)

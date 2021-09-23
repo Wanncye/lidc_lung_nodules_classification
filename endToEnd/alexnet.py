@@ -59,8 +59,6 @@ class AlexNet(nn.Module):
         self.relu1 = nn.ReLU(inplace=True)
         self.dropout1 = nn.Dropout()
         self.linear2 = nn.Linear(4096, 512)
-        self.relu2 = nn.ReLU(inplace=True)
-        self.dropout2 = nn.Dropout()
         self.linear3 = nn.Linear(512, num_classes)
 
         for m in self.modules():
@@ -82,9 +80,7 @@ class AlexNet(nn.Module):
         x = self.relu1(x)
         x = self.dropout1(x)
         feature = self.linear2(x)
-        x = self.relu2(feature)
-        x = self.dropout2(x)
-        output = self.linear3(x)
+        output = self.linear3(feature)
         return output, feature
 
 

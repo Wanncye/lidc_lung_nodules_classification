@@ -44,7 +44,7 @@ class LIDCDataset(Dataset):
         self.data_dir = data_dir
         self.transform = transform
         self.npy_list = os.listdir(data_dir)
-        self.npy_list.sort(key= lambda x:int(x[:-6]))
+        self.npy_list.sort(key= lambda x:int(x[:6]))
 
         
     def __len__(self):
@@ -82,14 +82,14 @@ def fetch_dataloader(types = ["train"], data_dir = "data/nodules3d_128_mask_npy"
                 dl = DataLoader(LIDCDataset(path, tfms_train), 
                                         batch_size = batch_size,
                                         shuffle=train_shuffle,
-                                        num_workers=0,
+                                        num_workers=8,
                                         pin_memory=True)
             else:
                 # dl = DataLoader(SEGMENTATIONDataset(path, eval_transformer, df[df.split.isin([split])]), 
                 dl = DataLoader(LIDCDataset(path, tfms_eval), 
                                 batch_size = batch_size,
                                 shuffle=False,
-                                num_workers=2,
+                                num_workers=8,
                                 pin_memory=True)
 
             dataloaders[split] = dl
