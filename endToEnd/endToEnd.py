@@ -84,7 +84,7 @@ if __name__ == '__main__':
     foldList = [4]
     for fold in foldList:
 
-        init_seed = 230
+        init_seed = 24
         np.random.seed(init_seed)
         torch.manual_seed(init_seed)
         torch.cuda.manual_seed_all(init_seed)
