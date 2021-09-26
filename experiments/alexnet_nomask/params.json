@@ -1,0 +1,11 @@
+{
+    "learning_rate": 1e-4,
+    "batch_size": 32,
+    "num_epochs": 50,
+    "vis_env" : "alexnet_nomask",
+    "data_dir": "data/nodules3d_128_npy",
+    "loss": "FocalLoss",
+    "FocalLossAlpha": 0.25,
+    "FocalLossGamma": 2,
+    "save_weight": 0
+}

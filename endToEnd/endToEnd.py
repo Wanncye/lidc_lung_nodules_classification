@@ -80,23 +80,40 @@ class endToend(nn.Module):
 
 
 if __name__ == '__main__':
-    resnet = generate_model(34).cuda()
-    vgg = vgg13_bn(0.5).cuda()
-    alexnet = alexnet().cuda()
-    densenet = attention56().cuda()
-    gcn = GCN(nfeat=512,
-        nhid=64,
-        nclass=2,
-        fc_num=2,
-        dropout=0.6,
-        ft=4).cuda()
-
-    endToEndModel = endToend(resnet, vgg, alexnet, densenet, gcn)
-    optimizer = optim.Adam(endToEndModel.parameters(), lr=0.0001, weight_decay=0.01)
-    scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
-
-    foldList = [4,2,3,5,1]
+    
+    foldList = [4]
     for fold in foldList:
+
+        init_seed = 230
+        np.random.seed(init_seed)
+        torch.manual_seed(init_seed)
+        torch.cuda.manual_seed_all(init_seed)
+        torch.cuda.manual_seed(init_seed) 
+        torch.backends.cudnn.deterministic = True
+
+        resnet = generate_model(34).cuda()
+        vgg = vgg13_bn(0.5).cuda()
+        alexnet = alexnet().cuda()
+        densenet = attention56().cuda()
+        gcn = GCN(nfeat=512,
+            nhid=64,
+            nclass=2,
+            fc_num=2,
+            dropout=0.6,
+            ft=4).cuda()
+
+        endToEndModel = endToend(resnet, vgg, alexnet, densenet, gcn)
+        optimizer = optim.Adam(endToEndModel.parameters(), lr=0.0001, weight_decay=0.01)
+        # scheduler = MultiStepLR(optimizer, milestones=[20], gamma=0.5)
+        loadCheckpoint = False
+
+        if loadCheckpoint:
+            print("---加载模型---")
+            model_CKPT = torch.load('checkpoint/finalEpochWeight_firstweight_fold4.pth')
+            endToEndModel.load_state_dict(model_CKPT['state_dict'])
+            print('loading checkpoint!')
+            optimizer.load_state_dict(model_CKPT['optim_dict'])
+        
         dataloaders = fetch_dataloader(types = ["train", "test"], batch_size = 3, data_dir="../data/5fold_128<=20mm_aug/fold"+str(fold), train_shuffle=True)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
@@ -104,8 +121,10 @@ if __name__ == '__main__':
         vis = Visualizer('endToEndVisFold_'+str(fold))
 
         metrics = ['accuracy', 'loss']
-        for epoch in range(50):
-            
+        bestAcc = 0
+        for epoch in range(100):
+            print("---第{0}个epoch---".format(epoch))
+            print("---学习率：{0}".format(optimizer.param_groups[0]['lr']))
             endToEndModel.train()
             loss_epoch = []
             ground_truch = []
@@ -117,12 +136,6 @@ if __name__ == '__main__':
                     
                     train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
                     modelOutput, gcnOutput, finalOutput = endToEndModel(train_batch)
-
-                    # alexnetLoss = loss_fn_BCE(modelOutput[0], labels_batch)
-                    # vggLoss = loss_fn_BCE(modelOutput[1], labels_batch)
-                    # resnetLoss = loss_fn_BCE(modelOutput[2], labels_batch)
-                    # densenetLoss = loss_fn_BCE(modelOutput[3], labels_batch)
-                    # gcnLoss = loss_fn_BCE(gcnOutput, labels_batch)
 
                     finalLoss = loss_fn_BCE(finalOutput, labels_batch)
 
@@ -142,13 +155,6 @@ if __name__ == '__main__':
                         predict.append(predict_batch[i])
 
                     loss_epoch.append(totalLoss.item())
-
-                    # vis.plot('train_loss_iter_totalLoss', totalLoss.item(), 1)
-                    # vis.plot('train_loss_iter_alexnetLoss', alexnetLoss.item(), 1)
-                    # vis.plot('train_loss_iter_vggLoss', vggLoss.item(), 1)
-                    # vis.plot('train_loss_iter_resnetLoss', resnetLoss.item(), 1)
-                    # vis.plot('train_loss_iter_densenetLoss', densenetLoss.item(), 1)
-                    # vis.plot('train_loss_iter_gcnLoss', gcnLoss.item(), 1)
                     vis.plot('train_loss_iter_finalLoss', finalLoss.item(), 1)
 
                     
@@ -176,6 +182,13 @@ if __name__ == '__main__':
             vis.plot('train_acc', metrics_mean['accuracy'] , 2)
             vis.plot('train_loss_epoch', metrics_mean['loss'] , 3)
 
+            if os.path.exists('checkpoint/finalEpochWeight_fold'+str(fold)+'_epoch'+str(epoch-1)+'.pth'):
+                os.remove('checkpoint/finalEpochWeight_fold'+str(fold)+'_epoch'+str(epoch-1)+'.pth')
+            torch.save({'epoch': epoch + 1,
+                        'state_dict': endToEndModel.state_dict(),
+                        'optim_dict' : optimizer.state_dict()},
+                        'checkpoint/finalEpochWeight_fold'+str(fold)+'_epoch'+str(epoch)+'.pth')
+
 
 
             with torch.no_grad():
@@ -190,11 +203,6 @@ if __name__ == '__main__':
                         test_batch, labels_batch = Variable(test_batch), Variable(labels_batch)
                         modelOutput, gcnOutput, finalOutput = endToEndModel(test_batch)
 
-                        # alexnetLoss = loss_fn_BCE(modelOutput[0], labels_batch)
-                        # vggLoss = loss_fn_BCE(modelOutput[1], labels_batch)
-                        # resnetLoss = loss_fn_BCE(modelOutput[2], labels_batch)
-                        # densenetLoss = loss_fn_BCE(modelOutput[3], labels_batch)
-                        # gcnLoss = loss_fn_BCE(gcnOutput, labels_batch)
                         finalLoss = loss_fn_BCE(finalOutput, labels_batch)
                         totalLoss =  finalLoss
 
@@ -231,6 +239,12 @@ if __name__ == '__main__':
                 FN = cMtric[1][0]
                 TP = cMtric[1][1]
 
+                if (TN+TP)/(TP+TN+FP+FN) > bestAcc:
+                    bestAcc = (TN+TP)/(TP+TN+FP+FN)
+                    torch.save({'epoch': epoch + 1,
+                        'state_dict': endToEndModel.state_dict(),
+                        'optim_dict' : optimizer.state_dict()},
+                        'checkpoint/finalEpochWeight_fold'+str(fold)+'_best.pth')
                 metrics_mean = {
                     'accuracy' : (TN+TP)/(TP+TN+FP+FN),
                     'loss' : np.mean(loss_epoch),
