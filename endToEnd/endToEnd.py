@@ -104,12 +104,12 @@ if __name__ == '__main__':
 
         endToEndModel = endToend(resnet, vgg, alexnet, densenet, gcn)
         optimizer = optim.Adam(endToEndModel.parameters(), lr=0.0001, weight_decay=0.01)
-        # scheduler = MultiStepLR(optimizer, milestones=[20], gamma=0.5)
-        loadCheckpoint = False
+        scheduler = MultiStepLR(optimizer, milestones=[20,40], gamma=0.5)
+        loadCheckpoint = True
 
         if loadCheckpoint:
             print("---加载模型---")
-            model_CKPT = torch.load('checkpoint/finalEpochWeight_firstweight_fold4.pth')
+            model_CKPT = torch.load('checkpoint/finalEpochWeight_fold4_epoch34.pth')
             endToEndModel.load_state_dict(model_CKPT['state_dict'])
             print('loading checkpoint!')
             optimizer.load_state_dict(model_CKPT['optim_dict'])
@@ -118,7 +118,7 @@ if __name__ == '__main__':
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
 
-        vis = Visualizer('endToEndVisFold_'+str(fold))
+        vis = Visualizer('endToEndVisFold_'+str(fold)+'_v1.0')
 
         metrics = ['accuracy', 'loss']
         bestAcc = 0

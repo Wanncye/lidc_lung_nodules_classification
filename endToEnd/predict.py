@@ -81,7 +81,7 @@ class endToend(nn.Module):
 
 if __name__ == '__main__':
     
-    foldList = [4]
+    foldList = [5]
     for fold in foldList:
 
         init_seed = 230
@@ -112,8 +112,8 @@ if __name__ == '__main__':
             model_CKPT = torch.load('checkpoint/finalEpochWeight_firstweight_fold4.pth')
             endToEndModel.load_state_dict(model_CKPT['state_dict'])
             print("---epoch:{0}".format(model_CKPT['epoch']))
-            print('loading checkpoint!')
             optimizer.load_state_dict(model_CKPT['optim_dict'])
+            print("该模型的学习率为{0}".format(optimizer.param_groups[0]['lr']))
         print("数据集路径：{0}".format("../data/5fold_128<=20mm_aug/fold"+str(fold)))
         dataloaders = fetch_dataloader(types = ["train", "test"], batch_size = 3, data_dir="../data/5fold_128<=20mm_aug/fold"+str(fold), train_shuffle=True)
         train_dl = dataloaders['train']
