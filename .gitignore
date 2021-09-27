@@ -5,3 +5,4 @@
 experiments/*
 resources/
 __pycache__/
+endToEnd/checkpoint
