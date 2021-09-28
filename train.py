@@ -14,7 +14,7 @@ from torch.autograd import Variable
 from tqdm import tqdm
 from torchsummary import summary
 from torch.optim.lr_scheduler import LambdaLR
-from torch.optim.lr_scheduler import StepLR,MultiStepLR
+from torch.optim.lr_scheduler import StepLR,MultiStepLR,ExponentialLR,CosineAnnealingLR
 import torch.nn.functional as F
 
 import utils
@@ -278,6 +278,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
     for epoch in range(params.num_epochs):
         # Run one epoch
         print("第%d个epoch的学习率：%f" % (epoch+1, optimizer.param_groups[0]['lr']))
+        vis.plot('lr',optimizer.param_groups[0]['lr'],2)
         logging.info("Epoch {}/{}".format(epoch + 1, params.num_epochs))
 
         # compute number of batches in one epoch (one full pass over the training set)
@@ -306,13 +307,13 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                                 is_best=is_best,
                                 checkpoint=model_dir,
                                 N_folder=N_folder,
-                                params=params)
+                                params=params,
+                                descript=descripe)
 
         # If best_eval, best_save_path
         if is_best:
             logging.info("- Found new best accuracy")
             best_val_acc = val_acc
-
             # Save best val metrics in a json file in the model directory
             # best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_best_weights_"+descripe+".json")
             best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + descripe+".metrics_val_best_weights.json")
@@ -320,9 +321,9 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             utils.save_dict_to_json(val_metrics, best_json_path)
 
             #用最好的模型来提取512维特征
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
-            train_dl_save = dataloaders['train']
-            test_dl_save = dataloaders['test']
+            # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
+            # train_dl_save = dataloaders['train']
+            # test_dl_save = dataloaders['test']
             if save_model_feature:
                 with torch.no_grad():
                     model.eval()
@@ -400,7 +401,8 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+descripe+'_correct-alpha.log'))
 
         # 五折交叉验证
-        foldList = [3,1,2,4,0]
+        # foldList = [3,1,2,4,0]
+        foldList = [3,4,0]
         for N_folder in foldList:
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
@@ -409,7 +411,7 @@ if __name__ == '__main__':
             # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug_1/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
@@ -562,7 +564,9 @@ if __name__ == '__main__':
             
             optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0.0001)
             # scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
-            scheduler = MultiStepLR(optimizer, milestones=[70,90], gamma=0.1)
+            # scheduler = MultiStepLR(optimizer, milestones=[40,70,90], gamma=0.8)
+            scheduler = ExponentialLR(optimizer, gamma=0.90)
+            # scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=0)
 
             # fetch loss function and metrics
             print(params.loss)

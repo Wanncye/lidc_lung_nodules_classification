@@ -55,9 +55,9 @@ class LIDCDataset(Dataset):
         self.fold = fold
         self.add_middle_feature = add_middle_feature
         if self.add_middle_feature:
-            self.gcn_middle_feature = torch.load('data/feature/5fold_128<=20mm_aug/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
+            self.gcn_middle_feature = torch.load('data/feature/gcn_and_traditional_feature/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
             self.gcn_middle_feature.requires_grad = False
-            self.addition_feature = torch.load('data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
+            self.addition_feature = torch.load('data/feature/gcn_and_traditional_feature/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
             self.addition_feature.requires_grad = False
         
 
@@ -73,6 +73,13 @@ class LIDCDataset(Dataset):
 
     def __getitem__(self, idx):
         filename = self.npy_list[idx]
+        # fileNameList = ['0037_02_1.npy','0052_01_0.npy',
+        #         '0182_03_0.npy','0312_03_1.npy',
+        #         '0505_02_0.npy','0458_02_1.npy',
+        #         '0777_04_0.npy','0686_08_1.npy',
+        #         '0993_01_0.npy','1000_01_1.npy',]
+        # if filename in fileNameList:
+        #     print(filename,idx)
         cube = np.load(os.path.join(self.data_dir,filename))
         cube = torch.tensor(cube)
         cube = cube.transpose(0,2)
