@@ -57,7 +57,7 @@ if add_middle_feature:
 else:
     save_model_feature = True
 
-descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero'
+descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -409,7 +409,7 @@ if __name__ == '__main__':
             # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug_1/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
@@ -561,7 +561,8 @@ if __name__ == '__main__':
             # netron.start(onnx_path)
             
             optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0.0001)
-            scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
+            # scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
+            scheduler = MultiStepLR(optimizer, milestones=[70,90], gamma=0.5)
 
             # fetch loss function and metrics
             print(params.loss)
