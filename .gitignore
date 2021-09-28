@@ -2,7 +2,8 @@
 .ipynb_checkpoints/
 */__pycache__
 /data/*
-experiments/*
+experiments/*/*[!json]
+experiments/*/result_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero/
 resources/
 __pycache__/
 endToEnd/checkpoint
