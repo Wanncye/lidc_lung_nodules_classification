@@ -363,7 +363,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
 if __name__ == '__main__':
 
-    model_list = ['alexnet','vgg13','resnet34','attention56']
+    model_list = ['attention56','alexnet','vgg13','resnet34',]
 
     for model_name in model_list:
         print(model_name)
@@ -401,8 +401,8 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+descripe+'_correct-alpha.log'))
 
         # 五折交叉验证
-        # foldList = [3,1,2,4,0]
-        foldList = [3,4,0]
+        foldList = [3,1,2,4,0]
+        # foldList = [3,4,0]
         for N_folder in foldList:
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
@@ -563,9 +563,9 @@ if __name__ == '__main__':
             # netron.start(onnx_path)
             
             optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0.0001)
-            # scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
-            # scheduler = MultiStepLR(optimizer, milestones=[40,70,90], gamma=0.8)
-            scheduler = ExponentialLR(optimizer, gamma=0.90)
+            scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
+            # scheduler = MultiStepLR(optimizer, milestones=[100], gamma=0.8)
+            # scheduler = ExponentialLR(optimizer, gamma=0.90)
             # scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=0)
 
             # fetch loss function and metrics
