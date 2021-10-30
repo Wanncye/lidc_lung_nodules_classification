@@ -65,7 +65,7 @@ for i in range(1):
         resnet34PredLabel = modelWeight[2] * resnet34PredLabel
         attention56PredLabel = modelWeight[3] * attention56PredLabel
         finalPredLabel = np.array(alexnetPredLabel + vgg13PredLabel + resnet34PredLabel + attention56PredLabel)
-        finalPredLabel = np.where(finalPredLabel>0.5, 1, 0)
+        finalPredLabel = np.where(finalPredLabel>=0.5, 1, 0)
         # print('finalPredLabel:',finalPredLabel)
         ensembleAcc = np.sum(groundTruth == finalPredLabel)/len(groundTruth)
         ensembleMeanList.append(ensembleAcc)

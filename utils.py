@@ -1367,11 +1367,17 @@ def confirm_patient_nodule_not_in_two_dataset():
     #修改策略：将测试集中重复的病人结节全部移到训练集中去
     return
 
+#提特征多线程部分
+def get_various_feature_thread():
+    pass
+
+
 #8月2日 老师提供了许多特征，下面得函数就是提取这一系列特征的函数  
 import pandas as pd
+import threading
 def get_various_feature():
     df = pd.read_csv('./data/pylidc_feature.csv')
-    for fold in range(2):
+    for fold in range(5):
         dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir="data/5fold_128<=20mm_mask_aug/fold"+str(fold+1), train_shuffle=False, fold= fold)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
@@ -1379,8 +1385,7 @@ def get_various_feature():
         feature_train = torch.zeros((len(train_dl),255))
         feature_test = torch.zeros((len(test_dl),255))
         for i, (cube, _, file_name, _) in enumerate(train_dl):
-            
-            print('---fold ' + str(fold) + '---train extracting ' + file_name[0])
+            startTime = time.time()
             # if fold == 0: #因为5折交叉验证的来源不同，文件命名有些差异
             #     patient = file_name[0].split('_')[0][:4]
             #     nodule = file_name[0].split('_')[0][4:]
@@ -1405,14 +1410,17 @@ def get_various_feature():
                 skewness = np.array([pd_cube.skew()])
                 kurtosis = np.array([pd_cube.kurt()])
                 temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
-                feature_test[i] = torch.from_numpy(temp_feature)
-
+                feature_train[i] = torch.from_numpy(temp_feature)
             except:
+                print('occur erro!!!----------------------------------------')
                 temp_feature = torch.zeros((1,255))
                 feature_train[i] = temp_feature
+            endTime = time.time()
+            print('---fold ' + str(fold) + '---train extracting ' + file_name[0] + ' time:' + str(endTime-startTime))
+        torch.save(feature_train, './data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_train_addition_feature.pt')
 
         for i, (cube, _, file_name, _) in enumerate(test_dl):
-            print('---fold ' + str(fold) + '---test extracting ' + file_name[0])
+            startTime = time.time()
             if fold == 0: #因为5折交叉验证的来源不同，文件命名有些差异
                 patient = file_name[0].split('_')[0][:4]
                 nodule = file_name[0].split('_')[0][4:]
@@ -1438,15 +1446,139 @@ def get_various_feature():
                 temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
                 feature_test[i] = torch.from_numpy(temp_feature)
             except:
-                print('occur erro!!!')
+                print('occur erro!!!----------------------------------------')
                 temp_feature = torch.zeros((1,255))
             
                 feature_test[i] = temp_feature
-
-        torch.save(feature_train, './data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_train_addition_feature.pt')
+            endTime = time.time()
+            print('---fold ' + str(fold) + '---test extracting ' + file_name[0] + ' time:' + str(endTime-startTime))
         torch.save(feature_test, './data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_test_addition_feature.pt')
             
     return
+
+
+def get_various_feature_thread():
+    df = pd.read_csv('./data/pylidc_feature.csv')
+    for fold in range(2):
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 16, data_dir="data/5fold_128<=20mm_mask_aug/fold"+str(fold+1), train_shuffle=False, fold= fold)
+        train_dl = dataloaders['train']
+        test_dl = dataloaders['test']
+        #255 = 64 * 3 + 56 +7
+        feature_train = torch.zeros((len(train_dl),255))
+        feature_test = torch.zeros((len(test_dl),255))
+        for i, (cube, _, file_name, _) in enumerate(train_dl):
+            #提特征多线程部分
+            def get_various_feature_thread_sub(cube,file_name,fold,ith):
+                startTime = time.time()
+                print('---fold ' + str(fold) + '---train extracting ' + file_name)
+                patient = file_name.split('_')[0]
+                nodule = file_name.split('_')[1]
+                nodule_idx = int(patient + nodule)
+                diameter = np.array([df[df["nodule_idx"]==nodule_idx]["diameter"].iloc[0]])
+                surface_area = np.array([df[df["nodule_idx"]==nodule_idx]["surface_area"].iloc[0]])
+                volume = np.array([df[df["nodule_idx"]==nodule_idx]["volume"].iloc[0]])
+
+                try:
+                    hu = HU(cube)     #56维特征
+                    glcm = GLCM(cube) #64维特征，后续要归一化
+                    lbp = LBP(cube)   #64维特征
+                    hog = HOG(cube)   #64维特征
+
+                    cube = np.squeeze(cube).numpy()
+                    mean = np.array([np.mean(cube)])   #整个结节图片，包括结节外部的组织的均值
+                    variance = np.array([np.var(cube)])
+                    pd_cube = pd.Series(cube.flatten())
+                    skewness = np.array([pd_cube.skew()])
+                    kurtosis = np.array([pd_cube.kurt()])
+                    temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
+                    feature_train[i*8+ith] = torch.from_numpy(temp_feature)
+                except:
+                    print('occur erro!!!----------------------------------------')
+                    temp_feature = torch.zeros((1,255))
+                    feature_train[i*8+ith] = temp_feature
+                endTime = time.time()
+                print(endTime-startTime)
+            
+            threadList = []
+            for m in range(16):
+                t = threading.Thread(target=get_various_feature_thread_sub, args=(cube[m],file_name[m],fold,m))
+                threadList.append(t)
+                t.start()
+            for n in range(16):
+                threadList[n].join()
+            # t0 = threading.Thread(target=get_various_feature_thread, args=(cube[0],file_name[0],fold,0))
+            # t1 = threading.Thread(target=get_various_feature_thread, args=(cube[1],file_name[1],fold,1))
+            # t2 = threading.Thread(target=get_various_feature_thread, args=(cube[2],file_name[2],fold,2))
+            # t3 = threading.Thread(target=get_various_feature_thread, args=(cube[3],file_name[3],fold,3))
+            # t0.start()
+            # t1.start()
+            # t2.start()
+            # t3.start()
+            # t0.join()
+            # t1.join()
+            # t2.join()
+            # t3.join()
+        torch.save(feature_train, './data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_train_addition_feature.pt')
+
+        for i, (cube, _, file_name, _) in enumerate(test_dl):
+            def get_various_feature_thread(cube,file_name,fold,ith):
+                print('---fold ' + str(fold) + '---test extracting ' + file_name[0])
+                if fold == 0: #因为5折交叉验证的来源不同，文件命名有些差异
+                    patient = file_name[0].split('_')[0][:4]
+                    nodule = file_name[0].split('_')[0][4:]
+                else:
+                    patient = file_name[0].split('_')[0]
+                    nodule = file_name[0].split('_')[1]
+                nodule_idx = int(patient + nodule)
+                diameter = np.array([df[df["nodule_idx"]==nodule_idx]["diameter"].iloc[0]])
+                surface_area = np.array([df[df["nodule_idx"]==nodule_idx]["surface_area"].iloc[0]])
+                volume = np.array([df[df["nodule_idx"]==nodule_idx]["volume"].iloc[0]])
+                try:
+                    hu = HU(cube)     #56维特征
+                    glcm = GLCM(cube) #64维特征，后续要归一化
+                    lbp = LBP(cube)   #64维特征
+                    hog = HOG(cube)   #64维特征
+
+                    cube = np.squeeze(cube).numpy()
+                    mean = np.array([np.mean(cube)])   #整个结节图片，包括结节外部的组织的均值
+                    variance = np.array([np.var(cube)])
+                    pd_cube = pd.Series(cube.flatten())
+                    skewness = np.array([pd_cube.skew()])
+                    kurtosis = np.array([pd_cube.kurt()])
+                    temp_feature = np.concatenate((hu, glcm, lbp, hog, diameter, surface_area, volume, mean, variance, skewness, kurtosis))
+                    feature_test[i] = torch.from_numpy(temp_feature)
+                except:
+                    print('occur erro!!!----------------------------------------')
+                    temp_feature = torch.zeros((1,255))
+                    feature_test[i] = temp_feature
+            t0 = threading.Thread(target=get_various_feature_thread, args=(cube[0],file_name[0],fold,0))
+            t1 = threading.Thread(target=get_various_feature_thread, args=(cube[1],file_name[1],fold,1))
+            t2 = threading.Thread(target=get_various_feature_thread, args=(cube[2],file_name[2],fold,2))
+            t3 = threading.Thread(target=get_various_feature_thread, args=(cube[3],file_name[3],fold,3))
+            t4 = threading.Thread(target=get_various_feature_thread, args=(cube[4],file_name[4],fold,4))
+            t5 = threading.Thread(target=get_various_feature_thread, args=(cube[5],file_name[5],fold,5))
+            t6 = threading.Thread(target=get_various_feature_thread, args=(cube[6],file_name[6],fold,6))
+            t7 = threading.Thread(target=get_various_feature_thread, args=(cube[7],file_name[7],fold,7))
+            t0.start()
+            t1.start()
+            t2.start()
+            t3.start()
+            t4.start()
+            t5.start()
+            t6.start()
+            t7.start()
+            t0.join()
+            t1.join()
+            t2.join()
+            t3.join()
+            t4.join()
+            t5.join()
+            t6.join()
+            t7.join()
+        torch.save(feature_test, './data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_test_addition_feature.pt')
+            
+    return
+
 
 
 from sklearn.manifold import TSNE 
@@ -2090,5 +2222,8 @@ def getDatasetMeanAndStd():
     std = torch.tensor([[41.8699, 41.6722, 41.5907, 41.4606, 41.3476, 41.1476, 40.9845, 40.8674]])
     return mean,std
 
+
+
+
 if __name__ == '__main__':
-    getDatasetMeanAndStd()
+    resize_10fold2_128()

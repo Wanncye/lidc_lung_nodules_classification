@@ -62,10 +62,10 @@ class LIDCDataset(Dataset):
         
 
         #对新加进来的feature某些特征做一下归一化，因为这些特征不在同一个数量级上
-        # for jndex in range(248,255):
-        #     max = self.addition_feature[:, jndex].max()  
-        #     min = self.addition_feature[:, jndex].min()  
-        #     self.addition_feature[:, jndex] = (self.addition_feature[:, jndex] - min) / (max-min)
+        for jndex in range(248,255):
+            max = self.addition_feature[:, jndex].max()  
+            min = self.addition_feature[:, jndex].min()  
+            self.addition_feature[:, jndex] = (self.addition_feature[:, jndex] - min) / (max-min)
 
     def __len__(self):
         # return size of dataset

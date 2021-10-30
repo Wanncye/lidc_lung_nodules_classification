@@ -50,14 +50,14 @@ import torch.onnx
 
 
 #是否加入中间特征(包括GCN，传统，统计特征)
-add_middle_feature = True
+add_middle_feature = False
 if add_middle_feature:
     #是否保存模型中间特征
     save_model_feature = False
 else:
     save_model_feature = True
 
-descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1'
+descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -321,9 +321,9 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             utils.save_dict_to_json(val_metrics, best_json_path)
 
             #用最好的模型来提取512维特征
-            # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
-            # train_dl_save = dataloaders['train']
-            # test_dl_save = dataloaders['test']
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/10fold/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
+            train_dl_save = dataloaders['train']
+            test_dl_save = dataloaders['test']
             if save_model_feature:
                 with torch.no_grad():
                     model.eval()
@@ -363,7 +363,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
 if __name__ == '__main__':
 
-    model_list = ['attention56','alexnet','vgg13','resnet34',]
+    model_list = ['alexnet','vgg13','resnet34','attention56',]
+    # model_list = ['resnet34',]
 
     for model_name in model_list:
         print(model_name)
@@ -401,7 +402,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+descripe+'_correct-alpha.log'))
 
         # 五折交叉验证
-        foldList = [3,1,2,4,0]
+        foldList = [0,1,2,3,4]
         # foldList = [3,4,0]
         for N_folder in foldList:
             print(N_folder)
