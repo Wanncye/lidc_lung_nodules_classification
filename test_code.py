@@ -11,7 +11,9 @@ import matplotlib.pyplot as plt
 from utils import get_dataset_label_pt
 import utils
 
-
+dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 1, data_dir="data/10fold/fold1", train_shuffle=False)
+train_dl = dataloaders['train']
+test_dl = dataloaders['test']
 
 
 # for fold in range(2):
@@ -33,52 +35,52 @@ import utils
 
 
 
-from sklearn.model_selection import StratifiedKFold,KFold
-from glob import glob
-import os
-import shutil
-data_path = 'data/all_nodule/'
-skf = StratifiedKFold(n_splits=10)
-data_list = []
-label_list = []
-pos_list = glob(os.path.join(data_path,"*_1.npy"))
-neg_list = glob(os.path.join(data_path,"*_0.npy"))
-for pos in pos_list:
-    data_list.append(pos)
-    label_list.append(1)
-for neg in neg_list:
-    data_list.append(neg)
-    label_list.append(0)
+# from sklearn.model_selection import StratifiedKFold,KFold
+# from glob import glob
+# import os
+# import shutil
+# data_path = 'data/all_nodule/'
+# skf = StratifiedKFold(n_splits=10)
+# data_list = []
+# label_list = []
+# pos_list = glob(os.path.join(data_path,"*_1.npy"))
+# neg_list = glob(os.path.join(data_path,"*_0.npy"))
+# for pos in pos_list:
+#     data_list.append(pos)
+#     label_list.append(1)
+# for neg in neg_list:
+#     data_list.append(neg)
+#     label_list.append(0)
 
-def mycopyfile(srcfile,dstpath):                       # 复制函数
-    if not os.path.isfile(srcfile):
-        print ("%s not exist!"%(srcfile))
-    else:
-        fpath,fname=os.path.split(srcfile)             # 分离文件名和路径
-        if not os.path.exists(dstpath):
-            os.makedirs(dstpath)                       # 创建路径
-        shutil.copy(srcfile, dstpath + fname)          # 复制文件
-        print ("copy %s -> %s"%(srcfile, dstpath + fname))
+# def mycopyfile(srcfile,dstpath):                       # 复制函数
+#     if not os.path.isfile(srcfile):
+#         print ("%s not exist!"%(srcfile))
+#     else:
+#         fpath,fname=os.path.split(srcfile)             # 分离文件名和路径
+#         if not os.path.exists(dstpath):
+#             os.makedirs(dstpath)                       # 创建路径
+#         shutil.copy(srcfile, dstpath + fname)          # 复制文件
+#         # print ("copy %s -> %s"%(srcfile, dstpath + fname))
 
 
-folds = StratifiedKFold(n_splits=10, shuffle=True, random_state=2021).split(data_list,label_list)
-for fold, (trn_idx, val_idx) in enumerate(folds):
-        train_data_list = []
+# folds = StratifiedKFold(n_splits=10, shuffle=True, random_state=2021).split(data_list,label_list)
+# for fold, (trn_idx, val_idx) in enumerate(folds):
+#         train_data_list = []
 
-        test_data_list = []
-        for i in trn_idx:
-            train_data_list.append(data_list[i])
-        for i in val_idx:
-            test_data_list.append(data_list[i])
-        if  os.path.exists('data/tenfold/'+str(fold))==False:
-            os.makedirs('data/tenfold/fold'+str(fold+1)+'/train')
-            os.makedirs('data/tenfold/fold'+str(fold+1)+'/test')
+#         test_data_list = []
+#         for i in trn_idx:
+#             train_data_list.append(data_list[i])
+#         for i in val_idx:
+#             test_data_list.append(data_list[i])
+#         # if  os.path.exists('data/10fold/'+str(fold))==False:
+#         #     os.makedirs('data/10fold/fold'+str(fold+1)+'/train')
+#         #     os.makedirs('data/10fold/fold'+str(fold+1)+'/test')
 
-        src_dir = './'
-        train_dst_dir = 'data/tenfold/fold'+str(fold+1)+'/train/'
-        test_dst_dir = 'data/tenfold/fold'+str(fold+1)+'/test/'
+#         src_dir = './'
+#         train_dst_dir = 'data/10fold/fold'+str(fold+1)+'/train/'
+#         test_dst_dir = 'data/10fold/fold'+str(fold+1)+'/test/'
                        
-        for srcfile in train_data_list:
-            mycopyfile(srcfile, train_dst_dir)   
-        for srcfile in test_data_list:
-            mycopyfile(srcfile, test_dst_dir)  
+#         for srcfile in train_data_list:
+#             mycopyfile(srcfile, train_dst_dir)   
+#         for srcfile in test_data_list:
+#             mycopyfile(srcfile, test_dst_dir)

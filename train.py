@@ -57,7 +57,8 @@ if add_middle_feature:
 else:
     save_model_feature = True
 
-descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
+# descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
+descripe = '_para1_10fold_fold0'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -297,7 +298,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         vis.plot(model_name + '_val_sensitivity_epoch_folder_' + str(N_folder), recall , 3)
         vis.plot(model_name + '_val_specificity_epoch_folder_' + str(N_folder), specificity , 3)
         val_acc = val_metrics['accuracy']
-        is_best = val_acc>=best_val_acc
+        is_best = val_acc>best_val_acc
 
         # Save weights
         if params.save_weight == 1:
@@ -335,8 +336,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                     for i, (x, target, _, gcn_middle_feature) in enumerate(test_dl_save):
                         _, feature = model(x.cuda(), gcn_middle_feature.cuda(), add_middle_feature)
                         test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
-                    torch.save(train_feature,'./data/feature/5fold_128/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
-                    torch.save(test_feature,'./data/feature/5fold_128/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
+                    torch.save(train_feature,'./data/feature/10fold_model_feature/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
+                    torch.save(test_feature,'./data/feature/10fold_model_feature/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
         last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + descripe +".metrics_val_last_weights.json")
         utils.save_dict_to_json(val_metrics, last_json_path)
@@ -363,7 +364,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 
 if __name__ == '__main__':
 
-    model_list = ['alexnet','vgg13','resnet34','attention56',]
+    # model_list = ['attention56',]
+    model_list = ['resnet34']
     # model_list = ['resnet34',]
 
     for model_name in model_list:
@@ -402,7 +404,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+descripe+'_correct-alpha.log'))
 
         # 五折交叉验证
-        foldList = [0,1,2,3,4]
+        foldList = [0]
         # foldList = [3,4,0]
         for N_folder in foldList:
             print(N_folder)
@@ -412,7 +414,7 @@ if __name__ == '__main__':
             # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug_1/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/10fold/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']

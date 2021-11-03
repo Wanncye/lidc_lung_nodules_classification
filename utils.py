@@ -1232,15 +1232,15 @@ def search_different_resnet_feature_correlation():
 
 #修改测试集训练集之后，需要重新获取数据集的标签，并且保存下来
 def get_dataset_label_pt():
-    datasetPath = '5fold_128'
-    for index in range(5):
+    datasetPath = '10fold'
+    for index in range(10):
         dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/"+datasetPath+"/fold"+str(index+1), train_shuffle=False,fold=index)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
         for i, (train_batch, labels_batch, _,_) in enumerate(train_dl):
-            torch.save(labels_batch,'data/feature/'+'addition_feature'+'/fold_'+str(index)+'_train_label.pt')
+            torch.save(labels_batch,'data/feature/'+'10fold_model_feature'+'/fold_'+str(index)+'_train_label.pt')
         for i, (train_batch, labels_batch, _,_) in enumerate(test_dl):
-            torch.save(labels_batch,'data/feature/'+'addition_feature'+'/fold_'+str(index)+'_test_label.pt')
+            torch.save(labels_batch,'data/feature/'+'10fold_model_feature'+'/fold_'+str(index)+'_test_label.pt')
 
 #将所有模型的（目前是已经训练好的模型）预测结果汇总到同一个csv中
 def converage_all_result():
@@ -2161,7 +2161,8 @@ def getEightLabelFeature(noudleFileName):
     df = pd.read_csv('./data/pylidc_feature.csv')
     feature = torch.zeros((len(noudleFileName), 38))
     for index, oneNoduleFileName in enumerate(noudleFileName):
-        nodule_idx = int(oneNoduleFileName.split('_')[0] + oneNoduleFileName.split('_')[1])
+        nodule_idx = int(oneNoduleFileName.split('_')[0])
+        # nodule_idx = int(oneNoduleFileName.split('_')[0] + oneNoduleFileName.split('_')[1])
 
         sublety = np.array([df[df["nodule_idx"]==nodule_idx]["sublety_mean"].iloc[0]])-1
         internalstructure = np.array([df[df["nodule_idx"]==nodule_idx]["internalstructure_mean"].iloc[0]])-1
@@ -2222,8 +2223,5 @@ def getDatasetMeanAndStd():
     std = torch.tensor([[41.8699, 41.6722, 41.5907, 41.4606, 41.3476, 41.1476, 40.9845, 40.8674]])
     return mean,std
 
-
-
-
 if __name__ == '__main__':
-    resize_10fold2_128()
+    get_dataset_label_pt()
