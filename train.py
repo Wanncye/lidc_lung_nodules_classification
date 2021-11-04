@@ -50,7 +50,7 @@ import torch.onnx
 
 
 #是否加入中间特征(包括GCN，传统，统计特征)
-add_middle_feature = False
+add_middle_feature = True
 if add_middle_feature:
     #是否保存模型中间特征
     save_model_feature = False
@@ -58,7 +58,7 @@ else:
     save_model_feature = True
 
 # descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
-descripe = '_para1_10fold_fold0'
+descripe = '_para1_10fold_add_gcn_traditional'
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -234,7 +234,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         print("class 0 : {0}, class 1 : {1}".format(class_0_number,class_1_number))
         cMtric = confusion_matrix(ground_truch_list, predict_list)
         print(cMtric)
-
+        print('confusion matrix acc: ' + str((cMtric[0,0]+cMtric[1,1])/(class_1_number+class_0_number)))
         for metric in summ[0]:
             print(metric)
         metrics_mean = {metric:np.mean([x[metric] for x in summ]) for metric in summ[0]} 
@@ -326,6 +326,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             train_dl_save = dataloaders['train']
             test_dl_save = dataloaders['test']
             if save_model_feature:
+                print('------save feature-----')
                 with torch.no_grad():
                     model.eval()
                     train_feature = torch.zeros((len(train_dl_save.dataset),512))
@@ -365,7 +366,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
 if __name__ == '__main__':
 
     # model_list = ['attention56',]
-    model_list = ['resnet34']
+    model_list = ['vgg13','resnet34','alexnet','attention56']
     # model_list = ['resnet34',]
 
     for model_name in model_list:
@@ -404,7 +405,7 @@ if __name__ == '__main__':
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+descripe+'_correct-alpha.log'))
 
         # 五折交叉验证
-        foldList = [0]
+        foldList = [0,1,2,3]
         # foldList = [3,4,0]
         for N_folder in foldList:
             print(N_folder)

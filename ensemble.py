@@ -4,11 +4,12 @@ import numpy as np
 import random
 
 modelList = ['alexnet','attention56','vgg13','resnet34']
+descripe = 'para1_10fold_add_gcn_traditional'
 for i in range(1):
     ensembleMeanList = []
-    for fold in range(5):
+    for fold in range(10):
         for model in modelList:
-            jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1.metrics_val_best_weights.json'
+            jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_'+descripe+'.metrics_val_best_weights.json'
             jsonFilePath = 'experiments/'+model+'_nomask/'+jsonFileName
             f = open(jsonFilePath,'r')
             jsonData = json.load(f)
@@ -17,8 +18,9 @@ for i in range(1):
             print("{2}_fold_{0}_epoch_{1}".format(fold,jsonEpoch-1,model))
             csvPath = 'experiments/'+\
                         model+\
-                        '_nomask/result_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1/'+\
-                        'folder_'+\
+                        '_nomask/result_'+\
+                        descripe +\
+                        '/folder_'+\
                         str(fold)+\
                         '_result_'+\
                         str(int(jsonEpoch-1))+\

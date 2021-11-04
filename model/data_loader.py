@@ -55,9 +55,9 @@ class LIDCDataset(Dataset):
         self.fold = fold
         self.add_middle_feature = add_middle_feature
         if self.add_middle_feature:
-            self.gcn_middle_feature = torch.load('data/feature/gcn_and_traditional_feature/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
+            self.gcn_middle_feature = torch.load('data/feature/10fold_gcn_feature_random_adj/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
             self.gcn_middle_feature.requires_grad = False
-            self.addition_feature = torch.load('data/feature/gcn_and_traditional_feature/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
+            self.addition_feature = torch.load('data/feature/10fold_traditional_feature/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
             self.addition_feature.requires_grad = False
             #对新加进来的feature某些特征做一下归一化，因为这些特征不在同一个数量级上
             for jndex in range(248,255):
@@ -84,9 +84,9 @@ class LIDCDataset(Dataset):
         cube = torch.unsqueeze(cube,0)  #2d卷积的时候把这行注释掉
         cube = cube.type(torch.FloatTensor)
         #非数据增强
-        label = self.npy_list[idx].split('.')[0][-1]
+        # label = self.npy_list[idx].split('.')[0][-1]
         #数据增强
-        # label = self.npy_list[idx].split('_')[2][0]
+        label = self.npy_list[idx].split('_')[2][0]
         # print(label)
         label = np.array(int(label))
         label = torch.tensor(label)
