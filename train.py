@@ -48,17 +48,31 @@ from model.xception import xception
 import netron     
 import torch.onnx
 
+'''
+注意事项：
+不加入其他特征时add_middle_feature=False,此时会保存模型提取出的特征
+加入中间特征指的是GCN特征和传统特征
+每次实验得修改descripe，用于生成不同的保存CSV预测结果的文件夹以及模型和准确率json文件
+'''
 
 #是否加入中间特征(包括GCN，传统，统计特征)
-add_middle_feature = True
+add_middle_feature = False
 if add_middle_feature:
     #是否保存模型中间特征
     save_model_feature = False
 else:
     save_model_feature = True
+    save_model_dir = '10fold_model_feature_noNorm'
 
 # descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
-descripe = '_para1_10fold_add_gcn_traditional'
+descripe = '_para1_10fold_noNorm'
+
+# data_fold = '5fold_128<=20mm_aug'
+data_fold = '10fold'
+
+model_list = ['alexnet','vgg13','resnet34','attention56']
+# model_list = ['alexnet']
+foldList = [0,1,2,3]
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -93,7 +107,7 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
     with tqdm(total=len(dataloader)) as t:
         for i, (train_batch, labels_batch, file_name, one_feature) in enumerate(dataloader):
 
-            train_batch = (train_batch-datasetMean)/datasetStd
+            # train_batch = (train_batch-datasetMean)/datasetStd
             
             egithFeature = utils.getEightLabelFeature(file_name)
             one_feature = torch.cat((one_feature, egithFeature), axis = 1)
@@ -177,7 +191,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         datasetMean = datasetMean.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
         datasetStd = datasetStd.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
         for dataloader_index, (data_batch, labels_batch, filename, one_feature) in enumerate(dataloader):
-            data_batch = (data_batch-datasetMean)/datasetStd
+            # data_batch = (data_batch-datasetMean)/datasetStd
 
             egithFeature = utils.getEightLabelFeature(filename)
             egithFeature = torch.zeros_like(egithFeature)
@@ -322,7 +336,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             utils.save_dict_to_json(val_metrics, best_json_path)
 
             #用最好的模型来提取512维特征
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/10fold/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/"+data_fold+"/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
             train_dl_save = dataloaders['train']
             test_dl_save = dataloaders['test']
             if save_model_feature:
@@ -337,8 +351,8 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                     for i, (x, target, _, gcn_middle_feature) in enumerate(test_dl_save):
                         _, feature = model(x.cuda(), gcn_middle_feature.cuda(), add_middle_feature)
                         test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
-                    torch.save(train_feature,'./data/feature/10fold_model_feature/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
-                    torch.save(test_feature,'./data/feature/10fold_model_feature/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
+                    torch.save(train_feature,'./data/feature/'+save_model_dir+'/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
+                    torch.save(test_feature,'./data/feature/'+save_model_dir+'/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
         last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + descripe +".metrics_val_last_weights.json")
         utils.save_dict_to_json(val_metrics, last_json_path)
@@ -364,10 +378,6 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         #         break
 
 if __name__ == '__main__':
-
-    # model_list = ['attention56',]
-    model_list = ['vgg13','resnet34','alexnet','attention56']
-    # model_list = ['resnet34',]
 
     for model_name in model_list:
         print(model_name)
@@ -404,9 +414,7 @@ if __name__ == '__main__':
         print('train file path:',os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+descripe+'_correct-alpha.log'))
 
-        # 五折交叉验证
-        foldList = [0,1,2,3]
-        # foldList = [3,4,0]
+
         for N_folder in foldList:
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
@@ -415,7 +423,7 @@ if __name__ == '__main__':
             # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
             
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/10fold/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/"+data_fold+"/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']

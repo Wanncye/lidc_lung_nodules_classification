@@ -63,7 +63,7 @@ def save_incorrect_nodule(pre_label, truth_label, nodule_name):
 
 # f = open('./experiments/gcn/random_adj/random_adj_43_feature_0~1_result_2.txt', 'w')
 for fold in range(10):
-    # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 641, data_dir="data/10fold_model_feature/fold"+str(fold+1), train_shuffle=False, fold= fold)
+    # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 641, data_dir="data/10fold_model_feature_noNorm/fold"+str(fold+1), train_shuffle=False, fold= fold)
     # test_dl = dataloaders['test']
     # for i, (train_batch, labels_batch, file_name, _) in enumerate(test_dl):
     #     nodule_name = file_name
@@ -105,18 +105,19 @@ for fold in range(10):
         # alexnet_train_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_alexnet_train.pt'))
         # alexnet_test_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_alexnet_test.pt'))
 
-        attention56_train_feature = torch.load('./data/feature/10fold_model_feature/fold_'+str(fold)+'_attention56_train.pt')
-        attention56_test_feature = torch.load('./data/feature/10fold_model_feature/fold_'+str(fold)+'_attention56_test.pt')
-        resnet34_train_feature = torch.load('data/feature/10fold_model_feature/fold_'+str(fold)+'_resnet34_train.pt')
-        resnet34_test_feature = torch.load('data/feature/10fold_model_feature/fold_'+str(fold)+'_resnet34_test.pt')
-        vgg13_train_feature = torch.load('data/feature/10fold_model_feature/fold_'+str(fold)+'_vgg13_train.pt')
-        vgg13_test_feature = torch.load('data/feature/10fold_model_feature/fold_'+str(fold)+'_vgg13_test.pt')
-        alexnet_train_feature = torch.load('data/feature/10fold_model_feature/fold_'+str(fold)+'_alexnet_train.pt')
-        alexnet_test_feature = torch.load('data/feature/10fold_model_feature/fold_'+str(fold)+'_alexnet_test.pt')
+        attention56_train_feature = torch.load('./data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_attention56_train.pt')
+        attention56_test_feature = torch.load('./data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_attention56_test.pt')
+        resnet34_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_resnet34_train.pt')
+        resnet34_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_resnet34_train.pt')
+        resnet34_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_resnet34_test.pt')
+        vgg13_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_vgg13_train.pt')
+        vgg13_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_vgg13_test.pt')
+        alexnet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_train.pt')
+        alexnet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_test.pt')
         
 
-        train_label = torch.load('data/feature/10fold_model_feature/fold_'+str(fold)+'_train_label.pt')
-        test_label = torch.load('data/feature/10fold_model_feature/fold_'+str(fold)+'_test_label.pt')
+        train_label = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_train_label.pt')
+        test_label = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_test_label.pt')
 
 
 

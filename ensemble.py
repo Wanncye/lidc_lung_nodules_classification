@@ -5,6 +5,7 @@ import random
 
 modelList = ['alexnet','attention56','vgg13','resnet34']
 descripe = 'para1_10fold_add_gcn_traditional'
+# descripe = '<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1'
 for i in range(1):
     ensembleMeanList = []
     for fold in range(10):
