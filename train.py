@@ -56,7 +56,7 @@ import torch.onnx
 '''
 
 #是否加入中间特征(包括GCN，传统，统计特征)
-add_middle_feature = False
+add_middle_feature = True
 if add_middle_feature:
     #是否保存模型中间特征
     save_model_feature = False
@@ -65,14 +65,14 @@ else:
     save_model_dir = '10fold_model_feature_noNorm'
 
 # descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
-descripe = '_para1_10fold_noNorm'
+descripe = '_para1_10fold_noNorm_add_gcn_traditional'
 
 # data_fold = '5fold_128<=20mm_aug'
 data_fold = '10fold'
 
 model_list = ['alexnet','vgg13','resnet34','attention56']
 # model_list = ['alexnet']
-foldList = [0,1,2,3]
+foldList = [0,1,2]
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):

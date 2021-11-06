@@ -2,9 +2,10 @@ import json
 import pandas as pd
 import numpy as np
 import random
+from sklearn.metrics import confusion_matrix
 
 modelList = ['alexnet','attention56','vgg13','resnet34']
-descripe = 'para1_10fold_add_gcn_traditional'
+descripe = 'para1_10fold_noNorm_add_gcn_traditional'
 # descripe = '<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1'
 for i in range(1):
     ensembleMeanList = []
@@ -36,6 +37,10 @@ for i in range(1):
                 alexnetWrong = set(filename[alexnetIsRight==False])
                 alexnetJsonAcc = jsonAcc
                 alexnetCaculAcc = np.sum(groundTruth == alexnetPredLabel)/len(groundTruth)
+                con_matrix = confusion_matrix(groundTruth,alexnetPredLabel,labels=range(2))
+                sensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
+                specificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
+                print('sensitivity:{0},specificity:{1}'.format(sensitivity,specificity))
             if model=='attention56':
                 attention56PredLabel = csvReader['predict_label']
                 attention56groundTruth = csvReader['truth_label']

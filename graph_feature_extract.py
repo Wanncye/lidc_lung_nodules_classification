@@ -154,7 +154,7 @@ for fold in range(10):
         gcn_train_middle_feature = torch.zeros(len(train_label),56*4)
         gcn_test_middle_feature = torch.zeros(len(test_label),56*4)
 
-        for epoch in range(200):
+        for epoch in range(100):
             loss_train_list = []
             pre_train_list = torch.zeros(len(train_label))
 
@@ -246,8 +246,8 @@ for fold in range(10):
                 },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2_fold_'+str(fold)+'.best.pth.tar')
 
                 #保存gcn中间特征到文件中，用于其他模型的训练
-                torch.save(gcn_train_middle_feature,'data/feature/10fold_gcn_feature_random_adj/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
-                torch.save(gcn_test_middle_feature,'data/feature/10fold_gcn_feature_random_adj/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_train_middle_feature,'data/feature/10fold_gcn_feature_noNorm_random_adj/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_test_middle_feature,'data/feature/10fold_gcn_feature_noNorm_random_adj/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
 
             vis.plot('train loss',np.mean(loss_train_list),1)
             vis.plot('test loss',np.mean(loss_test_list),1)

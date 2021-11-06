@@ -55,7 +55,7 @@ class LIDCDataset(Dataset):
         self.add_middle_feature = add_middle_feature
         if self.add_middle_feature:
             self.fold = fold
-            self.gcn_middle_feature = torch.load('data/feature/10fold_gcn_feature_random_adj/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
+            self.gcn_middle_feature = torch.load('data/feature/10fold_gcn_feature_noNorm_random_adj/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
             self.gcn_middle_feature.requires_grad = False
             self.addition_feature = torch.load('data/feature/10fold_traditional_feature/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
             self.addition_feature.requires_grad = False
