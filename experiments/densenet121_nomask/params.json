@@ -1,10 +1,8 @@
 {
     "learning_rate": 1e-4,
-    "batch_size": 6,
+    "batch_size": 3,
     "num_epochs": 80,
-    "net_depth": 34,
-    "vis_env" : "attention56_nomask",
-    "data_dir": "data/nodules3d_128_npy_no_same_patient_in_two_dataset",
+    "vis_env" : "densnet121_nomask",
     "loss": "FocalLoss",
     "FocalLossAlpha": 0.25,
     "FocalLossGamma": 2,

@@ -102,8 +102,9 @@ class GoogleNet(nn.Module):
         self.dropout = nn.Dropout3d(p=0.4)
         self.linear1 = nn.Linear(1024, 512)
         self.linear2 = nn.Linear(512, num_class)
+        self.linear3 = nn.Linear(512 + 56 * 4 + 255 +38, num_class)
 
-    def forward(self, x):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature):
         x = self.prelayer(x)
         x = self.maxpool(x)
         x = self.a3(x)
@@ -128,10 +129,13 @@ class GoogleNet(nn.Module):
         x = self.avgpool(x)
         x = self.dropout(x)
         x = x.view(x.size()[0], -1)
-        x1 = self.linear1(x)
-        x2 = self.linear2(x1)
-
-        return x2,x1
+        feature = self.linear1(x)
+        if add_gcn_middle_feature:
+            x = torch.cat((feature,gcn_feature),axis=1)
+            out = self.linear3(x)
+        else:
+            out = self.linear2(feature)
+        return out,feature
 
 def googlenet():
     return GoogleNet()

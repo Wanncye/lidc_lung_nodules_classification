@@ -65,13 +65,15 @@ else:
     save_model_dir = '10fold_model_feature_noNorm'
 
 # descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
+# descripe = '_para1_10fold_noNorm_add_gcn_traditional'
 descripe = '_para1_10fold_noNorm_add_gcn_traditional'
 
 # data_fold = '5fold_128<=20mm_aug'
 data_fold = '10fold'
 
-model_list = ['alexnet','vgg13','resnet34','attention56']
+# model_list = ['alexnet','vgg13','resnet34','attention56']
 # model_list = ['alexnet']
+model_list = ['googlenet']
 foldList = [0,1,2]
 
 

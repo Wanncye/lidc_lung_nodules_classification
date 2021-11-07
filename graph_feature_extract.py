@@ -73,7 +73,7 @@ for fold in range(10):
     best_acc_list = []
     for out_index in range(1):
         input_dim = 512
-        node_num = 4
+        node_num = 5
         model = GCN(nfeat=input_dim,
                     nhid=64,
                     nclass=2,
@@ -114,6 +114,8 @@ for fold in range(10):
         vgg13_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_vgg13_test.pt')
         alexnet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_train.pt')
         alexnet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_test.pt')
+        googlenet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_googlenet_train.pt')
+        googlenet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_googlenet_test.pt')
         
 
         train_label = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_train_label.pt')
@@ -142,17 +144,18 @@ for fold in range(10):
         np.random.seed(np.random.randint(1,500))
         adj = get_random_adj(node_num, out_index)
         adj = torch.tensor(
-            [[1., 0., 1., 1.],
-            [1., 0., 1., 1.],
-            [0., 1., 0., 1.],
-            [1., 0., 1., 0.]])
+            [[1., 0., 1., 1., 0.],
+            [1., 0., 1., 1., 1.],
+            [0., 1., 0., 1., 1.],
+            [1., 0., 1., 0., 0.],
+            [1., 1., 0., 1., 0.]])
         print(adj)
 
         best_test_acc = 0
         best_epoc = 0
 
-        gcn_train_middle_feature = torch.zeros(len(train_label),56*4)
-        gcn_test_middle_feature = torch.zeros(len(test_label),56*4)
+        gcn_train_middle_feature = torch.zeros(len(train_label),56*node_num)
+        gcn_test_middle_feature = torch.zeros(len(test_label),56*node_num)
 
         for epoch in range(100):
             loss_train_list = []
@@ -166,6 +169,7 @@ for fold in range(10):
                 vgg13_train_feature,
                 alexnet_train_feature,
                 attention56_train_feature,
+                googlenet_train_feature,
             )):  #必须得在这里用zip才行，好家伙
                 temp = torch.zeros((len(one_nodule_feature),512))
                 for i, feature in enumerate(one_nodule_feature):
@@ -198,6 +202,7 @@ for fold in range(10):
                 vgg13_test_feature,
                 alexnet_test_feature,
                 attention56_test_feature,
+                googlenet_test_feature,
             )):
                 temp = torch.zeros((len(one_nodule_feature),512))
                 for i, feature in enumerate(one_nodule_feature):
@@ -246,8 +251,8 @@ for fold in range(10):
                 },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2_fold_'+str(fold)+'.best.pth.tar')
 
                 #保存gcn中间特征到文件中，用于其他模型的训练
-                torch.save(gcn_train_middle_feature,'data/feature/10fold_gcn_feature_noNorm_random_adj/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
-                torch.save(gcn_test_middle_feature,'data/feature/10fold_gcn_feature_noNorm_random_adj/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_train_middle_feature,'data/feature/10fold_gcn_feature_noNorm_random_adj_addGoogleNet/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_test_middle_feature,'data/feature/10fold_gcn_feature_noNorm_random_adj_addGoogleNet/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
 
             vis.plot('train loss',np.mean(loss_train_list),1)
             vis.plot('test loss',np.mean(loss_test_list),1)
