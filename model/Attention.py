@@ -315,7 +315,7 @@ class Attention(nn.Module):
         self.avg = nn.AdaptiveAvgPool3d(1)
         self.linear1 = nn.Linear(2048, 512)
         self.linear2 = nn.Linear(512, 2)
-        self.linear3 = nn.Linear(512 + 56 * 4 + 255 + 38, 2)
+        self.linear3 = nn.Linear(512 + 56 * 5 + 255 + 38, 2)
 
     def forward(self, x,  gcn_feature=None, add_gcn_middle_feature=None):
         x = self.pre_conv(x) #16 64 8 128 128
