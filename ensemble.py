@@ -5,7 +5,8 @@ import random
 from sklearn.metrics import confusion_matrix
 
 modelList = ['alexnet','attention56','vgg13','resnet34','googlenet']
-descripe = 'para1_10fold_noNorm_add_gcn_traditional'
+descripe = 'para1_10fold_noNorm_add_gcn_includeGoogLeNet_1-similarityAdj_traditional'
+
 # descripe = '<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1'
 for i in range(1):
     ensembleMeanList = []
@@ -98,8 +99,9 @@ for i in range(1):
         attention56PredLabel = modelWeight[3] * attention56PredLabel
         googlenetPredLabel = modelWeight[4] * googlenetPredLabel
         finalPredLabel = np.array(alexnetPredLabel + vgg13PredLabel + resnet34PredLabel + attention56PredLabel + googlenetPredLabel)
-        finalPredLabel = np.where(finalPredLabel>=0.5, 1, 0)
-        # print('finalPredLabel:',finalPredLabel)
+        print('finalPredLabel:',finalPredLabel)
+        finalPredLabel = np.where(finalPredLabel>0.5, 1, 0)
+        print('finalPredLabel:',finalPredLabel)
         ensembleAcc = np.sum(groundTruth == finalPredLabel)/len(groundTruth)
         ensembleMeanList.append(ensembleAcc)
         print('alexnet acc: {0}, vgg13 acc: {1}, resnet34 acc: {2}, attention56 acc: {3}, googlenet acc: {4}, ensemble acc: {5}'.format(

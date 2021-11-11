@@ -148,7 +148,8 @@ class ResNet(nn.Module):
 
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
         self.fc1 = nn.Linear(block_inplanes[3] * block.expansion, 512)
-        self.fc2 = nn.Linear(512 + 56 * 5 + 255 + 38, n_classes)
+        # self.fc2 = nn.Linear(512 + 56 * 5 + 255 + 38, n_classes)
+        self.fc2 = nn.Linear(512 + 255, n_classes)
         self.fc3 = nn.Linear(512, n_classes)
 
         for m in self.modules():

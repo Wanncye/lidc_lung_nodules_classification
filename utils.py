@@ -1072,59 +1072,53 @@ def svm_classification_gcn_middle_feature():
                                                                                                                                     param_list[2],
                                                                                                                                     best_accuracy))
 
-#计算6种方法之间的预测相似度，以此来构建邻接矩阵
-def caculate_six_method_predict_similarity():
-    #先获得6种特征的预测标签，计算相似度只需要看预测得一不一样了
-    csv_reader = csv.reader(open('./data/mask_feature/glcm_testset_result.csv'))
-    header = next(csv_reader)
-    glcm_predict_list = []
-    for row in csv_reader:
-        glcm_predict_list.append(row[2])
-    
-    csv_reader = csv.reader(open('./data/mask_feature/googlenet_testset_result.csv'))
-    header = next(csv_reader)
-    googlenet_predict_list = []
-    for row in csv_reader:
-        googlenet_predict_list.append(row[2])
-
-    csv_reader = csv.reader(open('./data/mask_feature/vgg_testset_result.csv'))
-    header = next(csv_reader)
-    vgg_predict_list = []
-    for row in csv_reader:
-        vgg_predict_list.append(row[2])
-
-    csv_reader = csv.reader(open('./data/mask_feature/resnet_testset_result.csv'))
-    header = next(csv_reader)
-    resnet_predict_list = []
-    for row in csv_reader:
-        resnet_predict_list.append(row[2])
-    
-    csv_reader = csv.reader(open('./data/mask_feature/lbp_testset_result.csv'))
-    header = next(csv_reader)
-    lbp_predict_list = []
-    for row in csv_reader:
-        lbp_predict_list.append(row[2])
-
-    csv_reader = csv.reader(open('./data/mask_feature/hog_testset_result.csv'))
-    header = next(csv_reader)
-    hog_predict_list = []
-    for row in csv_reader:
-        hog_predict_list.append(row[2])
-    
-    all_predict_list = [googlenet_predict_list, resnet_predict_list, vgg_predict_list, hog_predict_list, lbp_predict_list, glcm_predict_list]
-    sim_matrix = np.zeros((6,6))
+#计算5种方法之间的预测相似度，以此来构建邻接矩阵
+def caculate_five_method_predict_similarity(fold):
+    modelList = ['alexnet','attention56','vgg13','resnet34','googlenet']
+    descripe = 'para1_10fold_noNorm_add_gcn_includeGoogLeNet_traditional'
+    for model in modelList:
+        jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_'+descripe+'.metrics_val_best_weights.json'
+        jsonFilePath = 'experiments/'+model+'_nomask/'+jsonFileName
+        f = open(jsonFilePath,'r')
+        jsonData = json.load(f)
+        jsonAcc = jsonData['accuracy']
+        jsonEpoch = jsonData['epoch']
+        csvPath = 'experiments/'+\
+                    model+\
+                    '_nomask/result_'+\
+                    descripe +\
+                    '/folder_'+\
+                    str(fold)+\
+                    '_result_'+\
+                    str(int(jsonEpoch-1))+\
+                    '.csv'
+        csvReader = pd.read_csv(csvPath)
+        if model=='alexnet':
+            alexnetPredLabel = csvReader['predict_label']
+        if model=='attention56':
+            attention56PredLabel = csvReader['predict_label']
+        if model=='vgg13':
+            vgg13PredLabel = csvReader['predict_label']
+        if model=='resnet34':
+            resnet34PredLabel = csvReader['predict_label']
+        if model=='googlenet':
+            googlenetPredLabel = csvReader['predict_label']
+    data_len = len(googlenetPredLabel)
+    all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel]
+    method_num = 5
+    sim_matrix = np.zeros((method_num,method_num))
     cord = 0
     for i_predict_list in all_predict_list:
         for j_predict_list in all_predict_list:
-            correct = 0
-            for index in range(160):
-                if i_predict_list[index] == j_predict_list[index]:
-                    correct += 1
-            row = int(cord / 6)
-            coloum = cord % 6
-            sim_matrix[row][coloum] = correct
+            correct = np.sum(i_predict_list == j_predict_list)
+            row = int(cord / method_num)
+            coloum = cord % method_num
+            if row != coloum:
+                sim_matrix[row][coloum] = (1-correct/data_len)*10
+            else:
+                sim_matrix[row][coloum] = 1
             cord += 1
-    return sim_matrix/160
+    return sim_matrix
 
 
 #提取15种特征的10个样本（5个正样本，5个负样本）的512维特征，写进txt文档中
@@ -1217,7 +1211,7 @@ def exract_15_feature_10_sample_write_in_txt():
 
 #得到两个矩阵的余弦相似度
 def get_matrix_similarity(_matrixA, _matrixB):
-    _matrixA_matrixB = np.dot(_matrixA, _matrixB.transpose())
+    _matrixA_matrixB = np.dot(_matrixA, _matrixB.T)
     _matrixA_norm = np.sqrt(np.multiply(_matrixA,_matrixA).sum(axis=1))
     _matrixB_norm = np.sqrt(np.multiply(_matrixB,_matrixB).sum(axis=1))
     return np.divide(_matrixA_matrixB, np.dot(_matrixA_norm.reshape(_matrixA_norm.shape[0],1), _matrixB_norm.reshape(1,_matrixA_norm.shape[0])))
@@ -2225,4 +2219,4 @@ def getDatasetMeanAndStd():
     return mean,std
 
 if __name__ == '__main__':
-    svm_classification_gcn_middle_feature()
+    caculate_five_method_predict_similarity(0)

@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix
-from utils import caculate_six_method_predict_similarity,calculate_percentage
+from utils import caculate_five_method_predict_similarity,calculate_percentage
 from utils import Visualizer
 import model.data_loader as data_loader
 import csv
@@ -140,7 +140,6 @@ for fold in range(10):
         # glcm_train_feature = glcm_train_feature.transpose(0,1)
 
 
-        # adj = torch.from_numpy(caculate_six_method_predict_similarity()).float()
         np.random.seed(np.random.randint(1,500))
         adj = get_random_adj(node_num, out_index)
         adj = torch.tensor(
@@ -149,6 +148,7 @@ for fold in range(10):
             [0., 1., 0., 1., 1.],
             [1., 0., 1., 0., 0.],
             [1., 1., 0., 1., 0.]])
+        adj = torch.from_numpy(caculate_five_method_predict_similarity(fold)).float()
         print(adj)
 
         best_test_acc = 0
@@ -251,8 +251,8 @@ for fold in range(10):
                 },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2_fold_'+str(fold)+'.best.pth.tar')
 
                 #保存gcn中间特征到文件中，用于其他模型的训练
-                torch.save(gcn_train_middle_feature,'data/feature/10fold_gcn_feature_noNorm_random_adj_addGoogleNet/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
-                torch.save(gcn_test_middle_feature,'data/feature/10fold_gcn_feature_noNorm_random_adj_addGoogleNet/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_train_middle_feature,'data/feature/10fold_gcn_feature_noNorm_1-featureSimilarity_adj_addGoogleNet/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_test_middle_feature,'data/feature/10fold_gcn_feature_noNorm_1-featureSimilarity_adj_addGoogleNet/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
 
             vis.plot('train loss',np.mean(loss_train_list),1)
             vis.plot('test loss',np.mean(loss_test_list),1)

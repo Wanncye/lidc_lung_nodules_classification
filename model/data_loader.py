@@ -55,7 +55,7 @@ class LIDCDataset(Dataset):
         self.add_middle_feature = add_middle_feature
         if self.add_middle_feature:
             self.fold = fold
-            self.gcn_middle_feature = torch.load('data/feature/10fold_gcn_feature_noNorm_random_adj_addGoogleNet/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
+            self.gcn_middle_feature = torch.load('data/feature/10fold_gcn_feature_noNorm_1-featureSimilarity_adj_addGoogleNet/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
             self.gcn_middle_feature.requires_grad = False
             self.addition_feature = torch.load('data/feature/10fold_traditional_feature/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
             self.addition_feature.requires_grad = False
@@ -94,6 +94,7 @@ class LIDCDataset(Dataset):
             one_gcn_middle_feature = self.gcn_middle_feature[idx]
             one_addition_feature = self.addition_feature[idx]
             one_feature = torch.cat((one_gcn_middle_feature,one_addition_feature), axis = 0)
+            one_feature = self.addition_feature[idx]
         else:
             one_feature = np.zeros((255))
         return cube, label, filename, one_feature

@@ -9,20 +9,25 @@ from scipy import linalg, mat, dot
 import os
 import matplotlib.pyplot as plt
 
-from utils import get_dataset_label_pt
+from utils import get_dataset_label_pt,get_matrix_similarity
 import utils
 import json
 
-for fold in range(5):
-    dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128<=20mm_aug/fold"+str(fold+1), train_shuffle=False)
-    train_dl = dataloaders['train']
-    path = 'fold_'+str(fold)+'_train_order.json'
-    fp = open(path,'w')
-    for dataloader_index, (data_batch, labels_batch, filename, one_feature) in enumerate(train_dl):
-        dicts = {}
-        for index,name in enumerate(filename):
-            dicts[index] =  name
-        dicts = json.dump(dicts,fp)
+a = torch.tensor([[1,1,1],[2,0,2],[3,3,3]])
+print(get_matrix_similarity(a,a))
+
+
+
+# for fold in range(5):
+#     dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128<=20mm_aug/fold"+str(fold+1), train_shuffle=False)
+#     train_dl = dataloaders['train']
+#     path = 'fold_'+str(fold)+'_train_order.json'
+#     fp = open(path,'w')
+#     for dataloader_index, (data_batch, labels_batch, filename, one_feature) in enumerate(train_dl):
+#         dicts = {}
+#         for index,name in enumerate(filename):
+#             dicts[index] =  name
+#         dicts = json.dump(dicts,fp)
 
 # for fold in range(2):
 #     tradFeature = torch.load('data/feature/addition_feature_mask<=20_aug/fold_'+str(fold)+'_test_addition_feature.pt')

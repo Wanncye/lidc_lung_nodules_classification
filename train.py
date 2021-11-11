@@ -66,12 +66,12 @@ else:
 
 # descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
 # descripe = '_para1_10fold_noNorm_add_gcn_traditional'
-descripe = '_para1_10fold_noNorm_add_gcn_includeGoogLeNet_traditional'
+descripe = '_para1_10fold_noNorm_add_gcn'
 
 # data_fold = '5fold_128<=20mm_aug'
 data_fold = '10fold'
 
-model_list = ['attention56','googlenet']
+model_list = ['alexnet','vgg13','resnet34','attention56','googlenet']
 # model_list = ['alexnet']
 # model_list = ['googlenet']
 foldList = [0,1,2]
@@ -111,8 +111,8 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
 
             # train_batch = (train_batch-datasetMean)/datasetStd
             
-            egithFeature = utils.getEightLabelFeature(file_name)
-            one_feature = torch.cat((one_feature, egithFeature), axis = 1)
+            # egithFeature = utils.getEightLabelFeature(file_name)
+            # one_feature = torch.cat((one_feature, egithFeature), axis = 1)
 
             if params.cuda:
                 train_batch, labels_batch, one_feature = train_batch.cuda(), labels_batch.cuda(), one_feature.cuda()
@@ -195,9 +195,9 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         for dataloader_index, (data_batch, labels_batch, filename, one_feature) in enumerate(dataloader):
             # data_batch = (data_batch-datasetMean)/datasetStd
 
-            egithFeature = utils.getEightLabelFeature(filename)
-            egithFeature = torch.zeros_like(egithFeature)
-            one_feature = torch.cat((one_feature, egithFeature), axis = 1)
+            # egithFeature = utils.getEightLabelFeature(filename)
+            # egithFeature = torch.zeros_like(egithFeature)
+            # one_feature = torch.cat((one_feature, egithFeature), axis = 1)
 
             # move to GPU if available
             if params.cuda:

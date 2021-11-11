@@ -102,7 +102,8 @@ class GoogleNet(nn.Module):
         self.dropout = nn.Dropout3d(p=0.4)
         self.linear1 = nn.Linear(1024, 512)
         self.linear2 = nn.Linear(512, num_class)
-        self.linear3 = nn.Linear(512 + 56 * 5 + 255 +38, num_class)
+        # self.linear3 = nn.Linear(512 + 56 * 5 + 255 +38, num_class)
+        self.linear3 = nn.Linear(512 + 255, num_class)
 
     def forward(self, x, gcn_feature, add_gcn_middle_feature):
         x = self.prelayer(x)
