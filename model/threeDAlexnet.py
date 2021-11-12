@@ -62,7 +62,8 @@ class AlexNet(nn.Module):
         self.relu2 = nn.ReLU(inplace=True)
         self.dropout2 = nn.Dropout()
         # self.linear3 = nn.Linear(512 + 56 * 5 + 255 + 38, num_classes)
-        self.linear3 = nn.Linear(512 + 255, num_classes)
+        # self.linear3 = nn.Linear(512 + 255, num_classes)
+        self.linear3 = nn.Linear(512 + 56 * 5, num_classes)
         self.linear4 = nn.Linear(512, num_classes)
 
     def forward(self, x, gcn_feature, add_gcn_middle_feature):

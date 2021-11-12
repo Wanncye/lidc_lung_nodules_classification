@@ -18,7 +18,8 @@ class VGG(nn.Module):
         )
         self.fc1 = nn.Linear(4096, 512)
         # self.fc2 = nn.Linear(512 + 56 * 5 + 255 + 38, num_classes)
-        self.fc2 = nn.Linear(512 + 255, num_classes)
+        # self.fc2 = nn.Linear(512 + 255, num_classes)
+        self.fc2 = nn.Linear(512 + 56 * 5, num_classes)
         self.fc3 = nn.Linear(512, num_classes)
 
         self.confidence = nn.Linear(512, 1)

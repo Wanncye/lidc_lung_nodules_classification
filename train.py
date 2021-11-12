@@ -66,7 +66,7 @@ else:
 
 # descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
 # descripe = '_para1_10fold_noNorm_add_gcn_traditional'
-descripe = '_para1_10fold_noNorm_add_gcn'
+descripe = '_para1_10fold_noNorm_add_gcn_only'
 
 # data_fold = '5fold_128<=20mm_aug'
 data_fold = '10fold'
@@ -74,7 +74,7 @@ data_fold = '10fold'
 model_list = ['alexnet','vgg13','resnet34','attention56','googlenet']
 # model_list = ['alexnet']
 # model_list = ['googlenet']
-foldList = [0,1,2]
+foldList = [0,1,2,3]
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
