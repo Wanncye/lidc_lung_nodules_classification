@@ -1073,52 +1073,57 @@ def svm_classification_gcn_middle_feature():
                                                                                                                                     best_accuracy))
 
 #计算5种方法之间的预测相似度，以此来构建邻接矩阵
-def caculate_five_method_predict_similarity(fold):
+def caculate_five_method_predict_similarity():
     modelList = ['alexnet','attention56','vgg13','resnet34','googlenet']
     descripe = 'para1_10fold_noNorm_add_gcn_includeGoogLeNet_traditional'
-    for model in modelList:
-        jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_'+descripe+'.metrics_val_best_weights.json'
-        jsonFilePath = 'experiments/'+model+'_nomask/'+jsonFileName
-        f = open(jsonFilePath,'r')
-        jsonData = json.load(f)
-        jsonAcc = jsonData['accuracy']
-        jsonEpoch = jsonData['epoch']
-        csvPath = 'experiments/'+\
-                    model+\
-                    '_nomask/result_'+\
-                    descripe +\
-                    '/folder_'+\
-                    str(fold)+\
-                    '_result_'+\
-                    str(int(jsonEpoch-1))+\
-                    '.csv'
-        csvReader = pd.read_csv(csvPath)
-        if model=='alexnet':
-            alexnetPredLabel = csvReader['predict_label']
-        if model=='attention56':
-            attention56PredLabel = csvReader['predict_label']
-        if model=='vgg13':
-            vgg13PredLabel = csvReader['predict_label']
-        if model=='resnet34':
-            resnet34PredLabel = csvReader['predict_label']
-        if model=='googlenet':
-            googlenetPredLabel = csvReader['predict_label']
-    data_len = len(googlenetPredLabel)
-    all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel]
-    method_num = 5
-    sim_matrix = np.zeros((method_num,method_num))
-    cord = 0
-    for i_predict_list in all_predict_list:
-        for j_predict_list in all_predict_list:
-            correct = np.sum(i_predict_list == j_predict_list)
-            row = int(cord / method_num)
-            coloum = cord % method_num
-            if row != coloum:
-                sim_matrix[row][coloum] = (1-correct/data_len)*10
-            else:
-                sim_matrix[row][coloum] = 1
-            cord += 1
-    return sim_matrix
+    sim_adj = np.zeros((5,5))
+    for fold in range(10):
+        for model in modelList:
+            jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_'+descripe+'.metrics_val_best_weights.json'
+            jsonFilePath = 'experiments/'+model+'_nomask/'+jsonFileName
+            f = open(jsonFilePath,'r')
+            jsonData = json.load(f)
+            jsonAcc = jsonData['accuracy']
+            jsonEpoch = jsonData['epoch']
+            csvPath = 'experiments/'+\
+                        model+\
+                        '_nomask/result_'+\
+                        descripe +\
+                        '/folder_'+\
+                        str(fold)+\
+                        '_result_'+\
+                        str(int(jsonEpoch-1))+\
+                        '.csv'
+            csvReader = pd.read_csv(csvPath)
+            if model=='alexnet':
+                alexnetPredLabel = csvReader['predict_label']
+            if model=='attention56':
+                attention56PredLabel = csvReader['predict_label']
+            if model=='vgg13':
+                vgg13PredLabel = csvReader['predict_label']
+            if model=='resnet34':
+                resnet34PredLabel = csvReader['predict_label']
+            if model=='googlenet':
+                googlenetPredLabel = csvReader['predict_label']
+        data_len = len(googlenetPredLabel)
+        all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel]
+        method_num = 5
+        sim_matrix = np.zeros((method_num,method_num))
+        cord = 0
+        for i_predict_list in all_predict_list:
+            for j_predict_list in all_predict_list:
+                correct = np.sum(i_predict_list == j_predict_list)
+                row = int(cord / method_num)
+                coloum = cord % method_num
+                if row != coloum:
+                    sim_matrix[row][coloum] = (1-correct/data_len)*10
+                else:
+                    sim_matrix[row][coloum] = 0
+                cord += 1
+        sim_adj = sim_adj + sim_matrix
+    sim_adj = sim_adj/10
+    print(sim_adj)
+    return sim_adj
 
 
 #提取15种特征的10个样本（5个正样本，5个负样本）的512维特征，写进txt文档中
@@ -2219,4 +2224,4 @@ def getDatasetMeanAndStd():
     return mean,std
 
 if __name__ == '__main__':
-    caculate_five_method_predict_similarity(0)
+    caculate_five_method_predict_similarity()

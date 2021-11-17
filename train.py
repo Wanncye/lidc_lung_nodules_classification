@@ -64,17 +64,37 @@ else:
     save_model_feature = True
     save_model_dir = '10fold_model_feature_noNorm'
 
+#设置生成的json文件、预测结果的描述，每次实验都不一样
 # descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
 # descripe = '_para1_10fold_noNorm_add_gcn_traditional'
-descripe = '_para1_10fold_noNorm_add_gcn_only'
+descripe = '_para1_10fold_noNorm_add_gcn_ajd_0_traditional'
 
+#GCN特征的文件加名
+gcn_feature_path = '10fold_gcn_feature_noNorm_similarity_adj_diag_0_addGoogleNet_56x5'
+
+#加特征之后全连接层的特征维度
+fc_feature_dim = 512 + 56*5 + 38 + 255
+
+#设置GPU的编号
+torch.cuda.set_device(0)
+
+#数据集文件夹名
 # data_fold = '5fold_128<=20mm_aug'
 data_fold = '10fold'
 
-model_list = ['alexnet','vgg13','resnet34','attention56','googlenet']
+#要训练的模型
+# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet']
+# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet']
+# model_list = ['resnet34','attention56','googlenet','shufflenet']
+# model_list = ['shufflenet','mobilenet',]
 # model_list = ['alexnet']
 # model_list = ['googlenet']
-foldList = [0,1,2,3]
+# model_list = ['vgg13']
+# model_list = ['resnet34']
+model_list = ['attention56']
+
+#分两张卡训练，指定要训练的fold
+foldList = [0,1,2]
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -111,8 +131,8 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
 
             # train_batch = (train_batch-datasetMean)/datasetStd
             
-            # egithFeature = utils.getEightLabelFeature(file_name)
-            # one_feature = torch.cat((one_feature, egithFeature), axis = 1)
+            egithFeature = utils.getEightLabelFeature(file_name)
+            one_feature = torch.cat((one_feature, egithFeature), axis = 1)
 
             if params.cuda:
                 train_batch, labels_batch, one_feature = train_batch.cuda(), labels_batch.cuda(), one_feature.cuda()
@@ -195,9 +215,9 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         for dataloader_index, (data_batch, labels_batch, filename, one_feature) in enumerate(dataloader):
             # data_batch = (data_batch-datasetMean)/datasetStd
 
-            # egithFeature = utils.getEightLabelFeature(filename)
-            # egithFeature = torch.zeros_like(egithFeature)
-            # one_feature = torch.cat((one_feature, egithFeature), axis = 1)
+            egithFeature = utils.getEightLabelFeature(filename)
+            egithFeature = torch.zeros_like(egithFeature)
+            one_feature = torch.cat((one_feature, egithFeature), axis = 1)
 
             # move to GPU if available
             if params.cuda:
@@ -294,6 +314,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
     val_acc_list = []
     for epoch in range(params.num_epochs):
         # Run one epoch
+        print("模型：{0}，第{1}折".format(model_name,N_folder))
         print("第%d个epoch的学习率：%f" % (epoch+1, optimizer.param_groups[0]['lr']))
         vis.plot('lr',optimizer.param_groups[0]['lr'],2)
         logging.info("Epoch {}/{}".format(epoch + 1, params.num_epochs))
@@ -338,7 +359,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
             utils.save_dict_to_json(val_metrics, best_json_path)
 
             #用最好的模型来提取512维特征
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/"+data_fold+"/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/"+data_fold+"/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, gcn_feature_path = gcn_feature_path, add_middle_feature=add_middle_feature)
             train_dl_save = dataloaders['train']
             test_dl_save = dataloaders['test']
             if save_model_feature:
@@ -363,24 +384,14 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         finish_time = time.time()
         used_time = finish_time-start_time
         print('used: ' + str(used_time) + ' seconds. ')
-        eta = ((params.num_epochs - 1 - epoch) + (0 - N_folder) * params.num_epochs) * used_time / 60
-        print('eta: ' + str(eta) + ' minutes. = ' + str(eta/60) + 'hs')
+        eta = ((params.num_epochs - 1 - epoch) + (3 - N_folder) * params.num_epochs) * used_time / 60
+        print(model_name + ' eta: ' + str(eta) + ' minutes. = ' + str(eta/60) + 'hs')
         print("\n")
 
         val_acc_list.append(val_acc)
-        # if epoch > 10:
-        #     if val_acc_list[epoch] == val_acc_list[epoch-1] and \
-        #         val_acc_list[epoch] == val_acc_list[epoch-2] and \
-        #         val_acc_list[epoch] == val_acc_list[epoch-3] and \
-        #         val_acc_list[epoch] == val_acc_list[epoch-4] and \
-        #         val_acc_list[epoch] == val_acc_list[epoch-5] and\
-        #         val_acc_list[epoch] == val_acc_list[epoch-6] and\
-        #         val_acc_list[epoch] == val_acc_list[epoch-7]:
-        #         logging.info("- early stop because 5 epochs had the same accuracy.")
-        #         break
 
 if __name__ == '__main__':
-
+    total_time_start = time.time()
     for model_name in model_list:
         print(model_name)
         print('\n')
@@ -398,8 +409,6 @@ if __name__ == '__main__':
         # use GPU if available
         params.cuda = torch.cuda.is_available()
 
-        #使用第二块gpu
-        torch.cuda.set_device(0)
         torch.cuda.empty_cache()
 
 
@@ -421,11 +430,9 @@ if __name__ == '__main__':
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
-            # 得到训练测试数据
-            # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/nodules3d_128_npy_no_same_patient_in_two_dataset", train_shuffle=False)
-            
+
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/"+data_fold+"/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/"+data_fold+"/fold"+str(N_folder+1), train_shuffle=True, gcn_feature_path = gcn_feature_path, fold= N_folder, add_middle_feature=add_middle_feature)
             # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
@@ -437,7 +444,7 @@ if __name__ == '__main__':
                 model = generate_model(params.net_depth).cuda()
                 print('Using ResNet'+str(params.net_depth))
             elif model_name == 'resnet34':
-                model = generate_model(params.net_depth).cuda()
+                model = generate_model(params.net_depth, fc_feature_dim=fc_feature_dim).cuda()
                 print('Using ResNet'+str(params.net_depth))
             elif model_name == 'resnet50':
                 model = generate_model(params.net_depth).cuda()
@@ -452,13 +459,13 @@ if __name__ == '__main__':
                 model = generate_model(params.net_depth).cuda()
                 print('Using ResNet'+str(params.net_depth))
             elif model_name == 'googlenet':
-                model = googlenet().cuda()
+                model = googlenet(fc_feature_dim=fc_feature_dim).cuda()
                 print('Using GoogLeNet')
             elif model_name == 'vgg11':
                 model = vgg11_bn(params.dropout_rate).cuda()
                 print('Using VGG_11')
             elif model_name == 'vgg13':
-                model = vgg13_bn(params.dropout_rate).cuda()
+                model = vgg13_bn(params.dropout_rate,fc_feature_dim).cuda()
                 print('Using VGG_13')
             elif model_name == 'vgg16':
                 model = vgg16_bn(params.dropout_rate).cuda()
@@ -479,13 +486,13 @@ if __name__ == '__main__':
                 model = DenseNet201().cuda()
                 print('Using densenet201')
             elif model_name == 'alexnet':
-                model = alexnet().cuda()
+                model = alexnet(fc_feature_dim=fc_feature_dim).cuda()
                 print('Using alexnet')
             elif model_name == 'lenet5':
                 model = lenet5().cuda()
                 print('Using lenet5')
             elif model_name == 'attention56':
-                model = attention56().cuda()
+                model = attention56(fc_feature_dim=fc_feature_dim).cuda()
                 print('Using attention56')
             elif model_name == 'attention92':
                 model = attention92().cuda()
@@ -575,8 +582,11 @@ if __name__ == '__main__':
             # onnx_path = "onnx_model_name.onnx"
             # torch.onnx.export(model, vis_x, onnx_path)
             # netron.start(onnx_path)
-            
-            optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0.0001)
+            if model_name in ['shufflenet','mobilenet']:
+                weight_decay = 0.01
+            else:
+                weight_decay = 0.0001
+            optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=weight_decay)
             scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
             # scheduler = MultiStepLR(optimizer, milestones=[100], gamma=0.8)
             # scheduler = ExponentialLR(optimizer, gamma=0.90)
@@ -603,5 +613,7 @@ if __name__ == '__main__':
             # train_and_evaluate(model, train_dl, test_dl, optimizer, loss_fn, metrics, params, args.model_dir, N_folder, scheduler, model_name, restore_file="folder.0.FocalLoss_alpha_0.25.best")
         all_time_finish = time.time()
         all_used_time = all_time_finish - all_time_start
-        print('used: ' + str(all_used_time/60) + ' mins.  =' + str(all_used_time/3600) + 'hs')
-
+        print(model_name + ' used: ' + str(all_used_time/60) + ' mins.  =' + str(all_used_time/3600) + 'hs')
+    total_time_finish = time.time()
+    total_used_time = total_time_finish-total_time_start
+    print('total used: ' + str(all_used_time/60) + ' mins.  =' + str(all_used_time/3600) + 'hs')

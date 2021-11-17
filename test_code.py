@@ -13,8 +13,13 @@ from utils import get_dataset_label_pt,get_matrix_similarity
 import utils
 import json
 
-a = torch.tensor([[1,1,1],[2,0,2],[3,3,3]])
-print(get_matrix_similarity(a,a))
+output_batch = torch.tensor([[1.593,2.245],[2.589,1.203]])
+m = nn.Softmax(dim=1)
+probability = m(output_batch)
+print(probability)
+predict = np.argmax(output_batch, axis=1)
+print(predict)
+print(probability[:, 1])
 
 
 

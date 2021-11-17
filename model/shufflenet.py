@@ -203,8 +203,10 @@ class ShuffleNet(nn.Module):
         self.avg = nn.AdaptiveAvgPool3d((1))
         self.fc1 = nn.Linear(out_channels[3], 512)
         self.fc2 = nn.Linear(512, num_classes)
+        # self.fc3 = nn.Linear(512 + 512+ 255 + 38, num_classes)
+        self.fc3 = nn.Linear(512 + 56*6 + 255 + 38, num_classes)
 
-    def forward(self, x):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature):
         x = self.conv1(x)
         x = self.stage2(x)
         x = self.stage3(x)
@@ -212,8 +214,11 @@ class ShuffleNet(nn.Module):
         x = self.avg(x)
         x = x.view(x.size(0), -1)
         feature = self.fc1(x)
-        x = self.fc2(feature)
-
+        if add_gcn_middle_feature:
+            catX = torch.cat((feature,gcn_feature),axis=1)
+            x = self.fc3(catX)
+        else:
+            x = self.fc2(feature)
         return x,feature
 
     def _make_stage(self, block, num_blocks, output_channels, stride, stage, groups):

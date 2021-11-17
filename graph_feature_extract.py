@@ -1,5 +1,5 @@
 from torch._C import dtype
-from model.graphNet import GAT,GCN
+from model.graphNet import GAT,GCN,GCN_512
 from torch.autograd import Variable
 import torch.optim as optim
 import torch.nn.functional as F
@@ -74,6 +74,12 @@ for fold in range(10):
     for out_index in range(1):
         input_dim = 512
         node_num = 5
+        # model = GCN_512(nfeat=input_dim,
+        #             nhid=64,
+        #             nclass=2,
+        #             fc_num=2,
+        #             dropout=0.5,
+        #             ft=node_num)
         model = GCN(nfeat=input_dim,
                     nhid=64,
                     nclass=2,
@@ -116,6 +122,10 @@ for fold in range(10):
         alexnet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_test.pt')
         googlenet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_googlenet_train.pt')
         googlenet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_googlenet_test.pt')
+        shufflenet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_shufflenet_train.pt')
+        shufflenet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_shufflenet_test.pt')
+        mobilenet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_mobilenet_train.pt')
+        mobilenet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_mobilenet_test.pt')
         
 
         train_label = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_train_label.pt')
@@ -142,13 +152,20 @@ for fold in range(10):
 
         np.random.seed(np.random.randint(1,500))
         adj = get_random_adj(node_num, out_index)
-        adj = torch.tensor(
-            [[1., 0., 1., 1., 0.],
-            [1., 0., 1., 1., 1.],
-            [0., 1., 0., 1., 1.],
-            [1., 0., 1., 0., 0.],
-            [1., 1., 0., 1., 0.]])
-        adj = torch.from_numpy(caculate_five_method_predict_similarity(fold)).float()
+        # adj = torch.tensor(
+        #     [[1., 0., 1., 1., 0.],
+        #     [1., 0., 1., 1., 1.],
+        #     [0., 1., 0., 1., 1.],
+        #     [1., 0., 1., 0., 0.],
+        #     [1., 1., 0., 1., 0.]])
+        # adj = torch.tensor(
+        #     [[1., 0., 1., 1., 0., 1.],
+        #     [1., 0., 1., 1., 1., 0.],
+        #     [0., 1., 0., 1., 1., 1.],
+        #     [1., 0., 1., 0., 0., 1.],
+        #     [1., 1., 0., 1., 0., 0.],
+        #     [0., 1., 1., 0., 1., 0.]])
+        adj = torch.from_numpy(caculate_five_method_predict_similarity()).float()
         print(adj)
 
         best_test_acc = 0
@@ -156,8 +173,10 @@ for fold in range(10):
 
         gcn_train_middle_feature = torch.zeros(len(train_label),56*node_num)
         gcn_test_middle_feature = torch.zeros(len(test_label),56*node_num)
+        # gcn_train_middle_feature = torch.zeros(len(train_label),512)
+        # gcn_test_middle_feature = torch.zeros(len(test_label),512)
 
-        for epoch in range(100):
+        for epoch in range(50):
             loss_train_list = []
             pre_train_list = torch.zeros(len(train_label))
 
@@ -170,6 +189,7 @@ for fold in range(10):
                 alexnet_train_feature,
                 attention56_train_feature,
                 googlenet_train_feature,
+                # shufflenet_train_feature,
             )):  #必须得在这里用zip才行，好家伙
                 temp = torch.zeros((len(one_nodule_feature),512))
                 for i, feature in enumerate(one_nodule_feature):
@@ -185,6 +205,7 @@ for fold in range(10):
                 _ , one_gcn_train_middle_feature, output = model(features, adj)
                 #将gcn中间特征保存下来
                 gcn_train_middle_feature[index] = one_gcn_train_middle_feature
+                # gcn_train_middle_feature[index,:510] = one_gcn_train_middle_feature
 
                 one_label = train_label[index].unsqueeze(0).long()
                 pre_train_list[index] = output.max(1)[1].type_as(one_label)
@@ -203,6 +224,7 @@ for fold in range(10):
                 alexnet_test_feature,
                 attention56_test_feature,
                 googlenet_test_feature,
+                # shufflenet_test_feature,
             )):
                 temp = torch.zeros((len(one_nodule_feature),512))
                 for i, feature in enumerate(one_nodule_feature):
@@ -217,6 +239,7 @@ for fold in range(10):
                 _ , one_gcn_test_middle_feature, output = model(features, adj)
                 #将gcn中间特征保存下来
                 gcn_test_middle_feature[index] = one_gcn_test_middle_feature
+                # gcn_test_middle_feature[index,:510] = one_gcn_test_middle_feature
 
                 one_label = test_label[index].unsqueeze(0).long()
                 pre_test_list[index] = output.max(1)[1].type_as(one_label)
@@ -244,15 +267,15 @@ for fold in range(10):
 
 
                 #最好准确率时保存模型
-                torch.save({
-                    'epoch' : epoch,
-                    'state_dict': model.state_dict(),
-                    'optim_dict' : optimizer.state_dict()
-                },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2_fold_'+str(fold)+'.best.pth.tar')
+                # torch.save({
+                #     'epoch' : epoch,
+                #     'state_dict': model.state_dict(),
+                #     'optim_dict' : optimizer.state_dict()
+                # },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2_fold_'+str(fold)+'.best.pth.tar')
 
                 #保存gcn中间特征到文件中，用于其他模型的训练
-                torch.save(gcn_train_middle_feature,'data/feature/10fold_gcn_feature_noNorm_1-featureSimilarity_adj_addGoogleNet/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
-                torch.save(gcn_test_middle_feature,'data/feature/10fold_gcn_feature_noNorm_1-featureSimilarity_adj_addGoogleNet/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_train_middle_feature,'data/feature/10fold_gcn_feature_noNorm_similarity_adj_diag_0_addGoogleNet_56x5_mean10fold/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
+                torch.save(gcn_test_middle_feature,'data/feature/10fold_gcn_feature_noNorm_similarity_adj_diag_0_addGoogleNet_56x5_mean10fold/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
 
             vis.plot('train loss',np.mean(loss_train_list),1)
             vis.plot('test loss',np.mean(loss_test_list),1)

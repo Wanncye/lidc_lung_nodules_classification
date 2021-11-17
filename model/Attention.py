@@ -295,7 +295,7 @@ class Attention(nn.Module):
         block_num: attention module number for each stage
     """
 
-    def __init__(self, block_num, class_num=100):
+    def __init__(self, block_num, fc_feature_dim=512, class_num=100):
 
         super().__init__()
         self.pre_conv = nn.Sequential(
@@ -315,9 +315,7 @@ class Attention(nn.Module):
         self.avg = nn.AdaptiveAvgPool3d(1)
         self.linear1 = nn.Linear(2048, 512)
         self.linear2 = nn.Linear(512, 2)
-        # self.linear3 = nn.Linear(512 + 56 * 5 + 255 + 38, 2)
-        # self.linear3 = nn.Linear(512 + 255, 2)
-        self.linear3 = nn.Linear(512 + 56 * 5, 2)
+        self.linear3 = nn.Linear(fc_feature_dim, 2)
 
     def forward(self, x,  gcn_feature=None, add_gcn_middle_feature=None):
         x = self.pre_conv(x) #16 64 8 128 128
@@ -345,8 +343,8 @@ class Attention(nn.Module):
 
         return nn.Sequential(*layers)
 
-def attention56():
-    return Attention([1, 1, 1])
+def attention56(fc_feature_dim):
+    return Attention([1, 1, 1],fc_feature_dim)
 
-def attention92():
-    return Attention([1, 2, 3])
+def attention92(fc_feature_dim):
+    return Attention([1, 2, 3],fc_feature_dim)

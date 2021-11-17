@@ -188,9 +188,11 @@ class MobileNet(nn.Module):
        self.fc1 = nn.Linear(int(1024 * alpha), 512)
        self.relu = nn.ReLU(inplace=True)
        self.fc2 = nn.Linear(512, class_num)
+    #    self.fc3 = nn.Linear(512 + 512+ 255 + 38, class_num)
+       self.fc3 = nn.Linear(512 + 56*6 + 255 + 38, class_num)
        self.avg = nn.AdaptiveAvgPool3d(1)
 
-    def forward(self, x):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature):
         x = self.stem(x)
 
         x = self.conv1(x)
@@ -201,8 +203,11 @@ class MobileNet(nn.Module):
         x = self.avg(x)
         x = x.view(x.size(0), -1)
         feature = self.fc1(x)
-        # feature = self.relu(x)
-        x = self.fc2(feature)
+        if add_gcn_middle_feature:
+            catX = torch.cat((feature,gcn_feature),axis=1)
+            x = self.fc3(catX)
+        else:
+            x = self.fc2(feature)
         return x,feature
 
 

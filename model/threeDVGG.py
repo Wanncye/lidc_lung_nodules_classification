@@ -5,7 +5,7 @@ import torch
 
 class VGG(nn.Module):
 
-    def __init__(self, features, dropout_rate, num_classes=2, init_weights=True):
+    def __init__(self, features, dropout_rate, fc_feature_dim=512, num_classes=2, init_weights=True):
         super(VGG, self).__init__()
         self.features = features
         self.classifier = nn.Sequential(
@@ -17,9 +17,7 @@ class VGG(nn.Module):
             nn.Dropout(dropout_rate),
         )
         self.fc1 = nn.Linear(4096, 512)
-        # self.fc2 = nn.Linear(512 + 56 * 5 + 255 + 38, num_classes)
-        # self.fc2 = nn.Linear(512 + 255, num_classes)
-        self.fc2 = nn.Linear(512 + 56 * 5, num_classes)
+        self.fc2 = nn.Linear(fc_feature_dim, num_classes)
         self.fc3 = nn.Linear(512, num_classes)
 
         self.confidence = nn.Linear(512, 1)
@@ -82,43 +80,43 @@ cfg = {
 }
 
 
-def vgg11(**kwargs):
-    model = VGG(make_layers(cfg['A']), **kwargs)
+def vgg11(fc_feature_dim, **kwargs):
+    model = VGG(make_layers(cfg['A']), fc_feature_dim, **kwargs)
     return model
 
 
-def vgg11_bn(dropout_rate,**kwargs):
-    model = VGG(make_layers(cfg['A'], batch_norm=True), dropout_rate, **kwargs)
+def vgg11_bn(fc_feature_dim, dropout_rate,**kwargs):
+    model = VGG(make_layers(cfg['A'], batch_norm=True), dropout_rate, fc_feature_dim, **kwargs)
     return model
 
 
-def vgg13(**kwargs):
-    model = VGG(make_layers(cfg['B']), **kwargs)
+def vgg13(fc_feature_dim, **kwargs):
+    model = VGG(make_layers(cfg['B']), fc_feature_dim, **kwargs)
     return model
 
 
-def vgg13_bn(dropout_rate,**kwargs):
-    model = VGG(make_layers(cfg['B'], batch_norm=True), dropout_rate, **kwargs)
+def vgg13_bn(dropout_rate,fc_feature_dim,**kwargs):
+    model = VGG(make_layers(cfg['B'], batch_norm=True), dropout_rate, fc_feature_dim, **kwargs)
     return model
 
 
-def vgg16(**kwargs):
-    model = VGG(make_layers(cfg['D']), **kwargs)
+def vgg16(fc_feature_dim, **kwargs):
+    model = VGG(make_layers(cfg['D']),fc_feature_dim,  **kwargs)
     return model
 
 
-def vgg16_bn(dropout_rate,**kwargs):
-    model = VGG(make_layers(cfg['D'], batch_norm=True), dropout_rate, **kwargs)
+def vgg16_bn(fc_feature_dim, dropout_rate,**kwargs):
+    model = VGG(make_layers(cfg['D'], batch_norm=True), dropout_rate, fc_feature_dim, **kwargs)
     return model
 
 
-def vgg19(**kwargs):
-    model = VGG(make_layers(cfg['E']), **kwargs)
+def vgg19(fc_feature_dim, **kwargs):
+    model = VGG(make_layers(cfg['E']), fc_feature_dim, **kwargs)
     return model
 
 
-def vgg19_bn(dropout_rate,**kwargs):
-    model = VGG(make_layers(cfg['E'], batch_norm=True), dropout_rate, **kwargs)
+def vgg19_bn(fc_feature_dim, dropout_rate,**kwargs):
+    model = VGG(make_layers(cfg['E'], batch_norm=True), dropout_rate, fc_feature_dim, **kwargs)
     return model
 
 

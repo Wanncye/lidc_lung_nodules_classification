@@ -151,6 +151,30 @@ class GCN(nn.Module):
         return x1, middle_feature, F.log_softmax(x5, dim=1)
 
 
+class GCN_512(nn.Module):
+    def __init__(self, nfeat, nhid, nclass, fc_num, dropout, ft):
+        super(GCN_512, self).__init__()
+        self.nclass = nclass
+        self.gc1 = GC(nfeat, nhid)
+        self.gc2 = GC(nhid, 102)
+        self.gc3 = GC(102, fc_num)
+        self.dropout = dropout
+        node_num = ft
+        self.fc = nn.Linear(fc_num*node_num, nclass)
+
+    def forward(self, x, adj):
+        x1 = F.relu(self.gc1(x, adj))
+        x2 = F.dropout(x1, self.dropout, training=self.training)
+        x3 = F.relu(self.gc2(x2, adj))
+        middle_feature = x3.view(1, -1)
+        x3 = F.dropout(x3, self.dropout, training=self.training)
+        x3 = F.relu(self.gc3(x3, adj))
+        x4 = x3.view(1, -1)
+        x5 = self.fc(x4)
+        return x1, middle_feature, F.log_softmax(x5, dim=1)
+
+
+
 class GCN_all_nodule(nn.Module):
     def __init__(self, nfeat, nhid, nclass, fc_num, dropout):
         super(GCN_all_nodule, self).__init__()

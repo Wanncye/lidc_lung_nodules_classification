@@ -59,7 +59,7 @@ class Inception(nn.Module):
 
 class GoogleNet(nn.Module):
 
-    def __init__(self, num_class=2):
+    def __init__(self, fc_feature_dim=512, num_class=2):
         super().__init__()
         self.prelayer = nn.Sequential(
             nn.Conv3d(1, 64, kernel_size=3, padding=1, bias=False),
@@ -102,9 +102,12 @@ class GoogleNet(nn.Module):
         self.dropout = nn.Dropout3d(p=0.4)
         self.linear1 = nn.Linear(1024, 512)
         self.linear2 = nn.Linear(512, num_class)
-        # self.linear3 = nn.Linear(512 + 56 * 5 + 255 +38, num_class)
+        self.linear3 = nn.Linear(fc_feature_dim, num_class)
         # self.linear3 = nn.Linear(512 + 255, num_class)
-        self.linear3 = nn.Linear(512 + 56 * 5, num_class)
+        # self.linear3 = nn.Linear(512 + 56 * 5, num_class)
+        # self.linear3 = nn.Linear(512 + 512, num_class)
+        # self.linear3 = nn.Linear(512 + 512 + 255 + 38, num_class)
+        # self.linear3 = nn.Linear(512 + 56*6 + 255 + 38, num_class)
 
     def forward(self, x, gcn_feature, add_gcn_middle_feature):
         x = self.prelayer(x)
@@ -139,5 +142,5 @@ class GoogleNet(nn.Module):
             out = self.linear2(feature)
         return out,feature
 
-def googlenet():
-    return GoogleNet()
+def googlenet(fc_feature_dim):
+    return GoogleNet(fc_feature_dim)

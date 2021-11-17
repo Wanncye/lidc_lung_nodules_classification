@@ -111,7 +111,8 @@ class ResNet(nn.Module):
                  no_max_pool=False,
                  shortcut_type='B',
                  widen_factor=1.0,
-                 n_classes=2):
+                 n_classes=2,
+                 fc_feature_dim=512):
         super().__init__()
 
         block_inplanes = [int(x * widen_factor) for x in block_inplanes]
@@ -148,9 +149,7 @@ class ResNet(nn.Module):
 
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
         self.fc1 = nn.Linear(block_inplanes[3] * block.expansion, 512)
-        # self.fc2 = nn.Linear(512 + 56 * 5 + 255 + 38, n_classes)
-        # self.fc2 = nn.Linear(512 + 255, n_classes)
-        self.fc2 = nn.Linear(512 + 56 * 5, n_classes)
+        self.fc2 = nn.Linear(fc_feature_dim, n_classes)
         self.fc3 = nn.Linear(512, n_classes)
 
         for m in self.modules():
@@ -220,22 +219,22 @@ class ResNet(nn.Module):
         return x2, feature
 
 
-def generate_model(model_depth, **kwargs):
+def generate_model(model_depth, fc_feature_dim, **kwargs):
     assert model_depth in [10, 18, 34, 50, 101, 152, 200]
 
     if model_depth == 10:
-        model = ResNet(BasicBlock, [1, 1, 1, 1], get_inplanes(), **kwargs)
+        model = ResNet(BasicBlock, [1, 1, 1, 1], get_inplanes(), fc_feature_dim=fc_feature_dim,  **kwargs)
     elif model_depth == 18:
-        model = ResNet(BasicBlock, [2, 2, 2, 2], get_inplanes(), **kwargs)
+        model = ResNet(BasicBlock, [2, 2, 2, 2], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
     elif model_depth == 34:
-        model = ResNet(BasicBlock, [3, 4, 6, 3], get_inplanes(), **kwargs)
+        model = ResNet(BasicBlock, [3, 4, 6, 3], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
     elif model_depth == 50:
-        model = ResNet(Bottleneck, [3, 4, 6, 3], get_inplanes(), **kwargs)
+        model = ResNet(Bottleneck, [3, 4, 6, 3], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
     elif model_depth == 101:
-        model = ResNet(Bottleneck, [3, 4, 23, 3], get_inplanes(), **kwargs)
+        model = ResNet(Bottleneck, [3, 4, 23, 3], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
     elif model_depth == 152:
-        model = ResNet(Bottleneck, [3, 8, 36, 3], get_inplanes(), **kwargs)
+        model = ResNet(Bottleneck, [3, 8, 36, 3], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
     elif model_depth == 200:
-        model = ResNet(Bottleneck, [3, 24, 36, 3], get_inplanes(), **kwargs)
+        model = ResNet(Bottleneck, [3, 24, 36, 3], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
 
     return model
