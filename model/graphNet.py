@@ -116,6 +116,13 @@ class GC(Module):
             return output + self.bias
         else:
             return output
+    # def forward(self, input):
+    #     support = torch.mm(input, self.weight)
+    #     output = torch.spmm(self.adj, support)
+    #     if self.bias is not None:
+    #         return output + self.bias
+    #     else:
+    #         return output
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
@@ -134,21 +141,30 @@ class GCN(nn.Module):
         node_num = ft
         self.fc = nn.Linear(fc_num*node_num, nclass)
 
+        self.adj = torch.ones((5,5))
+
     def forward(self, x, adj):
-        # x = F.dropout(x, self.dropout, training=self.training)  不能在这里加dropout，这个会降低性能
         x1 = F.relu(self.gc1(x, adj))
-        # print(x1)
-        x2 = F.dropout(x1, self.dropout, training=self.training)#dropout了哪些信息？ 确定，这里的dropout是随机失活某一维度的一些值，而不是所有值
-        # print(x2)
-        x3 = F.relu(self.gc2(x2, adj))  #这儿可以也加一个激活函数,但是这里加激活函数之后测试集准确率全50%，所以去掉relu
+        x2 = F.dropout(x1, self.dropout, training=self.training)
+        x3 = F.relu(self.gc2(x2, adj))
         middle_feature = x3.view(1, -1)
         x3 = F.dropout(x3, self.dropout, training=self.training)
         x3 = F.relu(self.gc3(x3, adj))
-        # x3 = F.dropout(x3, self.dropout, training=self.training)
-        # x3 = F.relu(self.gc4(x3, adj))
         x4 = x3.view(1, -1)
         x5 = self.fc(x4)
         return x1, middle_feature, F.log_softmax(x5, dim=1)
+
+    # def forward(self, x):
+    #     x1 = F.relu(self.gc1(x))
+    #     x2 = F.dropout(x1, self.dropout, training=self.training)
+    #     x3 = F.relu(self.gc2(x2))
+    #     middle_feature = x3.view(1, -1)
+    #     x3 = F.dropout(x3, self.dropout, training=self.training)
+    #     x3 = F.relu(self.gc3(x3))
+    #     x4 = x3.view(1, -1)
+    #     x5 = self.fc(x4)
+    #     return x1, middle_feature, F.log_softmax(x5, dim=1)
+
 
 
 class GCN_512(nn.Module):

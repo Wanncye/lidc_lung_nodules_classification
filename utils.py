@@ -1116,7 +1116,8 @@ def caculate_five_method_predict_similarity():
                 row = int(cord / method_num)
                 coloum = cord % method_num
                 if row != coloum:
-                    sim_matrix[row][coloum] = (1-correct/data_len)*10
+                    sim_matrix[row][coloum] = (1-correct/data_len)*10   
+                    # sim_matrix[row][coloum] = correct/data_len
                 else:
                     sim_matrix[row][coloum] = 0
                 cord += 1
