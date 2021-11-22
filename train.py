@@ -67,10 +67,10 @@ else:
 #设置生成的json文件、预测结果的描述，每次实验都不一样
 # descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
 # descripe = '_para1_10fold_noNorm_add_gcn_traditional'
-descripe = '_para1_10fold_noNorm_add_gcn_adj_0_fc_traditional'
+descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_5feature_traditional'
 
 #GCN特征的文件加名
-gcn_feature_path = '10fold_gcn_feature_noNorm_similarity_adj_diag_0_addGoogleNet_56x5_fc'
+gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_addGoogleNet'
 
 #加特征之后全连接层的特征维度
 fc_feature_dim = 512 + 56*5 + 38 + 255
@@ -84,7 +84,7 @@ data_fold = '10fold'
 
 #要训练的模型
 # model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet']
-model_list = ['alexnet','vgg13','resnet34','googlenet']
+model_list = ['alexnet','vgg13','resnet34','attention56','googlenet']
 # model_list = ['resnet34','attention56','googlenet','shufflenet']
 # model_list = ['shufflenet','mobilenet',]
 # model_list = ['alexnet']

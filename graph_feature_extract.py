@@ -74,18 +74,18 @@ for fold in range(10):
     for out_index in range(1):
         input_dim = 512
         node_num = 5
-        # model = GCN_512(nfeat=input_dim,
-        #             nhid=64,
-        #             nclass=2,
-        #             fc_num=2,
-        #             dropout=0.5,
-        #             ft=node_num)
-        model = GCN(nfeat=input_dim,
+        model = GCN_512(nfeat=input_dim,
                     nhid=64,
                     nclass=2,
                     fc_num=2,
                     dropout=0.5,
                     ft=node_num)
+        # model = GCN(nfeat=input_dim,
+        #             nhid=64,
+        #             nclass=2,
+        #             fc_num=2,
+        #             dropout=0.5,
+        #             ft=node_num)
         # model = GAT(nfeat=512,
         #             nhid=64,
         #             nclass=2,
@@ -96,7 +96,7 @@ for fold in range(10):
         optimizer = optim.Adam(model.parameters(), 
                             lr=1e-4, 
                             weight_decay=weightDecay)
-        save_dir_name = '10fold_gcn_feature_noNorm_learning_adj_addGoogleNet'
+        save_dir_name = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_addGoogleNet'
 
         #pretrain_feature
         # m = torch.nn.Tanh()
@@ -163,15 +163,15 @@ for fold in range(10):
         #     [1., 0., 1., 0., 0., 1.],
         #     [1., 1., 0., 1., 0., 0.],
         #     [0., 1., 1., 0., 1., 0.]])
-        adj = torch.tensor(
-            [[0., 0., 1., 1., 0., 1.,0.],
-            [1., 0., 1., 1., 1., 0.,1.],
-            [0., 1., 0., 1., 1., 1.,0.],
-            [1., 0., 1., 0., 0., 1.,1.],
-            [1., 1., 0., 1., 0., 0.,1.],
-            [0., 1., 1., 0., 1., 0.,0.],
-            [1. ,0. ,1. ,0. ,1. ,1.,0.]])
-        # adj = torch.from_numpy(caculate_five_method_predict_similarity()).float()
+        # adj = torch.tensor(
+        #     [[0., 0., 1., 1., 0., 1.,0.],
+        #     [1., 0., 1., 1., 1., 0.,1.],
+        #     [0., 1., 0., 1., 1., 1.,0.],
+        #     [1., 0., 1., 0., 0., 1.,1.],
+        #     [1., 1., 0., 1., 0., 0.,1.],
+        #     [0., 1., 1., 0., 1., 0.,0.],
+        #     [1. ,0. ,1. ,0. ,1. ,1.,0.]])
+        adj = torch.from_numpy(caculate_five_method_predict_similarity()).float()
         # adj = torch.tensor(
         #     [[0., 1., 1., 1., 1.],
         #     [1., 0., 1., 1., 1.],
@@ -183,10 +183,10 @@ for fold in range(10):
         best_test_acc = 0
         best_epoc = 0
 
-        gcn_train_middle_feature = torch.zeros(len(train_label),56*node_num)
-        gcn_test_middle_feature = torch.zeros(len(test_label),56*node_num)
-        # gcn_train_middle_feature = torch.zeros(len(train_label),512)
-        # gcn_test_middle_feature = torch.zeros(len(test_label),512)
+        # gcn_train_middle_feature = torch.zeros(len(train_label),56*node_num)
+        # gcn_test_middle_feature = torch.zeros(len(test_label),56*node_num)
+        gcn_train_middle_feature = torch.zeros(len(train_label),512)
+        gcn_test_middle_feature = torch.zeros(len(test_label),512)
 
         for epoch in range(50):
             loss_train_list = []
@@ -215,11 +215,11 @@ for fold in range(10):
                 model.train()
                 optimizer.zero_grad()
 
-                # _ , one_gcn_train_middle_feature, output = model(features, adj)
-                _ , one_gcn_train_middle_feature, output = model(features)
+                _ , one_gcn_train_middle_feature, output = model(features, adj)
+                # _ , one_gcn_train_middle_feature, output = model(features)
                 #将gcn中间特征保存下来
-                gcn_train_middle_feature[index] = one_gcn_train_middle_feature
-                # gcn_train_middle_feature[index,:510] = one_gcn_train_middle_feature
+                # gcn_train_middle_feature[index] = one_gcn_train_middle_feature
+                gcn_train_middle_feature[index,:510] = one_gcn_train_middle_feature
 
                 one_label = train_label[index].unsqueeze(0).long()
                 pre_train_list[index] = output.max(1)[1].type_as(one_label)
@@ -251,11 +251,11 @@ for fold in range(10):
                 features, adj = Variable(one_nodule_feature), Variable(adj)
 
                 model.eval()
-                # _ , one_gcn_test_middle_feature, output = model(features, adj)
-                _ , one_gcn_test_middle_feature, output = model(features)
+                _ , one_gcn_test_middle_feature, output = model(features, adj)
+                # _ , one_gcn_test_middle_feature, output = model(features)
                 #将gcn中间特征保存下来
-                gcn_test_middle_feature[index] = one_gcn_test_middle_feature
-                # gcn_test_middle_feature[index,:510] = one_gcn_test_middle_feature
+                # gcn_test_middle_feature[index] = one_gcn_test_middle_feature
+                gcn_test_middle_feature[index,:510] = one_gcn_test_middle_feature
 
                 one_label = test_label[index].unsqueeze(0).long()
                 pre_test_list[index] = output.max(1)[1].type_as(one_label)

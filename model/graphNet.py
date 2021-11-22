@@ -141,7 +141,6 @@ class GCN(nn.Module):
         node_num = ft
         self.fc = nn.Linear(fc_num*node_num, nclass)
 
-        self.adj = torch.ones((5,5))
 
     def forward(self, x, adj):
         x1 = F.relu(self.gc1(x, adj))

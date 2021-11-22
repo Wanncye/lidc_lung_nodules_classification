@@ -1115,16 +1115,17 @@ def caculate_five_method_predict_similarity():
                 correct = np.sum(i_predict_list == j_predict_list)
                 row = int(cord / method_num)
                 coloum = cord % method_num
-                if row != coloum:
-                    sim_matrix[row][coloum] = (1-correct/data_len)*10   
-                    # sim_matrix[row][coloum] = correct/data_len
-                else:
-                    sim_matrix[row][coloum] = 0
+                # if row != coloum:
+                #     sim_matrix[row][coloum] = (1-correct/data_len)*10   
+                #     sim_matrix[row][coloum] = correct/data_len
+                # else:
+                #     sim_matrix[row][coloum] = 0
+                sim_matrix[row][coloum] = (1-correct/data_len)*10  
                 cord += 1
-        sim_adj = sim_adj + sim_matrix
-    sim_adj = sim_adj/10
-    print(sim_adj)
-    return sim_adj
+    #     sim_adj = sim_adj + sim_matrix
+    # sim_adj = sim_adj/10
+    # print(sim_adj)
+    return sim_matrix
 
 
 #提取15种特征的10个样本（5个正样本，5个负样本）的512维特征，写进txt文档中
