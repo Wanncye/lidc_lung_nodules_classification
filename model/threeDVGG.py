@@ -25,13 +25,24 @@ class VGG(nn.Module):
         if init_weights:
             self._initialize_weights()
 
-    def forward(self, x, gcn_feature, add_gcn_middle_feature):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature, feature_fusion_method):
         x = self.features(x)
         x = x.view(x.size(0), -1)  #16*8192
         x = self.classifier(x)
         feature = self.fc1(x)    #得到的512维特征
         if add_gcn_middle_feature:
-            x1 = torch.cat((feature,gcn_feature),axis=1)
+            if feature_fusion_method == 'cat':
+                x1 = torch.cat((feature,gcn_feature),axis=1)
+            elif feature_fusion_method == 'add':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = feature + sub_feature_1
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
+            elif feature_fusion_method == 'avg':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = (feature + sub_feature_1)/2
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
             x2 = self.fc2(x1)
         else:
             x2 = self.fc3(feature)

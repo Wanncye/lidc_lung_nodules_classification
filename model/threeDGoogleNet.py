@@ -109,7 +109,7 @@ class GoogleNet(nn.Module):
         # self.linear3 = nn.Linear(512 + 512 + 255 + 38, num_class)
         # self.linear3 = nn.Linear(512 + 56*6 + 255 + 38, num_class)
 
-    def forward(self, x, gcn_feature, add_gcn_middle_feature):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature, feature_fusion_method):
         x = self.prelayer(x)
         x = self.maxpool(x)
         x = self.a3(x)
@@ -136,7 +136,18 @@ class GoogleNet(nn.Module):
         x = x.view(x.size()[0], -1)
         feature = self.linear1(x)
         if add_gcn_middle_feature:
-            x = torch.cat((feature,gcn_feature),axis=1)
+            if feature_fusion_method == 'cat':
+                x = torch.cat((feature,gcn_feature),axis=1)
+            elif feature_fusion_method == 'add':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x = feature + sub_feature_1
+                x = torch.cat((x,sub_feature_2),axis=1)
+            elif feature_fusion_method == 'avg':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x = (feature + sub_feature_1)/2
+                x = torch.cat((x,sub_feature_2),axis=1)
             out = self.linear3(x)
         else:
             out = self.linear2(feature)

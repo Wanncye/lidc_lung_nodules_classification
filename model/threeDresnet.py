@@ -196,7 +196,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, gcn_feature, add_gcn_middle_feature):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature, feature_fusion_method):
 
         x = self.conv1(x)
         x = self.bn1(x)
@@ -211,8 +211,18 @@ class ResNet(nn.Module):
         x = x.view(x.size(0), -1)
         feature = self.fc1(x)
         if add_gcn_middle_feature:
-            #拼接两个tensor
-            x1 = torch.cat((feature,gcn_feature),axis=1)
+            if feature_fusion_method == 'cat':
+                x1 = torch.cat((feature,gcn_feature),axis=1)
+            elif feature_fusion_method == 'add':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = feature + sub_feature_1
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
+            elif feature_fusion_method == 'avg':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = (feature + sub_feature_1)/2
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
             x2 = self.fc2(x1)
         else:
             x2 = self.fc3(feature)

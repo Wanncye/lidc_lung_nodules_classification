@@ -95,7 +95,7 @@ class LIDCDataset(Dataset):
             one_addition_feature = self.addition_feature[idx]
             one_feature = torch.cat((one_gcn_middle_feature,one_addition_feature), axis = 0)
             # one_feature = self.addition_feature[idx]
-            # one_feature = self.gcn_middle_feature[idx]
+            one_feature = self.gcn_middle_feature[idx]
         else:
             one_feature = np.zeros((255))
         return cube, label, filename, one_feature

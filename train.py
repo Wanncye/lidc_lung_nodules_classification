@@ -67,13 +67,22 @@ else:
 #设置生成的json文件、预测结果的描述，每次实验都不一样
 # descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
 # descripe = '_para1_10fold_noNorm_add_gcn_traditional'
-descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_5feature_traditional'
+# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_5feature_512_cat_traditional'
+descripe = '_para1_10fold_noNorm_only_add_gcn_5feature_512_cat'
 
 #GCN特征的文件加名
-gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_addGoogleNet'
+gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_addGoogleNet'
 
 #加特征之后全连接层的特征维度
-fc_feature_dim = 512 + 56*5 + 38 + 255
+feature_fusion_method = 'cat'
+# feature_fusion_method = 'avg'
+# feature_fusion_method = 'cat'
+if feature_fusion_method == 'cat':
+    # fc_feature_dim = 512 + 512 + 38 + 255
+    fc_feature_dim = 512 + 38 + 512
+elif feature_fusion_method == 'add' or feature_fusion_method == 'avg':
+    fc_feature_dim = 512  + 38 + 255
+
 
 #设置GPU的编号
 torch.cuda.set_device(0)
@@ -84,7 +93,8 @@ data_fold = '10fold'
 
 #要训练的模型
 # model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet']
-model_list = ['alexnet','vgg13','resnet34','attention56','googlenet']
+# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet']
+model_list = ['attention56','googlenet']
 # model_list = ['resnet34','attention56','googlenet','shufflenet']
 # model_list = ['shufflenet','mobilenet',]
 # model_list = ['alexnet']
@@ -140,7 +150,7 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
             train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
 
             #将载入的数据输入3DResNet,得到结果
-            output_batch, _ = model(train_batch, one_feature, add_middle_feature)
+            output_batch, _ = model(train_batch, one_feature, add_middle_feature, feature_fusion_method)
 
             loss = loss_fn(output_batch, labels_batch)
             #将梯度初始化为0
@@ -226,7 +236,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             data_batch, labels_batch = Variable(data_batch), Variable(labels_batch)
             
             # compute model output
-            output_batch, _ = model(data_batch, one_feature, add_middle_feature)
+            output_batch, _ = model(data_batch, one_feature, add_middle_feature, feature_fusion_method)
             loss = loss_fn(output_batch, labels_batch)
 
             m = nn.Softmax(dim=1)
@@ -567,13 +577,13 @@ if __name__ == '__main__':
                 model = xception().cuda()
                 print('Using xception')
 
-            print('# model parameters:', sum(param.numel() for param in model.parameters()))
-            input = torch.randn(1, 1, 8, 128, 128).cuda()
-            fake_feature = torch.randn(1,56*4).cuda()
-            fake_add_gcn_feature = False
-            flops_num, params_num = profile(model, inputs=(input, fake_feature, fake_add_gcn_feature))
-            print('# flops:', flops_num)
-            print('# params:', params_num)
+            # print('# model parameters:', sum(param.numel() for param in model.parameters()))
+            # input = torch.randn(1, 1, 8, 128, 128).cuda()
+            # fake_feature = torch.randn(1,56*4).cuda()
+            # fake_add_gcn_feature = False
+            # flops_num, params_num = profile(model, inputs=(input, fake_feature, fake_add_gcn_feature))
+            # print('# flops:', flops_num)
+            # print('# params:', params_num)
 
             # 在pytorch中，输入数据的维数可以表示为（N,C,D,H,W），其中：N为batch_size，C为输入的通道数，D为深度（D这个维度上含有时序信息），H和W分别是输入图像的高和宽。
             #可视化网络结构

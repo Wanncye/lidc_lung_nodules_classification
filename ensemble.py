@@ -5,7 +5,7 @@ import random
 from sklearn.metrics import confusion_matrix
 
 modelList = ['alexnet','attention56','vgg13','resnet34','googlenet']
-descripe = 'para1_10fold_noNorm_add_gcn_includeGoogLeNet_traditional'
+descripe = 'para1_10fold_noNorm_add_gcn_adj_1-similarity_5feature_512_avg_traditional'
 
 # descripe = '<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1'
 for i in range(1):

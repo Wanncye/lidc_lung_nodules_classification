@@ -13,15 +13,17 @@ from utils import get_dataset_label_pt,get_matrix_similarity
 import utils
 import json
 
-output_batch = torch.tensor([[1.593,2.245],[2.589,1.203]])
-m = nn.Softmax(dim=1)
-probability = m(output_batch)
-print(probability)
-predict = np.argmax(output_batch, axis=1)
-print(predict)
-print(probability[:, 1])
-
-
+# output_batch = torch.tensor([[1.593,2.245],[2.589,1.203]])
+# m = nn.Softmax(dim=1)
+# probability = m(output_batch)
+# print(probability)
+# predict = np.argmax(output_batch, axis=1)
+# print(predict)
+# print(probability[:, 1])
+print(int('00001010110101010101101001',2))
+# a = [1,2,3,4,5,6,7,8,9]
+# print(a[:5])
+# print(a[5:])
 
 # for fold in range(5):
 #     dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128<=20mm_aug/fold"+str(fold+1), train_shuffle=False)

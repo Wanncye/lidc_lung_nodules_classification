@@ -317,7 +317,7 @@ class Attention(nn.Module):
         self.linear2 = nn.Linear(512, 2)
         self.linear3 = nn.Linear(fc_feature_dim, 2)
 
-    def forward(self, x,  gcn_feature=None, add_gcn_middle_feature=None):
+    def forward(self, x,  gcn_feature, add_gcn_middle_feature, feature_fusion_method):
         x = self.pre_conv(x) #16 64 8 128 128
         x = self.stage1(x)
         x = self.stage2(x)
@@ -327,7 +327,18 @@ class Attention(nn.Module):
         x = x.view(x.size(0), -1)
         feature = self.linear1(x)
         if add_gcn_middle_feature:
-            x1 = torch.cat((feature,gcn_feature),axis=1)
+            if feature_fusion_method == 'cat':
+                x1 = torch.cat((feature,gcn_feature),axis=1)
+            elif feature_fusion_method == 'add':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = feature + sub_feature_1
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
+            elif feature_fusion_method == 'avg':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = (feature + sub_feature_1)/2
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
             x = self.linear3(x1)
         else:
             x = self.linear2(feature)

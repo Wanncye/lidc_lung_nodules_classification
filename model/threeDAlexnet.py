@@ -64,7 +64,7 @@ class AlexNet(nn.Module):
         self.linear3 = nn.Linear(fc_feature_dim, num_classes)
         self.linear4 = nn.Linear(512, num_classes)
 
-    def forward(self, x, gcn_feature, add_gcn_middle_feature):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature, feature_fusion_method):
         x = self.features(x)
         x = x.view(x.size(0), 256 * 7 * 7)
         x = self.linear1(x)
@@ -74,7 +74,18 @@ class AlexNet(nn.Module):
         x = self.relu2(feature)
         x = self.dropout2(x)
         if add_gcn_middle_feature:
-            x = torch.cat((x,gcn_feature),axis=1)
+            if feature_fusion_method == 'cat':
+                x = torch.cat((x,gcn_feature),axis=1)
+            elif feature_fusion_method == 'add':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x = x + sub_feature_1
+                x = torch.cat((x,sub_feature_2),axis=1)
+            elif feature_fusion_method == 'avg':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x = (x + sub_feature_1)/2
+                x = torch.cat((x,sub_feature_2),axis=1)
             output = self.linear3(x)
         else:
             output = self.linear4(x)

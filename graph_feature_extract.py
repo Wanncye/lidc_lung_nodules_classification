@@ -188,7 +188,7 @@ for fold in range(10):
         gcn_train_middle_feature = torch.zeros(len(train_label),512)
         gcn_test_middle_feature = torch.zeros(len(test_label),512)
 
-        for epoch in range(50):
+        for epoch in range(100):
             loss_train_list = []
             pre_train_list = torch.zeros(len(train_label))
 

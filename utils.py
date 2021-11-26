@@ -22,6 +22,7 @@ from sklearn import metrics
 import matplotlib.pyplot as plt 
 import re
 from torch.autograd import Variable
+import math
 
 import torch 
 import model.data_loader as data_loader
@@ -522,8 +523,9 @@ def HOG(cube):
                     dis_z = cube[i+1, j, k] - cube[i-1, j, k]
                     pixel_gradient = np.sqrt(np.square(dis_x) + np.square(dis_y) + np.square(dis_z)) 
                     all_gredient.append(pixel_gradient)
-                    # pixel_direcet = math.degrees(math.atan(dis_y/dis_x))
-                    # print(pixel_direcet)
+                    pixel_direcet = math.degrees(math.atan(dis_y/dis_x))
+                    if pixel_direcet != math.nan:
+                        print(pixel_direcet)
 
     gredient_max = np.max(all_gredient)
     gredient_min = np.min(all_gredient)
@@ -1400,9 +1402,9 @@ def get_various_feature():
             volume = np.array([df[df["nodule_idx"]==nodule_idx]["volume"].iloc[0]])
 
             try:
-                hu = HU(cube)     #56维特征
-                glcm = GLCM(cube) #64维特征，后续要归一化
-                lbp = LBP(cube)   #64维特征
+                # hu = HU(cube)     #56维特征
+                # glcm = GLCM(cube) #64维特征，后续要归一化
+                # lbp = LBP(cube)   #64维特征
                 hog = HOG(cube)   #64维特征
 
                 cube = np.squeeze(cube).numpy()
@@ -2226,4 +2228,4 @@ def getDatasetMeanAndStd():
     return mean,std
 
 if __name__ == '__main__':
-    caculate_five_method_predict_similarity()
+    get_various_feature()
