@@ -74,16 +74,15 @@ class GAT(nn.Module):
         self.fc = nn.Linear(fc_num*5, nclass)
 
     def forward(self, x, adj):
-        print(x)
-        x = F.dropout(x, self.dropout, training=self.training)
-        x = torch.cat([att(x, adj) for att in self.attentions], dim=1)
+        x1 = F.dropout(x, self.dropout, training=self.training)
+        x = torch.cat([att(x1, adj) for att in self.attentions], dim=1)
         # print(x)
         x = F.dropout(x, self.dropout, training=self.training)
         x = F.elu(self.out_att(x, adj))     #根据GCN的经验，是不是可以试试将这里的elu激活函数去掉？
         # x = self.out_att(x, adj)
-        x = x.view(1,-1)
-        x = self.fc(x)
-        return F.log_softmax(x, dim=1)
+        middle_feature = x.view(1,-1)
+        x = self.fc(middle_feature)
+        return x1,middle_feature,F.log_softmax(x, dim=1)
 
 
 

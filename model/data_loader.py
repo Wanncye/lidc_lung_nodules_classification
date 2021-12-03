@@ -95,7 +95,7 @@ class LIDCDataset(Dataset):
             one_addition_feature = self.addition_feature[idx]
             one_feature = torch.cat((one_gcn_middle_feature,one_addition_feature), axis = 0)
             # one_feature = self.addition_feature[idx]
-            one_feature = self.gcn_middle_feature[idx]
+            # one_feature = self.gcn_middle_feature[idx]
         else:
             one_feature = np.zeros((255))
         return cube, label, filename, one_feature
@@ -118,7 +118,7 @@ def fetch_dataloader(types = ["train"], data_dir = "data/nodules3d_128_mask_npy"
                                 # sampler=ImbalancedDatasetSampler(train_dataset, num_samples=1728),
                                 batch_size = batch_size,
                                 shuffle=train_shuffle,
-                                num_workers=0,
+                                num_workers=2,
                                 pin_memory=False)
             else:
                 # dl = DataLoader(SEGMENTATIONDataset(path, eval_transformer, df[df.split.isin([split])]), 

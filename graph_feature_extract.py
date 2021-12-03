@@ -10,6 +10,7 @@ from utils import caculate_five_method_predict_similarity,calculate_percentage
 from utils import Visualizer
 import model.data_loader as data_loader
 import csv
+from model.graphSAGE import GraphSage
 
 def get_random_adj(node_num, out_index):
     adj = Variable(torch.ones((node_num, node_num)))
@@ -63,252 +64,261 @@ def save_incorrect_nodule(pre_label, truth_label, nodule_name):
 
 # f = open('./experiments/gcn/random_adj/random_adj_43_feature_0~1_result_2.txt', 'w')
 for fold in range(10):
-    # dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 641, data_dir="data/10fold_model_feature_noNorm/fold"+str(fold+1), train_shuffle=False, fold= fold)
-    # test_dl = dataloaders['test']
-    # for i, (train_batch, labels_batch, file_name, _) in enumerate(test_dl):
-    #     nodule_name = file_name
     weightDecay = 0.01
     vis = Visualizer('GCN_'+str(fold))
     print(fold)
     best_acc_list = []
-    for out_index in range(1):
-        input_dim = 512
-        node_num = 5
+    model_method = 'graphSAGE'
+    np.random.seed(np.random.randint(1,500))
+    # adj = get_random_adj(node_num, out_index)
+    # adj = torch.tensor(
+    #     [[1., 0., 1., 1., 0.],
+    #     [1., 0., 1., 1., 1.],
+    #     [0., 1., 0., 1., 1.],
+    #     [1., 0., 1., 0., 0.],
+    #     [1., 1., 0., 1., 0.]])
+    # adj = torch.tensor(
+    #     [[1., 0., 1., 1., 0., 1.],
+    #     [1., 0., 1., 1., 1., 0.],
+    #     [0., 1., 0., 1., 1., 1.],
+    #     [1., 0., 1., 0., 0., 1.],
+    #     [1., 1., 0., 1., 0., 0.],
+    #     [0., 1., 1., 0., 1., 0.]])
+    # adj = torch.tensor(
+    #     [[0., 0., 1., 1., 0., 1.,0.],
+    #     [1., 0., 1., 1., 1., 0.,1.],
+    #     [0., 1., 0., 1., 1., 1.,0.],
+    #     [1., 0., 1., 0., 0., 1.,1.],
+    #     [1., 1., 0., 1., 0., 0.,1.],
+    #     [0., 1., 1., 0., 1., 0.,0.],
+    #     [1. ,0. ,1. ,0. ,1. ,1.,0.]])
+    adj = torch.from_numpy(caculate_five_method_predict_similarity(fold)).float()
+    # adj = torch.tensor(
+    #     [[0., 1., 1., 1., 1.],
+    #     [1., 0., 1., 1., 1.],
+    #     [1., 1., 0., 1., 1.],
+    #     [1., 1., 1., 0., 1.],
+    #     [1., 1., 1., 1., 0.]])
+    print(adj)
+    
+    input_dim = 512
+    node_num = 5
+    if model_method == 'GCN_512':
         model = GCN_512(nfeat=input_dim,
                     nhid=64,
                     nclass=2,
                     fc_num=2,
                     dropout=0.5,
                     ft=node_num)
-        # model = GCN(nfeat=input_dim,
-        #             nhid=64,
-        #             nclass=2,
-        #             fc_num=2,
-        #             dropout=0.5,
-        #             ft=node_num)
-        # model = GAT(nfeat=512,
-        #             nhid=64,
-        #             nclass=2,
-        #             fc_num=128,
-        #             dropout=0.6,
-        #             nheads=8,
-        #             alpha=0.2)
-        optimizer = optim.Adam(model.parameters(), 
-                            lr=1e-4, 
-                            weight_decay=weightDecay)
-        save_dir_name = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_addGoogleNet'
+    if model_method == 'GCN':
+        model = GCN(nfeat=input_dim,
+                    nhid=64,
+                    nclass=2,
+                    fc_num=2,
+                    dropout=0.5,
+                    ft=node_num)
+    if model_method == 'GAT':
+        model = GAT(nfeat=512,
+                    nhid=64,
+                    nclass=2,
+                    fc_num=102,
+                    dropout=0.6,
+                    nheads=8,
+                    alpha=0.2)
+    if model_method == 'graphSAGE':
+        device = torch.device("cuda")
+        adj_list = {
+            0:{1,2,3,4},
+            1:{0,2,3,4},
+            2:{1,0,3,4},
+            3:{1,2,0,4},
+            4:{1,2,3,0},
+        }
+        model = GraphSage(2, 512, 102, adj_list, device, gcn=False, agg_func='MAX')
+    optimizer = optim.Adam(model.parameters(), 
+                        lr=1e-4, 
+                        weight_decay=weightDecay)
+    # save_dir_name = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet_GAT'
+    save_dir_name = '10fold_gcn_feature_noNorm_adj_fc_addGoogleNet_grapgSAGE_max'
 
-        #pretrain_feature
-        # m = torch.nn.Tanh()
-        # attention56_train_feature = m(torch.load('./data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_attention56_train.pt'))
-        # attention56_test_feature = m(torch.load('./data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_attention56_test.pt'))
-        # resnet34_train_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_resnet34_train.pt'))
-        # resnet34_test_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_resnet34_test.pt'))
-        # vgg13_train_feature = m(torch.load('data/feature/5fold_128_new/fold_'+str(fold)+'_vgg13_train.pt'))
-        # vgg13_test_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_vgg13_test.pt'))
-        # alexnet_train_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_alexnet_train.pt'))
-        # alexnet_test_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_alexnet_test.pt'))
+    #pretrain_feature
+    # m = torch.nn.Tanh()
+    # attention56_train_feature = m(torch.load('./data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_attention56_train.pt'))
+    # attention56_test_feature = m(torch.load('./data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_attention56_test.pt'))
+    # resnet34_train_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_resnet34_train.pt'))
+    # resnet34_test_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_resnet34_test.pt'))
+    # vgg13_train_feature = m(torch.load('data/feature/5fold_128_new/fold_'+str(fold)+'_vgg13_train.pt'))
+    # vgg13_test_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_vgg13_test.pt'))
+    # alexnet_train_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_alexnet_train.pt'))
+    # alexnet_test_feature = m(torch.load('data/feature/5fold_128<=20mm_aug/fold_'+str(fold)+'_alexnet_test.pt'))
 
-        attention56_train_feature = torch.load('./data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_attention56_train.pt')
-        attention56_test_feature = torch.load('./data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_attention56_test.pt')
-        resnet34_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_resnet34_train.pt')
-        resnet34_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_resnet34_train.pt')
-        resnet34_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_resnet34_test.pt')
-        vgg13_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_vgg13_train.pt')
-        vgg13_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_vgg13_test.pt')
-        alexnet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_train.pt')
-        alexnet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_test.pt')
-        googlenet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_googlenet_train.pt')
-        googlenet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_googlenet_test.pt')
-        shufflenet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_shufflenet_train.pt')
-        shufflenet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_shufflenet_test.pt')
-        mobilenet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_mobilenet_train.pt')
-        mobilenet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_mobilenet_test.pt')
-        
+    attention56_train_feature = torch.load('./data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_attention56_train.pt')
+    attention56_test_feature = torch.load('./data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_attention56_test.pt')
+    resnet34_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_resnet34_train.pt')
+    resnet34_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_resnet34_train.pt')
+    resnet34_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_resnet34_test.pt')
+    vgg13_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_vgg13_train.pt')
+    vgg13_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_vgg13_test.pt')
+    alexnet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_train.pt')
+    alexnet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_test.pt')
+    googlenet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_googlenet_train.pt')
+    googlenet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_googlenet_test.pt')
+    shufflenet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_shufflenet_train.pt')
+    shufflenet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_shufflenet_test.pt')
+    mobilenet_train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_mobilenet_train.pt')
+    mobilenet_test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_mobilenet_test.pt')
+    
 
-        train_label = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_train_label.pt')
-        test_label = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_test_label.pt')
-
-
-
-
-
-        # #glcm竖直方向上归一化
-        # glcm_train_feature = glcm_train_feature.transpose(0,1)
-        # glcm_test_feature = glcm_test_feature.transpose(0,1)
-        # for index in range(len(glcm_train_feature)):
-        #     max = glcm_train_feature[index].max()  #170
-        #     min = glcm_train_feature[index].min()  #1.88
-        #     glcm_train_feature[index] = (glcm_train_feature[index] - min) / (max-min)
-        # for index in range(len(glcm_train_feature)):
-        #     max = glcm_test_feature[index].max()  #170
-        #     min = glcm_test_feature[index].min()  #1.88
-        #     glcm_test_feature[index] = (glcm_test_feature[index] - min) / (max-min)
-        # glcm_test_feature = glcm_test_feature.transpose(0,1)
-        # glcm_train_feature = glcm_train_feature.transpose(0,1)
+    train_label = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_train_label.pt')
+    test_label = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_test_label.pt')
 
 
-        np.random.seed(np.random.randint(1,500))
-        adj = get_random_adj(node_num, out_index)
-        # adj = torch.tensor(
-        #     [[1., 0., 1., 1., 0.],
-        #     [1., 0., 1., 1., 1.],
-        #     [0., 1., 0., 1., 1.],
-        #     [1., 0., 1., 0., 0.],
-        #     [1., 1., 0., 1., 0.]])
-        # adj = torch.tensor(
-        #     [[1., 0., 1., 1., 0., 1.],
-        #     [1., 0., 1., 1., 1., 0.],
-        #     [0., 1., 0., 1., 1., 1.],
-        #     [1., 0., 1., 0., 0., 1.],
-        #     [1., 1., 0., 1., 0., 0.],
-        #     [0., 1., 1., 0., 1., 0.]])
-        # adj = torch.tensor(
-        #     [[0., 0., 1., 1., 0., 1.,0.],
-        #     [1., 0., 1., 1., 1., 0.,1.],
-        #     [0., 1., 0., 1., 1., 1.,0.],
-        #     [1., 0., 1., 0., 0., 1.,1.],
-        #     [1., 1., 0., 1., 0., 0.,1.],
-        #     [0., 1., 1., 0., 1., 0.,0.],
-        #     [1. ,0. ,1. ,0. ,1. ,1.,0.]])
-        adj = torch.from_numpy(caculate_five_method_predict_similarity()).float()
-        # adj = torch.tensor(
-        #     [[0., 1., 1., 1., 1.],
-        #     [1., 0., 1., 1., 1.],
-        #     [1., 1., 0., 1., 1.],
-        #     [1., 1., 1., 0., 1.],
-        #     [1., 1., 1., 1., 0.]])
-        print(adj)
-
-        best_test_acc = 0
-        best_epoc = 0
-
-        # gcn_train_middle_feature = torch.zeros(len(train_label),56*node_num)
-        # gcn_test_middle_feature = torch.zeros(len(test_label),56*node_num)
-        gcn_train_middle_feature = torch.zeros(len(train_label),512)
-        gcn_test_middle_feature = torch.zeros(len(test_label),512)
-
-        for epoch in range(100):
-            loss_train_list = []
-            pre_train_list = torch.zeros(len(train_label))
-
-            loss_test_list = []
-            pre_test_list = torch.ones(len(test_label))
-            #训练
-            for index, one_nodule_feature in enumerate(zip(
-                resnet34_train_feature,
-                vgg13_train_feature,
-                alexnet_train_feature,
-                attention56_train_feature,
-                googlenet_train_feature,
-                # shufflenet_train_feature,
-                # mobilenet_train_feature,
-            )):  #必须得在这里用zip才行，好家伙
-                temp = torch.zeros((len(one_nodule_feature),512))
-                for i, feature in enumerate(one_nodule_feature):
-                    temp[i] = feature
-                one_nodule_feature = temp  #512*6  尝试改成512个节点，每个节点6维特征
-
-                one_nodule_feature = torch.from_numpy(np.array(one_nodule_feature))
-                features = Variable(one_nodule_feature)
-
-                model.train()
-                optimizer.zero_grad()
-
-                _ , one_gcn_train_middle_feature, output = model(features, adj)
-                # _ , one_gcn_train_middle_feature, output = model(features)
-                #将gcn中间特征保存下来
-                # gcn_train_middle_feature[index] = one_gcn_train_middle_feature
-                gcn_train_middle_feature[index,:510] = one_gcn_train_middle_feature
-
-                one_label = train_label[index].unsqueeze(0).long()
-                pre_train_list[index] = output.max(1)[1].type_as(one_label)
-                loss_train = F.nll_loss(output,one_label)
-                loss_train_list.append(loss_train.item())
-
-                loss_train.backward()
-                optimizer.step()
-            acc_train,_ = accuracy(pre_train_list, train_label)
 
 
-            #测试
-            for index, one_nodule_feature in enumerate(zip(
-                resnet34_test_feature,
-                vgg13_test_feature,
-                alexnet_test_feature,
-                attention56_test_feature,
-                googlenet_test_feature,
-                # shufflenet_test_feature,
-                # mobilenet_test_feature
-            )):
-                temp = torch.zeros((len(one_nodule_feature),512))
-                for i, feature in enumerate(one_nodule_feature):
-                    temp[i] = feature
-                one_nodule_feature = temp
 
-                # adj = torch.ones((len(one_nodule_feature), len(one_nodule_feature)))
-                one_nodule_feature = torch.from_numpy(np.array(one_nodule_feature))
-                features, adj = Variable(one_nodule_feature), Variable(adj)
-
-                model.eval()
-                _ , one_gcn_test_middle_feature, output = model(features, adj)
-                # _ , one_gcn_test_middle_feature, output = model(features)
-                #将gcn中间特征保存下来
-                # gcn_test_middle_feature[index] = one_gcn_test_middle_feature
-                gcn_test_middle_feature[index,:510] = one_gcn_test_middle_feature
-
-                one_label = test_label[index].unsqueeze(0).long()
-                pre_test_list[index] = output.max(1)[1].type_as(one_label)
-                loss_test_list.append(F.nll_loss(output,one_label).item())
-            acc_test,conf_mat = accuracy(pre_test_list, test_label)
-            # 出现当前最佳准确率时
-            if acc_test >= best_test_acc:
-                best_test_acc = acc_test
-                best_epoc = epoch
-                best_conf_mat = conf_mat
-
-                #将最好的结果保存到csv中
-                # predict_csv = open('./experiments/gcn/result/best_result_fold_'+str(fold+1)+'.csv','w',encoding='utf-8')
-                # csv_writer = csv.writer(predict_csv)
-                # csv_writer.writerow(["filename","truth_label","predict_label","is_right",'percentage'])
-                # for index,(name, truth_label, predict_label) in enumerate(zip(nodule_name, test_label.data.cpu().numpy(), pre_test_list.data.cpu().numpy())):
-                #     is_right = True if truth_label == predict_label else False
-                #     percentage = calculate_percentage(name)
-                #     data = [name, truth_label, int(predict_label), is_right, percentage]
-                #     csv_writer.writerow(data)
-                # predict_csv.close()
-
-                # 将错误分类的结节保存下来
-                # save_incorrect_nodule(pre_test_list, test_label, nodule_name)
+    # #glcm竖直方向上归一化
+    # glcm_train_feature = glcm_train_feature.transpose(0,1)
+    # glcm_test_feature = glcm_test_feature.transpose(0,1)
+    # for index in range(len(glcm_train_feature)):
+    #     max = glcm_train_feature[index].max()  #170
+    #     min = glcm_train_feature[index].min()  #1.88
+    #     glcm_train_feature[index] = (glcm_train_feature[index] - min) / (max-min)
+    # for index in range(len(glcm_train_feature)):
+    #     max = glcm_test_feature[index].max()  #170
+    #     min = glcm_test_feature[index].min()  #1.88
+    #     glcm_test_feature[index] = (glcm_test_feature[index] - min) / (max-min)
+    # glcm_test_feature = glcm_test_feature.transpose(0,1)
+    # glcm_train_feature = glcm_train_feature.transpose(0,1)
 
 
-                #最好准确率时保存模型
-                # torch.save({
-                #     'epoch' : epoch,
-                #     'state_dict': model.state_dict(),
-                #     'optim_dict' : optimizer.state_dict()
-                # },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2_fold_'+str(fold)+'.best.pth.tar')
+    best_test_acc = 0
+    best_epoc = 0
 
-                #保存gcn中间特征到文件中，用于其他模型的训练
-                torch.save(gcn_train_middle_feature,'data/feature/'+save_dir_name+'/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
-                torch.save(gcn_test_middle_feature,'data/feature/'+save_dir_name+'/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
+    # gcn_train_middle_feature = torch.zeros(len(train_label),56*node_num)
+    # gcn_test_middle_feature = torch.zeros(len(test_label),56*node_num)
+    gcn_train_middle_feature = torch.zeros(len(train_label),512)
+    gcn_test_middle_feature = torch.zeros(len(test_label),512)
 
-            vis.plot('train loss',np.mean(loss_train_list),1)
-            vis.plot('test loss',np.mean(loss_test_list),1)
-            vis.plot('train acc',acc_train.item(),1)
-            vis.plot('test acc',acc_test.item(),1)
-            print('epoch:{:d}'.format(epoch) 
-                , ', train loss:{:.8f}'.format(np.mean(loss_train_list)) 
-                , ', train acc:{:.6f}'.format(acc_train.item()) 
-                , ', test loss:{:.8f}'.format(np.mean(loss_test_list)) 
-                , ', test acc:{:.6f}'.format(acc_test.item()))
-        #这里输出的混淆矩阵值是最后一个epoch的
-        print('best test acc:{:.4f}, epoch:{:d}, TN:{:d}, TP:{:d}, FN:{:d}, FP:{:d}'.format(best_test_acc, best_epoc, best_conf_mat[0], best_conf_mat[1], best_conf_mat[2], best_conf_mat[3]))
-        # best_acc_list.append(best_test_acc)
-    #     for adj_i in range(43):
-    #         f.write(str(adj[adj_i]) + '\n')
-    #     f.write('test_acc:' + str(best_test_acc) + '\n\n')
-    #     f.flush()
-    # f.write('best_acc_list:'+ str(best_acc_list))
+    for epoch in range(50):
+        loss_train_list = []
+        pre_train_list = torch.zeros(len(train_label))
+
+        loss_test_list = []
+        pre_test_list = torch.ones(len(test_label))
+        #训练
+        for index, one_nodule_feature in enumerate(zip(
+            resnet34_train_feature,
+            vgg13_train_feature,
+            alexnet_train_feature,
+            attention56_train_feature,
+            googlenet_train_feature,
+            # shufflenet_train_feature,
+            # mobilenet_train_feature,
+        )):  #必须得在这里用zip才行，好家伙
+            temp = torch.zeros((len(one_nodule_feature),512))
+            for i, feature in enumerate(one_nodule_feature):
+                temp[i] = feature
+            one_nodule_feature = temp  #512*6  尝试改成512个节点，每个节点6维特征
+
+            one_nodule_feature = torch.from_numpy(np.array(one_nodule_feature))
+            features = Variable(one_nodule_feature)
+
+            model.train()
+            optimizer.zero_grad()
+            _ , one_gcn_train_middle_feature, output = model(features, adj)
+            # _ , one_gcn_train_middle_feature, output = model(features)
+            #将gcn中间特征保存下来
+            # gcn_train_middle_feature[index] = one_gcn_train_middle_feature
+            gcn_train_middle_feature[index,:510] = one_gcn_train_middle_feature
+
+            one_label = train_label[index].unsqueeze(0).long()
+            pre_train_list[index] = output.max(1)[1].type_as(one_label)
+            loss_train = F.nll_loss(output,one_label)
+            loss_train_list.append(loss_train.item())
+
+            loss_train.backward()
+            optimizer.step()
+        acc_train,_ = accuracy(pre_train_list, train_label)
+
+
+        #测试
+        for index, one_nodule_feature in enumerate(zip(
+            resnet34_test_feature,
+            vgg13_test_feature,
+            alexnet_test_feature,
+            attention56_test_feature,
+            googlenet_test_feature,
+            # shufflenet_test_feature,
+            # mobilenet_test_feature
+        )):
+            temp = torch.zeros((len(one_nodule_feature),512))
+            for i, feature in enumerate(one_nodule_feature):
+                temp[i] = feature
+            one_nodule_feature = temp
+
+            # adj = torch.ones((len(one_nodule_feature), len(one_nodule_feature)))
+            one_nodule_feature = torch.from_numpy(np.array(one_nodule_feature))
+            features, adj = Variable(one_nodule_feature), Variable(adj)
+
+            model.eval()
+            _ , one_gcn_test_middle_feature, output = model(features, adj)
+            # _ , one_gcn_test_middle_feature, output = model(features)
+            #将gcn中间特征保存下来
+            # gcn_test_middle_feature[index] = one_gcn_test_middle_feature
+            gcn_test_middle_feature[index,:510] = one_gcn_test_middle_feature
+
+            one_label = test_label[index].unsqueeze(0).long()
+            pre_test_list[index] = output.max(1)[1].type_as(one_label)
+            loss_test_list.append(F.nll_loss(output,one_label).item())
+        acc_test,conf_mat = accuracy(pre_test_list, test_label)
+        # 出现当前最佳准确率时
+        if acc_test >= best_test_acc:
+            best_test_acc = acc_test
+            best_epoc = epoch
+            best_conf_mat = conf_mat
+
+            #将最好的结果保存到csv中
+            # predict_csv = open('./experiments/gcn/result/best_result_fold_'+str(fold+1)+'.csv','w',encoding='utf-8')
+            # csv_writer = csv.writer(predict_csv)
+            # csv_writer.writerow(["filename","truth_label","predict_label","is_right",'percentage'])
+            # for index,(name, truth_label, predict_label) in enumerate(zip(nodule_name, test_label.data.cpu().numpy(), pre_test_list.data.cpu().numpy())):
+            #     is_right = True if truth_label == predict_label else False
+            #     percentage = calculate_percentage(name)
+            #     data = [name, truth_label, int(predict_label), is_right, percentage]
+            #     csv_writer.writerow(data)
+            # predict_csv.close()
+
+            # 将错误分类的结节保存下来
+            # save_incorrect_nodule(pre_test_list, test_label, nodule_name)
+
+
+            #最好准确率时保存模型
+            # torch.save({
+            #     'epoch' : epoch,
+            #     'state_dict': model.state_dict(),
+            #     'optim_dict' : optimizer.state_dict()
+            # },'./experiments/gcn/fc_2_feature_4_wdecay_5e-2_fold_'+str(fold)+'.best.pth.tar')
+
+            #保存gcn中间特征到文件中，用于其他模型的训练
+            torch.save(gcn_train_middle_feature,'data/feature/'+save_dir_name+'/gcn_train_middle_feature_fold_'+str(fold)+'.pt')
+            torch.save(gcn_test_middle_feature,'data/feature/'+save_dir_name+'/gcn_test_middle_feature_fold_'+str(fold)+'.pt')
+
+        vis.plot('train loss',np.mean(loss_train_list),1)
+        vis.plot('test loss',np.mean(loss_test_list),1)
+        vis.plot('train acc',acc_train.item(),1)
+        vis.plot('test acc',acc_test.item(),1)
+        print('epoch:{:d}'.format(epoch) 
+            , ', train loss:{:.8f}'.format(np.mean(loss_train_list)) 
+            , ', train acc:{:.6f}'.format(acc_train.item()) 
+            , ', test loss:{:.8f}'.format(np.mean(loss_test_list)) 
+            , ', test acc:{:.6f}'.format(acc_test.item()))
+    #这里输出的混淆矩阵值是最后一个epoch的
+    print('best test acc:{:.4f}, epoch:{:d}, TN:{:d}, TP:{:d}, FN:{:d}, FP:{:d}'.format(best_test_acc, best_epoc, best_conf_mat[0], best_conf_mat[1], best_conf_mat[2], best_conf_mat[3]))
+    # best_acc_list.append(best_test_acc)
+#     for adj_i in range(43):
+#         f.write(str(adj[adj_i]) + '\n')
+#     f.write('test_acc:' + str(best_test_acc) + '\n\n')
+#     f.flush()
+# f.write('best_acc_list:'+ str(best_acc_list))
 
 

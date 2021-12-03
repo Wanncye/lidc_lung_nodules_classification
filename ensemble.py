@@ -5,11 +5,16 @@ import random
 from sklearn.metrics import confusion_matrix
 
 modelList = ['alexnet','attention56','vgg13','resnet34','googlenet']
-descripe = 'para1_10fold_noNorm_add_gcn_adj_1-similarity_5feature_512_avg_traditional'
+descripe = 'para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_GAT_cat_traditional'
 
 # descripe = '<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1'
 for i in range(1):
     ensembleMeanList = []
+    alexnetMeanList = []
+    vggMeanList = []
+    attentionMeanList = []
+    resnetMeanList = []
+    googlenetMeanList = []
     for fold in range(10):
         for model in modelList:
             jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_'+descripe+'.metrics_val_best_weights.json'
@@ -29,6 +34,7 @@ for i in range(1):
                         str(int(jsonEpoch-1))+\
                         '.csv'
             csvReader = pd.read_csv(csvPath)
+            print(csvPath)
             groundTruth = csvReader['truth_label']
             filename = csvReader['filename']
             if model=='alexnet':
@@ -49,9 +55,9 @@ for i in range(1):
                 alexnetJsonAcc = jsonAcc
                 alexnetCaculAcc = np.sum(groundTruth == alexnetPredLabel)/len(groundTruth)
                 con_matrix = confusion_matrix(groundTruth,alexnetPredLabel,labels=range(2))
-                sensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
-                specificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
-                print('sensitivity:{0},specificity:{1}'.format(sensitivity,specificity))
+                alexnetSensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
+                alexnetSpecificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
+                print('sensitivity:{0},specificity:{1}'.format(alexnetSensitivity,alexnetSpecificity))
             if model=='attention56':
                 attention56PredLabel = csvReader['predict_label']
                 attention56groundTruth = csvReader['truth_label']
@@ -70,9 +76,9 @@ for i in range(1):
                 attention56JsonAcc = jsonAcc
                 attention56CaculAcc = np.sum(groundTruth == attention56PredLabel)/len(groundTruth)
                 con_matrix = confusion_matrix(groundTruth,attention56PredLabel,labels=range(2))
-                sensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
-                specificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
-                print('sensitivity:{0},specificity:{1}'.format(sensitivity,specificity))
+                attentionSensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
+                attentionSpecificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
+                print('sensitivity:{0},specificity:{1}'.format(attentionSensitivity,attentionSpecificity))
             if model=='vgg13':
                 vgg13PredLabel = csvReader['predict_label']
                 vgg13groundTruth = csvReader['truth_label']
@@ -91,9 +97,9 @@ for i in range(1):
                 vgg13JsonAcc = jsonAcc
                 vgg13CaculAcc = np.sum(groundTruth == vgg13PredLabel)/len(groundTruth)
                 con_matrix = confusion_matrix(groundTruth,vgg13PredLabel,labels=range(2))
-                sensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
-                specificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
-                print('sensitivity:{0},specificity:{1}'.format(sensitivity,specificity))
+                vgg13Sensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
+                vgg13Specificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
+                print('sensitivity:{0},specificity:{1}'.format(vgg13Sensitivity,vgg13Specificity))
             if model=='resnet34':
                 resnet34PredLabel = csvReader['predict_label']
                 resnet34groundTruth = csvReader['truth_label']
@@ -112,9 +118,9 @@ for i in range(1):
                 resnet34JsonAcc = jsonAcc
                 resnet34CaculAcc = np.sum(groundTruth == resnet34PredLabel)/len(groundTruth)
                 con_matrix = confusion_matrix(groundTruth,resnet34PredLabel,labels=range(2))
-                sensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
-                specificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
-                print('sensitivity:{0},specificity:{1}'.format(sensitivity,specificity))
+                resnet34Sensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
+                resnet34Specificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
+                print('sensitivity:{0},specificity:{1}'.format(resnet34Sensitivity,resnet34Specificity))
             if model=='googlenet':
                 googlenetPredLabel = csvReader['predict_label']
                 googlenetgroundTruth = csvReader['truth_label']
@@ -133,9 +139,9 @@ for i in range(1):
                 googlenetJsonAcc = jsonAcc
                 googlenetCaculAcc = np.sum(groundTruth == googlenetPredLabel)/len(groundTruth)
                 con_matrix = confusion_matrix(groundTruth,googlenetPredLabel,labels=range(2))
-                sensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
-                specificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
-                print('sensitivity:{0},specificity:{1}'.format(sensitivity,specificity))
+                googlenetSensitivity = con_matrix[1,1]/(con_matrix[1,0]+con_matrix[1,1])
+                googlenetSpecificity = con_matrix[0,0]/(con_matrix[0,0]+con_matrix[0,1])
+                print('sensitivity:{0},specificity:{1}'.format(googlenetSensitivity,googlenetSpecificity))
         print("五个模型全部分错的结节：{0}".format(alexnetWrong & attention56Wrong & vgg13Wrong & resnet34Wrong& googlenetWrong))
 
         # 预测概率取平均
@@ -155,12 +161,17 @@ for i in range(1):
         googlenetPredLabel = modelWeight[4] * googlenetPredLabel
         finalPredLabel = np.array(alexnetPredLabel + vgg13PredLabel + resnet34PredLabel + attention56PredLabel + googlenetPredLabel)
         print('finalPredLabel:',finalPredLabel)
-        finalPredLabel = np.where(finalPredLabel>0.5, 1, 0)
+        finalPredLabel = np.where(finalPredLabel>0.6, 1, 0)
         print('finalPredLabel:',finalPredLabel)
 
 
         ensembleAcc = np.sum(groundTruth == finalPredLabel)/len(groundTruth)
         ensembleMeanList.append(ensembleAcc)
+        alexnetMeanList.append(alexnetCaculAcc)
+        vggMeanList.append(vgg13CaculAcc)
+        resnetMeanList.append(resnet34CaculAcc)
+        attentionMeanList.append(attention56CaculAcc)
+        googlenetMeanList.append(googlenetCaculAcc)
         print('alexnet acc: {0}, vgg13 acc: {1}, resnet34 acc: {2}, attention56 acc: {3}, googlenet acc: {4}, ensemble acc: {5}'.format(
             alexnetCaculAcc,
             vgg13CaculAcc,
@@ -170,7 +181,12 @@ for i in range(1):
             ensembleAcc,
         ))
         print()
-    print('final mean acc: ',np.mean(ensembleMeanList))
+    print('final ensemble mean acc: ',np.mean(ensembleMeanList))
+    print('final alexnet mean acc: ',np.mean(alexnetMeanList))
+    print('final vgg mean acc: ',np.mean(vggMeanList))
+    print('final resnet mean acc: ',np.mean(resnetMeanList))
+    print('final attention mean acc: ',np.mean(attentionMeanList))
+    print('final googlenet mean acc: ',np.mean(googlenetMeanList))
     print()
 
         

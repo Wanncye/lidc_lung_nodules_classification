@@ -65,21 +65,22 @@ else:
     save_model_dir = '10fold_model_feature_noNorm'
 
 #设置生成的json文件、预测结果的描述，每次实验都不一样
-# descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
+# descripe = '_<=20mm_nodule_gcn_trad +itional_addEightLabelFeature_norInput_testZero_para1_10fold'
 # descripe = '_para1_10fold_noNorm_add_gcn_traditional'
 # descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_5feature_512_cat_traditional'
-descripe = '_para1_10fold_noNorm_only_add_gcn_5feature_512_cat'
+# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_GAT_cat_traditional'
+descripe = '_para1_10fold_noNorm_add_gcn_adj_fc_5feature_512_graphSAGE_cat_traditional'
 
 #GCN特征的文件加名
-gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_addGoogleNet'
+gcn_feature_path = '10fold_gcn_feature_noNorm_adj_fc_addGoogleNet_grapgSAGE_mean'
 
 #加特征之后全连接层的特征维度
 feature_fusion_method = 'cat'
 # feature_fusion_method = 'avg'
 # feature_fusion_method = 'cat'
 if feature_fusion_method == 'cat':
-    # fc_feature_dim = 512 + 512 + 38 + 255
-    fc_feature_dim = 512 + 38 + 512
+    fc_feature_dim = 512 + 512 + 38 + 255
+    # fc_feature_dim = 512 + 38 + 512
 elif feature_fusion_method == 'add' or feature_fusion_method == 'avg':
     fc_feature_dim = 512  + 38 + 255
 
@@ -93,7 +94,8 @@ data_fold = '10fold'
 
 #要训练的模型
 # model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet']
-# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet']
+# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet'] 
+# model_list = ['attention56','googlenet']
 model_list = ['attention56','googlenet']
 # model_list = ['resnet34','attention56','googlenet','shufflenet']
 # model_list = ['shufflenet','mobilenet',]
@@ -104,6 +106,7 @@ model_list = ['attention56','googlenet']
 # model_list = ['attention56']
 
 #分两张卡训练，指定要训练的fold
+# foldList = [2]
 foldList = [0,1,2]
 
 
@@ -348,15 +351,15 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         is_best = val_acc>best_val_acc
 
         # Save weights
-        if params.save_weight == 1:
-            utils.save_checkpoint({'epoch': epoch + 1,
-                                'state_dict': model.state_dict(),
-                                'optim_dict' : optimizer.state_dict()},
-                                is_best=is_best,
-                                checkpoint=model_dir,
-                                N_folder=N_folder,
-                                params=params,
-                                descript=descripe)
+        # if params.save_weight == 1:
+        #     utils.save_checkpoint({'epoch': epoch + 1,
+        #                         'state_dict': model.state_dict(),
+        #                         'optim_dict' : optimizer.state_dict()},
+        #                         is_best=is_best,
+        #                         checkpoint=model_dir,
+        #                         N_folder=N_folder,
+        #                         params=params,
+        #                         descript=descripe)
 
         # If best_eval, best_save_path
         if is_best:

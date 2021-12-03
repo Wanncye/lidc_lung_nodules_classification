@@ -1075,58 +1075,56 @@ def svm_classification_gcn_middle_feature():
                                                                                                                                     best_accuracy))
 
 #计算5种方法之间的预测相似度，以此来构建邻接矩阵
-def caculate_five_method_predict_similarity():
+def caculate_five_method_predict_similarity(fold):
     modelList = ['alexnet','attention56','vgg13','resnet34','googlenet']
     descripe = 'para1_10fold_noNorm_add_gcn_includeGoogLeNet_traditional'
     sim_adj = np.zeros((5,5))
-    for fold in range(10):
-        for model in modelList:
-            jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_'+descripe+'.metrics_val_best_weights.json'
-            jsonFilePath = 'experiments/'+model+'_nomask/'+jsonFileName
-            f = open(jsonFilePath,'r')
-            jsonData = json.load(f)
-            jsonAcc = jsonData['accuracy']
-            jsonEpoch = jsonData['epoch']
-            csvPath = 'experiments/'+\
-                        model+\
-                        '_nomask/result_'+\
-                        descripe +\
-                        '/folder_'+\
-                        str(fold)+\
-                        '_result_'+\
-                        str(int(jsonEpoch-1))+\
-                        '.csv'
-            csvReader = pd.read_csv(csvPath)
-            if model=='alexnet':
-                alexnetPredLabel = csvReader['predict_label']
-            if model=='attention56':
-                attention56PredLabel = csvReader['predict_label']
-            if model=='vgg13':
-                vgg13PredLabel = csvReader['predict_label']
-            if model=='resnet34':
-                resnet34PredLabel = csvReader['predict_label']
-            if model=='googlenet':
-                googlenetPredLabel = csvReader['predict_label']
-        data_len = len(googlenetPredLabel)
-        all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel]
-        method_num = 5
-        sim_matrix = np.zeros((method_num,method_num))
-        cord = 0
-        for i_predict_list in all_predict_list:
-            for j_predict_list in all_predict_list:
-                correct = np.sum(i_predict_list == j_predict_list)
-                row = int(cord / method_num)
-                coloum = cord % method_num
-                # if row != coloum:
-                #     sim_matrix[row][coloum] = (1-correct/data_len)*10   
-                #     sim_matrix[row][coloum] = correct/data_len
-                # else:
-                #     sim_matrix[row][coloum] = 0
-                sim_matrix[row][coloum] = (1-correct/data_len)*10  
-                cord += 1
-    #     sim_adj = sim_adj + sim_matrix
-    # sim_adj = sim_adj/10
-    # print(sim_adj)
+    # for fold in range(10):
+    for model in modelList:
+        jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_'+descripe+'.metrics_val_best_weights.json'
+        jsonFilePath = 'experiments/'+model+'_nomask/'+jsonFileName
+        f = open(jsonFilePath,'r')
+        jsonData = json.load(f)
+        jsonAcc = jsonData['accuracy']
+        jsonEpoch = jsonData['epoch']
+        csvPath = 'experiments/'+\
+                    model+\
+                    '_nomask/result_'+\
+                    descripe +\
+                    '/folder_'+\
+                    str(fold)+\
+                    '_result_'+\
+                    str(int(jsonEpoch-1))+\
+                    '.csv'
+        csvReader = pd.read_csv(csvPath)
+        if model=='alexnet':
+            alexnetPredLabel = csvReader['predict_label']
+        if model=='attention56':
+            attention56PredLabel = csvReader['predict_label']
+        if model=='vgg13':
+            vgg13PredLabel = csvReader['predict_label']
+        if model=='resnet34':
+            resnet34PredLabel = csvReader['predict_label']
+        if model=='googlenet':
+            googlenetPredLabel = csvReader['predict_label']
+    data_len = len(googlenetPredLabel)
+    all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel]
+    method_num = 5
+    sim_matrix = np.zeros((method_num,method_num))
+    cord = 0
+    for i_predict_list in all_predict_list:
+        for j_predict_list in all_predict_list:
+            correct = np.sum(i_predict_list == j_predict_list)
+            row = int(cord / method_num)
+            coloum = cord % method_num
+            # if row != coloum:
+            #     sim_matrix[row][coloum] = (1-correct/data_len)*10   
+            #     sim_matrix[row][coloum] = correct/data_len
+            # else:
+            #     sim_matrix[row][coloum] = 0
+            sim_matrix[row][coloum] = (1-correct/data_len)*10  
+            cord += 1
+    sim_matrix = (sim_matrix-np.min(sim_matrix))/(np.max(sim_matrix)-np.min(sim_matrix))
     return sim_matrix
 
 
@@ -1799,16 +1797,16 @@ def nodule_diameter_statistic():
 
     
     group = np.arange(3,50,1)
-    plt.hist(diameter_list, group,rwidth=0.85, color='#0504aa', label='Total', alpha=0.5)
+    # plt.hist(diameter_list, group,rwidth=0.85, color='#0504aa', label='Total', alpha=0.5)
 
     plt.hist(benign_diameter_list, group,rwidth=0.85, color='green', label='Benign', alpha=0.5)
 
-    plt.hist(malignancy_diameter_list, group,rwidth=0.85, color='red', label='Malignancy', alpha=0.5)
+    plt.hist(malignancy_diameter_list, group,rwidth=0.85, color='purple', label='Malignancy', alpha=0.5)
     plt.grid(axis='y', alpha=0.75)
 
-    plt.title('comb nodule diameter statistic.png')
+    plt.title('All nodule diameter statistics')
     plt.legend()
-    plt.savefig('data/comb_nodule_diameter_statistic.png')
+    plt.savefig('data/fig/comb_nodule_diameter_statistic.png')
 
     return
 
@@ -2228,4 +2226,4 @@ def getDatasetMeanAndStd():
     return mean,std
 
 if __name__ == '__main__':
-    get_various_feature()
+    nodule_diameter_statistic()
