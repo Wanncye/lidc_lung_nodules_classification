@@ -64,7 +64,6 @@ def save_incorrect_nodule(pre_label, truth_label, nodule_name):
 
 # f = open('./experiments/gcn/random_adj/random_adj_43_feature_0~1_result_2.txt', 'w')
 for fold in range(10):
-    weightDecay = 0.01
     vis = Visualizer('GCN_'+str(fold))
     print(fold)
     best_acc_list = []
@@ -134,12 +133,16 @@ for fold in range(10):
             3:{1,2,0,4},
             4:{1,2,3,0},
         }
-        model = GraphSage(2, 512, 102, adj_list, device, gcn=False, agg_func='MAX')
+        model = GraphSage(2, 512, 102, adj_list, device, gcn=True, agg_func='MEAN')
     optimizer = optim.Adam(model.parameters(), 
                         lr=1e-4, 
-                        weight_decay=weightDecay)
+                        weight_decay=0.01)
+    # optimizer = optim.SGD(model.parameters(), 
+    #                     lr=1e-7, 
+    #                     momentum=0.95,
+    #                     weight_decay=0.01)
     # save_dir_name = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet_GAT'
-    save_dir_name = '10fold_gcn_feature_noNorm_adj_fc_addGoogleNet_grapgSAGE_max'
+    save_dir_name = '10fold_gcn_feature_noNorm_adj_fc_addGoogleNet_grapgSAGE_mean_test'
 
     #pretrain_feature
     # m = torch.nn.Tanh()
