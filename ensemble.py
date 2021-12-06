@@ -3,9 +3,11 @@ import pandas as pd
 import numpy as np
 import random
 from sklearn.metrics import confusion_matrix
+from sklearn import metrics
+import matplotlib.pyplot as plt
 
 modelList = ['alexnet','attention56','vgg13','resnet34','googlenet']
-descripe = 'para1_10fold_noNorm_add_traditional'
+descripe = 'para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_cat_traditional'
 
 for i in range(1):
     alexnetMeanList = []
@@ -38,6 +40,7 @@ for i in range(1):
     ensembleSpecList = []
     ensembleF1List = []
     ensemblePrecList = []
+    ensembleAucList = []
     for fold in range(10):
         for model in modelList:
             jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_'+descripe+'.metrics_val_best_weights.json'
@@ -208,23 +211,43 @@ for i in range(1):
         # finalPredLabel = np.argmax(finalSoftmax, axis=1)
         # print(finalPredLabel)
         
-        
-        # 预测类别投票
+        # AUC
         accSum = alexnetCaculAcc + attention56CaculAcc + vgg13CaculAcc + resnet34CaculAcc + googlenetCaculAcc
         modelWeight = np.array([alexnetCaculAcc,attention56CaculAcc,vgg13CaculAcc,resnet34CaculAcc, googlenetCaculAcc])/accSum
         # modelWeight = np.array([0.2, 0.2, 0.2, 0.2, 0.2])
         # print('modelWeight:',modelWeight)
+        
+        alexnetSoftmax = alexnetSoftmax*modelWeight[0]
+        attention56Softmax = attention56Softmax*modelWeight[1]
+        vgg13Softmax = vgg13Softmax*modelWeight[2]
+        resnet34Softmax = resnet34Softmax*modelWeight[3]
+        googlenetSoftmax = googlenetSoftmax*modelWeight[4]
+        finalSoftmax = alexnetSoftmax+attention56Softmax+resnet34Softmax+vgg13Softmax+googlenetSoftmax
+        predProb = finalSoftmax[:,1]
+        
+        fpr, tpr, _ = metrics.roc_curve(groundTruth, predProb, pos_label = 1)
+        ensembleAuc = metrics.auc(fpr, tpr)
+        ensembleAucList.append(ensembleAuc)
+        plt.plot(fpr, tpr, 'k--', label='ROC (area = {0:.2f})'.format(ensembleAuc), lw=2)
+        plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好的观察图像的整体
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC Curve')
+        plt.legend(loc="lower right")
+        plt.savefig('data/fig/ROC.jpg')
+        
+        # 预测类别投票
         alexnetPredLabel = modelWeight[0] * alexnetPredLabel
         vgg13PredLabel = modelWeight[1] * vgg13PredLabel
         resnet34PredLabel = modelWeight[2] * resnet34PredLabel
         attention56PredLabel = modelWeight[3] * attention56PredLabel
         googlenetPredLabel = modelWeight[4] * googlenetPredLabel
         finalPredLabel = np.array(alexnetPredLabel + vgg13PredLabel + resnet34PredLabel + attention56PredLabel + googlenetPredLabel)
-        # print('finalPredLabel:',finalPredLabel)
         finalPredLabel = np.where(finalPredLabel>0.4, 1, 0)
         # print('finalPredLabel:',finalPredLabel)
-
-
+        
+        
         ensembleAcc = np.sum(groundTruth == finalPredLabel)/len(groundTruth)
         ensembleCon_matrix = confusion_matrix(groundTruth,finalPredLabel,labels=range(2))
         ensembleSensitivity = ensembleCon_matrix[1,1]/(ensembleCon_matrix[1,0]+ensembleCon_matrix[1,1])
@@ -254,7 +277,7 @@ for i in range(1):
         ))
         print('ensemble acc:{0}, sens:{1}, spec:{2}, prec:{3}, f1:{4}'.format(ensembleAcc, ensembleSensitivity, ensembleSpecificity, ensemblePrecision, ensembleF1Score))
         print()
-    print('final ensemble mean acc: {0}, mean Sens: {1}, mean Spec: {2}, mean Prec: {3}, mean F1: {4}'.format(np.mean(ensembleMeanList),np.mean(ensembleSensList), np.mean(ensembleSpecList), np.mean(ensemblePrecList), np.mean(ensembleF1List)))
+    print('final ensemble mean acc: {0}, mean Sens: {1}, mean Spec: {2}, mean Prec: {3}, mean F1: {4}, mean AUC: {5}'.format(np.mean(ensembleMeanList),np.mean(ensembleSensList), np.mean(ensembleSpecList), np.mean(ensemblePrecList), np.mean(ensembleF1List), np.mean(ensembleAucList)))
     print('final alexnet mean acc: {0}, mean Sens: {1}, mean Spec: {2}'.format(np.mean(alexnetMeanList),np.mean(alexnetSensList), np.mean(alexnetSpecList)))
     print('final vgg mean acc: {0}, mean Sens: {1}, mean Spec: {2}'.format(np.mean(vggMeanList),np.mean(vggSensList), np.mean(vggSpecList)))
     print('final resnet mean acc: {0}, mean Sens: {1}, mean Spec: {2}'.format(np.mean(resnetMeanList),np.mean(resnetSensList), np.mean(resnetSpecList)))
