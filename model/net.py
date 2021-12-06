@@ -58,19 +58,12 @@ def loss_fn_BCE(outputs, labels):
     Note: you may use a standard loss function from http://pytorch.org/docs/master/nn.html#loss-functions. This example
           demonstrates how you can easily define a custom loss function.
     """
-    # num_examples = outputs.size()[0]
-    # outputs = outputs[range(num_examples), labels]
-    # return -torch.sum(outputs[range(num_examples), labels])/num_examples
-    # outputs = outputs[:, 1]
     num_class = 2
-    
-    loss = nn.BCELoss(torch.tensor([0.3, 0.7]))
+    loss = nn.BCEWithLogitsLoss()
     N = len(labels)
-    target = torch.zeros(N, num_class).long().cuda()
-    target.scatter_(dim=1,index=labels.unsqueeze(dim=1),src=torch.ones(N, num_class).long().cuda())
-    target = target.to(torch.float32)
-    # m = nn.Softmax(dim=1)
-    # outputs = m(outputs)
+    target = torch.zeros(N, num_class).cuda()
+    target.scatter_(dim=1,index=labels.unsqueeze(dim=1),src=torch.ones(N, num_class).cuda())
+    target = target.to(torch.float32).cuda()
     return loss(outputs, target)
 
 class FocalLoss(nn.Module):

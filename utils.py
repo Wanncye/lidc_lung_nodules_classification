@@ -1585,16 +1585,23 @@ def get_various_feature_thread():
 
 from sklearn.manifold import TSNE 
 def t_SNE():
-    for fold in range(5):
-        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128<=20mm_mask/fold"+str(fold+1), train_shuffle=False, fold=0)
+    for fold in range(10):
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/10fold/fold"+str(fold+1), train_shuffle=False, fold=0)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
         for i, (train_batch, labels_batch, _, _) in enumerate(train_dl):
             train_label = labels_batch
         for i, (train_batch, labels_batch, _, _) in enumerate(test_dl):
             test_label = labels_batch
-        train = torch.load('data/feature/addition_feature_mask<=20/fold_'+str(fold)+'_train_addition_feature.pt')
-        test = torch.load('data/feature/addition_feature_mask<=20/fold_'+str(fold)+'_test_addition_feature.pt')
+        # train = torch.load('data/feature/10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet/gcn_train_middle_feature_fold_'+str(fold)+'.pt').detach().numpy()
+        # test = torch.load('data/feature/10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet/gcn_test_middle_feature_fold_'+str(fold)+'.pt').detach().numpy()
+        train = torch.load('data/feature/10fold_traditional_feature/fold_'+str(fold)+'_train_addition_feature.pt').detach().numpy()
+        test = torch.load('data/feature/10fold_traditional_feature/fold_'+str(fold)+'_test_addition_feature.pt').detach().numpy()
+        # train = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_train.pt').detach().numpy()
+        # test = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_test.pt').detach().numpy()
+
+        all_feature = np.concatenate((train, test), axis=0)
+        all_label = np.concatenate((train_label, test_label), axis=0)
         for jndex in range(248,255):
             max = train[:, jndex].max()  
             min = train[:, jndex].min()  
@@ -1605,27 +1612,40 @@ def t_SNE():
             test[:, jndex] = (test[:, jndex] - min) / (max-min)
 
 
+        title_describe = 'traditional_248_norm'
+        is_norm = True
         
         tsne = TSNE(n_components=2).fit_transform(train)
-        x_min, x_max = tsne.min(0), tsne.max(0)
-        tsne_norm = (tsne - x_min) / (x_max - x_min)
-
-        plt.plot(tsne_norm[train_label == 0][:,0], tsne_norm[train_label == 0][:,1], 'r.', label='benign')
-        plt.plot(tsne_norm[train_label == 1][:,0], tsne_norm[train_label == 1][:,1], 'b.', label='maligancy')
+        if is_norm:
+            x_min, x_max = tsne.min(0), tsne.max(0)
+            tsne = (tsne - x_min) / (x_max - x_min)
+        plt.plot(tsne[train_label == 0][:,0], tsne[train_label == 0][:,1], 'r*', label='benign',markersize=10,alpha=0.5)
+        plt.plot(tsne[train_label == 1][:,0], tsne[train_label == 1][:,1], 'b.', label='maligancy',markersize=10,alpha=0.5)
         plt.legend()
-        plt.title('add_'+str(fold)+'_train_t-sne')
-        plt.savefig('data/feature/vis_feature/add'+str(fold)+'mask<=20_train_t-sne.png')
+        plt.title(title_describe+'_feature_'+str(fold)+'_train_t-sne')
+        plt.savefig('data/feature/vis_feature/'+title_describe+'/t-sne_alexnet_train_'+str(fold)+'.png')
         plt.cla()
 
         tsne = TSNE(n_components=2).fit_transform(test)
-        x_min, x_max = tsne.min(0), tsne.max(0)
-        tsne_norm = (tsne - x_min) / (x_max - x_min)
-
-        plt.plot(tsne_norm[test_label == 0][:,0], tsne_norm[test_label == 0][:,1], 'r.', label='benign')
-        plt.plot(tsne_norm[test_label == 1][:,0], tsne_norm[test_label == 1][:,1], 'b.', label='maligancy')
+        if is_norm:
+            x_min, x_max = tsne.min(0), tsne.max(0)
+            tsne = (tsne - x_min) / (x_max - x_min)
+        plt.plot(tsne[test_label == 0][:,0], tsne[test_label == 0][:,1], 'r*', label='benign',markersize=10,alpha=0.5)
+        plt.plot(tsne[test_label == 1][:,0], tsne[test_label == 1][:,1], 'b.', label='maligancy',markersize=10,alpha=0.5)
         plt.legend()
-        plt.title('add_'+str(fold)+'_test_t-sne')
-        plt.savefig('data/feature/vis_feature/add'+str(fold)+'mask<=20_test_t-sne.png')
+        plt.title(title_describe+'_feature_'+str(fold)+'_test_t-sne')
+        plt.savefig('data/feature/vis_feature/'+title_describe+'/t-sne_alexnet_test_'+str(fold)+'.png')
+        plt.cla()
+        
+        tsne = TSNE(n_components=2).fit_transform(all_feature)
+        if is_norm:
+            x_min, x_max = tsne.min(0), tsne.max(0)
+            tsne = (tsne - x_min) / (x_max - x_min)
+        plt.plot(tsne[all_label == 0][:,0], tsne[all_label == 0][:,1], 'r*', label='benign',markersize=10,alpha=0.5)
+        plt.plot(tsne[all_label == 1][:,0], tsne[all_label == 1][:,1], 'b.', label='maligancy',markersize=10,alpha=0.5)
+        plt.legend()
+        plt.title(title_describe+'_feature_'+str(fold)+'_all_t-sne')
+        plt.savefig('data/feature/vis_feature/'+title_describe+'/t-sne_alexnet_all_'+str(fold)+'.png')
         plt.cla()
 
     
@@ -2061,30 +2081,32 @@ def nodule_fold_diameter_statistic():
 
 from sklearn.tree import DecisionTreeClassifier
 #SVM、决策树
-def traditional_feature_traditional_method_classification():
-    rootPath = 'data/feature/addition_feature_mask<=20/'
-    set_logger(rootPath + 'SVM_DecisionTreeClassifier.log')
-    for fold in range(3,4):
+def SVM_classification():
+    for fold in range(10):
 
-        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128/fold"+str(fold+1), train_shuffle=False,fold=0)
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/10fold/fold"+str(fold+1), train_shuffle=False, fold=0)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
-        for i, (train_batch, labels_batch, file_name, _) in enumerate(train_dl):
-            train_label = np.array(labels_batch)
-            train_feature = getEightLabelFeature(file_name)
-        for i, (train_batch, labels_batch, file_name, _) in enumerate(test_dl):
-            test_label = np.array(labels_batch)
-            test_name = file_name
-            test_feature = getEightLabelFeature(file_name)
+        for i, (train_batch, labels_batch, _, _) in enumerate(train_dl):
+            train_label = labels_batch
+        for i, (train_batch, labels_batch, _, _) in enumerate(test_dl):
+            test_label = labels_batch
 
+        train_feature = torch.load('data/feature/10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet/gcn_train_middle_feature_fold_'+str(fold)+'.pt').detach().numpy()
+        test_feature = torch.load('data/feature/10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet/gcn_test_middle_feature_fold_'+str(fold)+'.pt').detach().numpy()
+        # train_feature = torch.load('data/feature/10fold_traditional_feature/fold_'+str(fold)+'_train_addition_feature.pt').detach().numpy()
+        # test_feature = torch.load('data/feature/10fold_traditional_feature/fold_'+str(fold)+'_test_addition_feature.pt').detach().numpy()
+        # train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_train.pt').detach().numpy()
+        # test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_test.pt').detach().numpy()
         
         kernel_function = ['linear', 'poly', 'rbf', 'sigmoid']
-        C = [1e-2,1e-1,1,1e1,1e2] #C是对错误的惩罚
-        gamma = [0.0001,0.0005,0.001,0.005,0.01,0.1] 
-        max_iter = [50,100,200,500,700,1000,1500,2000]
+        # C = [1e-2,1e-1,1,1e1,1e2]
+        # gamma = [0.0001,0.0005,0.001,0.005,0.01,0.1] 
+        # max_iter = [50,100,200,500,700,1000,1500,2000]
+        C = [1e-2]
+        gamma = [0.001] 
+        max_iter = [50]
         with tqdm(total = len(kernel_function)*len(C)*len(gamma)*len(max_iter)) as t:
-            train_feature = train_feature.detach().numpy()
-            test_feature = test_feature.detach().numpy()
             best_accuracy = 0
             for kf in kernel_function:
                 for c in C:
@@ -2098,49 +2120,13 @@ def traditional_feature_traditional_method_classification():
                             
                             accuracy = (con_matrix[0][0] + con_matrix[1][1])/len(test_label)
                             if accuracy > best_accuracy:
-                                idx = [i for i in range(len(Y_pred)) if Y_pred[i] != test_label[i]]
-                                wrong_classify = [name for i,name in enumerate(test_name) if i in idx]
-                                save_matrix = con_matrix
+                                # idx = [i for i in range(len(Y_pred)) if Y_pred[i] != test_label[i]]
+                                # wrong_classify = [name for i,name in enumerate(test_name) if i in idx]
+                                # save_matrix = con_matrix
                                 param_list = [c, ga, miter,kf]
                                 best_accuracy = accuracy
                             t.update()
             
-        TN = save_matrix[0][0]
-        TP = save_matrix[1][1]
-        FN = save_matrix[1][0]
-        FP = save_matrix[0][1]
-        logging.info('TN:{0}, TP:{1}, FN:{2}, FP:{3} '.format(TN, TP, FN, FP))
-        logging.info('classify incorrectly nodule:')
-        logging.info(wrong_classify)
-        logging.info('{0} classification, kernel_function={1}, c={2}, gamma={3}, max_iter={4}, test_accuracy={5}'.format('SVM addition_feature<=20mm_mask', 
-                                                                                                                                    param_list[3],
-                                                                                                                                    param_list[0], 
-                                                                                                                                    param_list[1], 
-                                                                                                                                    param_list[2],
-                                                                                                                                    best_accuracy))
-        
-        # criterion = ['entropy', 'gini']
-        # splitter = ['best', 'random'] #C是对错误的惩罚
-        # class_weight = {0:0.3,
-        #                 1:0.7}
-        # with tqdm(total = len(criterion)*len(splitter)) as t:
-        #     best_accuracy = 0
-        #     for cri in criterion:
-        #         for spli in splitter:
-        #             clf = DecisionTreeClassifier(criterion=cri, splitter=spli,class_weight=class_weight)
-        #             clf = clf.fit(train_feature, train_label)
-
-        #             Y_pred = clf.predict(test_feature)
-        #             con_matrix = confusion_matrix(test_label,Y_pred,labels=range(2))
-        #             accuracy = (con_matrix[0][0] + con_matrix[1][1])/len(test_label)
-        #             if accuracy > best_accuracy:
-        #                 idx = [i for i in range(len(Y_pred)) if Y_pred[i] != test_label[i]]
-        #                 wrong_classify = [name for i,name in enumerate(test_name) if i in idx]
-        #                 save_matrix = con_matrix
-        #                 param_list = [cri, spli]
-        #                 best_accuracy = accuracy
-        #             t.update()
-
         # TN = save_matrix[0][0]
         # TP = save_matrix[1][1]
         # FN = save_matrix[1][0]
@@ -2148,14 +2134,19 @@ def traditional_feature_traditional_method_classification():
         # logging.info('TN:{0}, TP:{1}, FN:{2}, FP:{3} '.format(TN, TP, FN, FP))
         # logging.info('classify incorrectly nodule:')
         # logging.info(wrong_classify)
-        # logging.info('{0} classification, criterion={1}, splitter={2}, test_accuracy={3}'.format('DecisionTreeClassifier addition_feature<=20mm_mask', 
-        #                                                                                 param_list[0],
-        #                                                                                 param_list[1],
-        #                                                                                 best_accuracy))
-        # logging.info('\n')                                                                            
-
-        
-
+        print('{0} classification, fold={6},kernel_function={1}, c={2}, gamma={3}, max_iter={4}, best_test_accuracy={5}'.format('SVM ', 
+                                                                                                                param_list[3],
+                                                                                                                param_list[0], 
+                                                                                                                param_list[1], 
+                                                                                                                param_list[2],
+                                                                                                                best_accuracy,
+                                                                                                                fold))
+        # logging.info('{0} classification, kernel_function={1}, c={2}, gamma={3}, max_iter={4}, test_accuracy={5}'.format('SVM addition_feature<=20mm_mask', 
+        #                                                                                                                             param_list[3],
+        #                                                                                                                             param_list[0], 
+        #                                                                                                                             param_list[1], 
+        #                                                                                                                             param_list[2],
+        #                                                                                                                             best_accuracy))
     return
 
 #得到8个标签的特征值
@@ -2226,4 +2217,4 @@ def getDatasetMeanAndStd():
     return mean,std
 
 if __name__ == '__main__':
-    nodule_diameter_statistic()
+    SVM_classification()

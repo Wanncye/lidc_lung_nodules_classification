@@ -69,10 +69,13 @@ else:
 # descripe = '_para1_10fold_noNorm_add_gcn_traditional'
 # descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_5feature_512_cat_traditional'
 # descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_GAT_cat_traditional'
-descripe = '_para1_10fold_noNorm_add_gcn_adj_fc_5feature_512_graphSAGE_cat_traditional'
+# descripe = '_para1_10fold_noNorm_add_gcn_adj_fc_5feature_512_graphSAGE_cat_traditional'
+# descripe = 'para1_10fold_noNorm_only_add_gcn_adj_1-similarity_norm_5feature_512_cat'
+# descripe = 'para1_10fold'
+descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_cat_traditional_BCELoss'
 
 #GCN特征的文件加名
-gcn_feature_path = '10fold_gcn_feature_noNorm_adj_fc_addGoogleNet_grapgSAGE_mean'
+gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet'
 
 #加特征之后全连接层的特征维度
 feature_fusion_method = 'cat'
@@ -94,9 +97,9 @@ data_fold = '10fold'
 
 #要训练的模型
 # model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet']
-# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet'] 
+model_list = ['alexnet','vgg13','resnet34','attention56','googlenet'] 
 # model_list = ['attention56','googlenet']
-model_list = ['attention56','googlenet']
+# model_list = ['attention56','googlenet']
 # model_list = ['resnet34','attention56','googlenet','shufflenet']
 # model_list = ['shufflenet','mobilenet',]
 # model_list = ['alexnet']
@@ -325,6 +328,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
     best_val_acc = 0.0
     is_best = 1
     val_acc_list = []
+    params.num_epochs = 50
     for epoch in range(params.num_epochs):
         # Run one epoch
         print("模型：{0}，第{1}折".format(model_name,N_folder))
@@ -613,6 +617,7 @@ if __name__ == '__main__':
                 loss_fn = net.FocalLoss(alpha=params.FocalLossAlpha,gamma=params.FocalLossGamma)       #focalLoss损失
             else:
                 print("- No this type of loss!")
+            loss_fn = net.loss_fn_BCE
             metrics = net.metrics
 
             # Train the model
