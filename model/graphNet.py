@@ -170,8 +170,8 @@ class GCN_512(nn.Module):
         super(GCN_512, self).__init__()
         self.nclass = nclass
         self.gc1 = GC(nfeat, nhid)
-        self.gc2 = GC(nhid, 102)
-        self.gc3 = GC(102, fc_num)
+        self.gc2 = GC(nhid, 73)
+        self.gc3 = GC(73, fc_num)
         self.dropout = dropout
         node_num = ft
         self.fc = nn.Linear(fc_num*node_num, nclass)

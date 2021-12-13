@@ -1075,10 +1075,17 @@ def svm_classification_gcn_middle_feature():
                                                                                                                                     best_accuracy))
 
 #计算5种方法之间的预测相似度，以此来构建邻接矩阵
-def caculate_five_method_predict_similarity(fold):
-    modelList = ['alexnet','attention56','vgg13','resnet34','googlenet']
-    descripe = 'para1_10fold_noNorm_add_gcn_includeGoogLeNet_traditional'
-    sim_adj = np.zeros((5,5))
+def caculate_five_method_predict_similarity(fold,feature_num):
+    if feature_num == 4:
+        modelList = ['alexnet','attention56','vgg13','resnet34']
+    if feature_num == 5:
+        modelList = ['alexnet','attention56','vgg13','resnet34','googlenet']
+    if feature_num == 6:
+        modelList = ['alexnet','attention56','vgg13','resnet34','googlenet','shufflenet']
+    if feature_num == 7:
+        modelList = ['alexnet','attention56','vgg13','resnet34','googlenet','shufflenet','mobilenet']
+    # descripe = 'para1_10fold_noNorm_add_gcn_includeGoogLeNet_traditional'
+    descripe = 'para1_10fold_noNorm'
     # for fold in range(10):
     for model in modelList:
         jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_'+descripe+'.metrics_val_best_weights.json'
@@ -1107,9 +1114,22 @@ def caculate_five_method_predict_similarity(fold):
             resnet34PredLabel = csvReader['predict_label']
         if model=='googlenet':
             googlenetPredLabel = csvReader['predict_label']
-    data_len = len(googlenetPredLabel)
-    all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel]
-    method_num = 5
+        if model=='shufflenet':
+            shufflenetPredLabel = csvReader['predict_label']
+        if model=='mobilenet':
+            mobilenetPredLabel = csvReader['predict_label']
+    data_len = len(resnet34PredLabel)
+    # all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel]
+    if feature_num == 4:
+        all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel]
+    if feature_num == 5:
+        all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel]
+    if feature_num == 6:
+        all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel, shufflenetPredLabel]
+    if feature_num == 7:
+        all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel, shufflenetPredLabel, mobilenetPredLabel]
+    
+    method_num = len(modelList)
     sim_matrix = np.zeros((method_num,method_num))
     cord = 0
     for i_predict_list in all_predict_list:
@@ -1117,11 +1137,6 @@ def caculate_five_method_predict_similarity(fold):
             correct = np.sum(i_predict_list == j_predict_list)
             row = int(cord / method_num)
             coloum = cord % method_num
-            # if row != coloum:
-            #     sim_matrix[row][coloum] = (1-correct/data_len)*10   
-            #     sim_matrix[row][coloum] = correct/data_len
-            # else:
-            #     sim_matrix[row][coloum] = 0
             sim_matrix[row][coloum] = (1-correct/data_len)*10  
             cord += 1
     sim_matrix = (sim_matrix-np.min(sim_matrix))/(np.max(sim_matrix)-np.min(sim_matrix))
@@ -2216,5 +2231,6 @@ def getDatasetMeanAndStd():
     std = torch.tensor([[41.8699, 41.6722, 41.5907, 41.4606, 41.3476, 41.1476, 40.9845, 40.8674]])
     return mean,std
 
+
 if __name__ == '__main__':
-    SVM_classification()
+    shufflenet_mobilenet_rename()

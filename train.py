@@ -72,10 +72,18 @@ else:
 # descripe = '_para1_10fold_noNorm_add_gcn_adj_fc_5feature_512_graphSAGE_cat_traditional'
 # descripe = 'para1_10fold_noNorm_only_add_gcn_adj_1-similarity_norm_5feature_512_cat'
 # descripe = 'para1_10fold'
-descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_cat_traditional_BCELoss'
+
+# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_4feature_512_cat_traditional'
+# gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_4feature' #4个特征FocalLoss
+
+descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_7feature_512_cat_traditional'
+gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_7feature' #7个特征FocalLoss
 
 #GCN特征的文件加名
-gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet'
+# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_cat_traditional'
+# gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet'#5个特征，最好模型
+
+
 
 #加特征之后全连接层的特征维度
 feature_fusion_method = 'cat'
@@ -96,12 +104,13 @@ torch.cuda.set_device(0)
 data_fold = '10fold'
 
 #要训练的模型
-# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet']
-model_list = ['alexnet','vgg13','resnet34','attention56','googlenet'] 
+# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet','mobilenet']
+# model_list = ['alexnet','vgg13','resnet34','attention56']
+# model_list = ['attention56'] 
 # model_list = ['attention56','googlenet']
 # model_list = ['attention56','googlenet']
 # model_list = ['resnet34','attention56','googlenet','shufflenet']
-# model_list = ['shufflenet','mobilenet',]
+model_list = ['shufflenet','mobilenet',]
 # model_list = ['alexnet']
 # model_list = ['googlenet']
 # model_list = ['vgg13']
@@ -524,7 +533,7 @@ if __name__ == '__main__':
                 model = inception_resnet_v2().cuda()
                 print('Using inception_resnet_v2')
             elif model_name == 'mobilenet':
-                model = mobilenet().cuda()
+                model = mobilenet(fc_feature_dim=fc_feature_dim).cuda()
                 print('Using mobilenet')
             elif model_name == 'mobilenetv2':
                 model = mobilenetv2().cuda()
@@ -572,7 +581,7 @@ if __name__ == '__main__':
                 model = senet152().cuda()
                 print('Using senet152')
             elif model_name == 'shufflenet':
-                model = shufflenet().cuda()
+                model = shufflenet(fc_feature_dim=fc_feature_dim).cuda()
                 print('Using shufflenet')
             elif model_name == 'squeezenet':
                 model = squeezenet().cuda()
@@ -617,7 +626,7 @@ if __name__ == '__main__':
                 loss_fn = net.FocalLoss(alpha=params.FocalLossAlpha,gamma=params.FocalLossGamma)       #focalLoss损失
             else:
                 print("- No this type of loss!")
-            loss_fn = net.loss_fn_BCE
+            # loss_fn = net.loss_fn_BCE
             metrics = net.metrics
 
             # Train the model

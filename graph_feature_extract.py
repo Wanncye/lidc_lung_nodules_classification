@@ -63,12 +63,13 @@ def save_incorrect_nodule(pre_label, truth_label, nodule_name):
 
 
 # f = open('./experiments/gcn/random_adj/random_adj_43_feature_0~1_result_2.txt', 'w')
-for fold in range(10):
+for fold in range(3,10):
     vis = Visualizer('GCN_'+str(fold))
     print(fold)
     best_acc_list = []
-    model_method = 'graphSAGE'
+    model_method = 'GCN_512'
     np.random.seed(np.random.randint(1,500))
+    feature_num = 7
     # adj = get_random_adj(node_num, out_index)
     # adj = torch.tensor(
     #     [[1., 0., 1., 1., 0.],
@@ -91,7 +92,7 @@ for fold in range(10):
     #     [1., 1., 0., 1., 0., 0.,1.],
     #     [0., 1., 1., 0., 1., 0.,0.],
     #     [1. ,0. ,1. ,0. ,1. ,1.,0.]])
-    adj = torch.from_numpy(caculate_five_method_predict_similarity(fold)).float()
+    adj = torch.from_numpy(caculate_five_method_predict_similarity(fold,feature_num)).float()
     # adj = torch.tensor(
     #     [[0., 1., 1., 1., 1.],
     #     [1., 0., 1., 1., 1.],
@@ -101,7 +102,7 @@ for fold in range(10):
     print(adj)
     
     input_dim = 512
-    node_num = 5
+    node_num = 7
     if model_method == 'GCN_512':
         model = GCN_512(nfeat=input_dim,
                     nhid=64,
@@ -142,7 +143,8 @@ for fold in range(10):
     #                     momentum=0.95,
     #                     weight_decay=0.01)
     # save_dir_name = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet_GAT'
-    save_dir_name = '10fold_gcn_feature_noNorm_adj_fc_addGoogleNet_grapgSAGE_mean_test'
+    save_dir_name = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_7feature'
+    # save_dir_name = '10fold_gcn_feature_noNorm_adj_fc_addGoogleNet_grapgSAGE_mean_test'
 
     #pretrain_feature
     # m = torch.nn.Tanh()
@@ -215,8 +217,8 @@ for fold in range(10):
             alexnet_train_feature,
             attention56_train_feature,
             googlenet_train_feature,
-            # shufflenet_train_feature,
-            # mobilenet_train_feature,
+            shufflenet_train_feature,
+            mobilenet_train_feature,
         )):  #必须得在这里用zip才行，好家伙
             temp = torch.zeros((len(one_nodule_feature),512))
             for i, feature in enumerate(one_nodule_feature):
@@ -232,7 +234,7 @@ for fold in range(10):
             # _ , one_gcn_train_middle_feature, output = model(features)
             #将gcn中间特征保存下来
             # gcn_train_middle_feature[index] = one_gcn_train_middle_feature
-            gcn_train_middle_feature[index,:510] = one_gcn_train_middle_feature
+            gcn_train_middle_feature[index,:511] = one_gcn_train_middle_feature
 
             one_label = train_label[index].unsqueeze(0).long()
             pre_train_list[index] = output.max(1)[1].type_as(one_label)
@@ -251,8 +253,8 @@ for fold in range(10):
             alexnet_test_feature,
             attention56_test_feature,
             googlenet_test_feature,
-            # shufflenet_test_feature,
-            # mobilenet_test_feature
+            shufflenet_test_feature,
+            mobilenet_test_feature
         )):
             temp = torch.zeros((len(one_nodule_feature),512))
             for i, feature in enumerate(one_nodule_feature):
@@ -268,7 +270,7 @@ for fold in range(10):
             # _ , one_gcn_test_middle_feature, output = model(features)
             #将gcn中间特征保存下来
             # gcn_test_middle_feature[index] = one_gcn_test_middle_feature
-            gcn_test_middle_feature[index,:510] = one_gcn_test_middle_feature
+            gcn_test_middle_feature[index,:511] = one_gcn_test_middle_feature
 
             one_label = test_label[index].unsqueeze(0).long()
             pre_test_list[index] = output.max(1)[1].type_as(one_label)
