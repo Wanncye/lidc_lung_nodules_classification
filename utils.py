@@ -22,7 +22,6 @@ from sklearn import metrics
 import matplotlib.pyplot as plt 
 import re
 from torch.autograd import Variable
-import math
 
 import torch 
 import model.data_loader as data_loader
@@ -523,9 +522,8 @@ def HOG(cube):
                     dis_z = cube[i+1, j, k] - cube[i-1, j, k]
                     pixel_gradient = np.sqrt(np.square(dis_x) + np.square(dis_y) + np.square(dis_z)) 
                     all_gredient.append(pixel_gradient)
-                    pixel_direcet = math.degrees(math.atan(dis_y/dis_x))
-                    if pixel_direcet != math.nan:
-                        print(pixel_direcet)
+                    # pixel_direcet = math.degrees(math.atan(dis_y/dis_x))
+                    # print(pixel_direcet)
 
     gredient_max = np.max(all_gredient)
     gredient_min = np.min(all_gredient)
@@ -1027,120 +1025,105 @@ def svm_classification_gcn_middle_feature():
     from sklearn.metrics import confusion_matrix
     from sklearn.svm import SVC
     
-    for fold in range(10):
-        gcn_train_feature = torch.load('data/feature/10fold_gcn_feature_noNorm_random_adj_addGoogleNet/gcn_train_middle_feature_fold_'+str(fold)+'.pt')   #639*64
-        gcn_test_feature = torch.load('data/feature/10fold_gcn_feature_noNorm_random_adj_addGoogleNet/gcn_test_middle_feature_fold_'+str(fold)+'.pt')   #160*64
-        train_label = torch.load('data/feature/10fold_model_feature/fold_'+str(fold)+'_train_label.pt')
-        test_label = torch.load('data/feature/10fold_model_feature/fold_'+str(fold)+'_test_label.pt')
-        
-        testSet_len = test_label.shape[0]
-        #SVM
-        #glcm max_iter=500 效果最佳
-        set_logger('./experiments/gcn/gcm_middle_feature_svm_classification_log.log')
-        kernel_function = ['linear', 'poly', 'rbf', 'sigmoid']
-        C = [1e-2,1e-1,1,1e1,1e2] #C是对错误的惩罚
-        gamma = [0.0001,0.0005,0.001,0.005,0.01,0.1] 
-        max_iter = [50,100,200,500,700,1000,1500,2000]
-        with tqdm(total = len(kernel_function)*len(C)*len(gamma)*len(max_iter)) as t:
-            train_feature = gcn_train_feature.detach().numpy()
-            test_feature = gcn_test_feature.detach().numpy()
-            best_accuracy = 0
-            for kf in kernel_function:
-                for c in C:
-                    for ga in gamma:
-                        for miter in max_iter:
-                            clf = SVC(kernel=kf, C=c, gamma=ga, max_iter=miter)
-                            clf = clf.fit(train_feature, train_label)
-
-                            Y_pred = clf.predict(test_feature)
-                            con_matrix = confusion_matrix(test_label,Y_pred,labels=range(2))
-                            
-                            accuracy = (con_matrix[0][0] + con_matrix[1][1])/testSet_len
-                            if accuracy > best_accuracy:
-                                save_matrix = con_matrix
-                                param_list = [c, ga, miter,kf]
-                                best_accuracy = accuracy
-                            t.update()
-            
-            TN = save_matrix[0][0]
-            TP = save_matrix[1][1]
-            FN = save_matrix[1][0]
-            FP = save_matrix[0][1]
-            logging.info('TN:{0}, TP:{1}, FN:{2}, FP:{3} '.format(TN, TP, FN, FP))
-            logging.info('{0} svm classification, kernel_function={1}, c={2}, gamma={3}, max_iter={4}, test_accuracy={5}'.format('gcn', 
-                                                                                                                                    param_list[3],
-                                                                                                                                    param_list[0], 
-                                                                                                                                    param_list[1], 
-                                                                                                                                    param_list[2],
-                                                                                                                                    best_accuracy))
-
-#计算5种方法之间的预测相似度，以此来构建邻接矩阵
-def caculate_five_method_predict_similarity(fold,feature_num):
-    if feature_num == 4:
-        modelList = ['alexnet','attention56','vgg13','resnet34']
-    if feature_num == 5:
-        modelList = ['alexnet','attention56','vgg13','resnet34','googlenet']
-    if feature_num == 6:
-        modelList = ['alexnet','attention56','vgg13','resnet34','googlenet','shufflenet']
-    if feature_num == 7:
-        modelList = ['alexnet','attention56','vgg13','resnet34','googlenet','shufflenet','mobilenet']
-    # descripe = 'para1_10fold_noNorm_add_gcn_includeGoogLeNet_traditional'
-    descripe = 'para1_10fold_noNorm'
-    # for fold in range(10):
-    for model in modelList:
-        jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_'+descripe+'.metrics_val_best_weights.json'
-        jsonFilePath = 'experiments/'+model+'_nomask/'+jsonFileName
-        f = open(jsonFilePath,'r')
-        jsonData = json.load(f)
-        jsonAcc = jsonData['accuracy']
-        jsonEpoch = jsonData['epoch']
-        csvPath = 'experiments/'+\
-                    model+\
-                    '_nomask/result_'+\
-                    descripe +\
-                    '/folder_'+\
-                    str(fold)+\
-                    '_result_'+\
-                    str(int(jsonEpoch-1))+\
-                    '.csv'
-        csvReader = pd.read_csv(csvPath)
-        if model=='alexnet':
-            alexnetPredLabel = csvReader['predict_label']
-        if model=='attention56':
-            attention56PredLabel = csvReader['predict_label']
-        if model=='vgg13':
-            vgg13PredLabel = csvReader['predict_label']
-        if model=='resnet34':
-            resnet34PredLabel = csvReader['predict_label']
-        if model=='googlenet':
-            googlenetPredLabel = csvReader['predict_label']
-        if model=='shufflenet':
-            shufflenetPredLabel = csvReader['predict_label']
-        if model=='mobilenet':
-            mobilenetPredLabel = csvReader['predict_label']
-    data_len = len(resnet34PredLabel)
-    # all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel]
-    if feature_num == 4:
-        all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel]
-    if feature_num == 5:
-        all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel]
-    if feature_num == 6:
-        all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel, shufflenetPredLabel]
-    if feature_num == 7:
-        all_predict_list = [resnet34PredLabel, vgg13PredLabel, alexnetPredLabel, attention56PredLabel, googlenetPredLabel, shufflenetPredLabel, mobilenetPredLabel]
+    gcn_train_feature = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/train_middle_feature_64.pt')[:,0,:]   #639*64
+    gcn_test_feature = torch.load('./experiments/gcn/fc_2_feature_4_wdecay_5e-2.best.pth.tar_feature/test_middle_feature_64.pt')[:,0,:]    #160*64
+    train_label = torch.load('./data/mask_feature/train_label.pt')
+    test_label = torch.load('./data/mask_feature/test_label.pt')
     
-    method_num = len(modelList)
-    sim_matrix = np.zeros((method_num,method_num))
+    
+    #SVM
+    #glcm max_iter=500 效果最佳
+    set_logger('./experiments/gcn/gcm_middle_feature_svm_classification_log.log')
+    kernel_function = ['linear', 'poly', 'rbf', 'sigmoid']
+    C = [1e-2,1e-1,1,1e1,1e2] #C是对错误的惩罚
+    gamma = [0.0001,0.0005,0.001,0.005,0.01,0.1] 
+    max_iter = [50,100,200,500,700,1000,1500,2000]
+    with tqdm(total = len(kernel_function)*len(C)*len(gamma)*len(max_iter)) as t:
+        train_feature = gcn_train_feature.detach().numpy()
+        test_feature = gcn_test_feature.detach().numpy()
+        best_accuracy = 0
+        for kf in kernel_function:
+            for c in C:
+                for ga in gamma:
+                    for miter in max_iter:
+                        clf = SVC(kernel=kf, C=c, gamma=ga, max_iter=miter)
+                        clf = clf.fit(train_feature, train_label)
+
+                        Y_pred = clf.predict(test_feature)
+                        con_matrix = confusion_matrix(test_label,Y_pred,labels=range(2))
+                        
+                        accuracy = (con_matrix[0][0] + con_matrix[1][1])/160
+                        if accuracy > best_accuracy:
+                            save_matrix = con_matrix
+                            param_list = [c, ga, miter,kf]
+                            best_accuracy = accuracy
+                        t.update()
+        
+        TN = save_matrix[0][0]
+        TP = save_matrix[1][1]
+        FN = save_matrix[1][0]
+        FP = save_matrix[0][1]
+        logging.info('TN:{0}, TP:{1}, FN:{2}, FP:{3} '.format(TN, TP, FN, FP))
+        logging.info('{0} svm classification, kernel_function={1}, c={2}, gamma={3}, max_iter={4}, test_accuracy={5}'.format('gcn', 
+                                                                                                                                param_list[3],
+                                                                                                                                param_list[0], 
+                                                                                                                                param_list[1], 
+                                                                                                                                param_list[2],
+                                                                                                                                best_accuracy))
+
+#计算6种方法之间的预测相似度，以此来构建邻接矩阵
+def caculate_six_method_predict_similarity():
+    #先获得6种特征的预测标签，计算相似度只需要看预测得一不一样了
+    csv_reader = csv.reader(open('./data/mask_feature/glcm_testset_result.csv'))
+    header = next(csv_reader)
+    glcm_predict_list = []
+    for row in csv_reader:
+        glcm_predict_list.append(row[2])
+    
+    csv_reader = csv.reader(open('./data/mask_feature/googlenet_testset_result.csv'))
+    header = next(csv_reader)
+    googlenet_predict_list = []
+    for row in csv_reader:
+        googlenet_predict_list.append(row[2])
+
+    csv_reader = csv.reader(open('./data/mask_feature/vgg_testset_result.csv'))
+    header = next(csv_reader)
+    vgg_predict_list = []
+    for row in csv_reader:
+        vgg_predict_list.append(row[2])
+
+    csv_reader = csv.reader(open('./data/mask_feature/resnet_testset_result.csv'))
+    header = next(csv_reader)
+    resnet_predict_list = []
+    for row in csv_reader:
+        resnet_predict_list.append(row[2])
+    
+    csv_reader = csv.reader(open('./data/mask_feature/lbp_testset_result.csv'))
+    header = next(csv_reader)
+    lbp_predict_list = []
+    for row in csv_reader:
+        lbp_predict_list.append(row[2])
+
+    csv_reader = csv.reader(open('./data/mask_feature/hog_testset_result.csv'))
+    header = next(csv_reader)
+    hog_predict_list = []
+    for row in csv_reader:
+        hog_predict_list.append(row[2])
+    
+    all_predict_list = [googlenet_predict_list, resnet_predict_list, vgg_predict_list, hog_predict_list, lbp_predict_list, glcm_predict_list]
+    sim_matrix = np.zeros((6,6))
     cord = 0
     for i_predict_list in all_predict_list:
         for j_predict_list in all_predict_list:
-            correct = np.sum(i_predict_list == j_predict_list)
-            row = int(cord / method_num)
-            coloum = cord % method_num
-            sim_matrix[row][coloum] = (1-correct/data_len)*10  
+            correct = 0
+            for index in range(160):
+                if i_predict_list[index] == j_predict_list[index]:
+                    correct += 1
+            row = int(cord / 6)
+            coloum = cord % 6
+            sim_matrix[row][coloum] = correct
             cord += 1
-    sim_matrix = (sim_matrix-np.min(sim_matrix))/(np.max(sim_matrix)-np.min(sim_matrix))
-    return sim_matrix
+    return sim_matrix/160
 
 
 #提取15种特征的10个样本（5个正样本，5个负样本）的512维特征，写进txt文档中
@@ -1233,7 +1216,7 @@ def exract_15_feature_10_sample_write_in_txt():
 
 #得到两个矩阵的余弦相似度
 def get_matrix_similarity(_matrixA, _matrixB):
-    _matrixA_matrixB = np.dot(_matrixA, _matrixB.T)
+    _matrixA_matrixB = np.dot(_matrixA, _matrixB.transpose())
     _matrixA_norm = np.sqrt(np.multiply(_matrixA,_matrixA).sum(axis=1))
     _matrixB_norm = np.sqrt(np.multiply(_matrixB,_matrixB).sum(axis=1))
     return np.divide(_matrixA_matrixB, np.dot(_matrixA_norm.reshape(_matrixA_norm.shape[0],1), _matrixB_norm.reshape(1,_matrixA_norm.shape[0])))
@@ -1249,15 +1232,15 @@ def search_different_resnet_feature_correlation():
 
 #修改测试集训练集之后，需要重新获取数据集的标签，并且保存下来
 def get_dataset_label_pt():
-    datasetPath = '10fold'
-    for index in range(10):
+    datasetPath = '5fold_128'
+    for index in range(5):
         dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/"+datasetPath+"/fold"+str(index+1), train_shuffle=False,fold=index)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
         for i, (train_batch, labels_batch, _,_) in enumerate(train_dl):
-            torch.save(labels_batch,'data/feature/'+'10fold_model_feature'+'/fold_'+str(index)+'_train_label.pt')
+            torch.save(labels_batch,'data/feature/'+'addition_feature'+'/fold_'+str(index)+'_train_label.pt')
         for i, (train_batch, labels_batch, _,_) in enumerate(test_dl):
-            torch.save(labels_batch,'data/feature/'+'10fold_model_feature'+'/fold_'+str(index)+'_test_label.pt')
+            torch.save(labels_batch,'data/feature/'+'addition_feature'+'/fold_'+str(index)+'_test_label.pt')
 
 #将所有模型的（目前是已经训练好的模型）预测结果汇总到同一个csv中
 def converage_all_result():
@@ -1415,9 +1398,9 @@ def get_various_feature():
             volume = np.array([df[df["nodule_idx"]==nodule_idx]["volume"].iloc[0]])
 
             try:
-                # hu = HU(cube)     #56维特征
-                # glcm = GLCM(cube) #64维特征，后续要归一化
-                # lbp = LBP(cube)   #64维特征
+                hu = HU(cube)     #56维特征
+                glcm = GLCM(cube) #64维特征，后续要归一化
+                lbp = LBP(cube)   #64维特征
                 hog = HOG(cube)   #64维特征
 
                 cube = np.squeeze(cube).numpy()
@@ -1600,23 +1583,16 @@ def get_various_feature_thread():
 
 from sklearn.manifold import TSNE 
 def t_SNE():
-    for fold in range(10):
-        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/10fold/fold"+str(fold+1), train_shuffle=False, fold=0)
+    for fold in range(5):
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128<=20mm_mask/fold"+str(fold+1), train_shuffle=False, fold=0)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
         for i, (train_batch, labels_batch, _, _) in enumerate(train_dl):
             train_label = labels_batch
         for i, (train_batch, labels_batch, _, _) in enumerate(test_dl):
             test_label = labels_batch
-        # train = torch.load('data/feature/10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet/gcn_train_middle_feature_fold_'+str(fold)+'.pt').detach().numpy()
-        # test = torch.load('data/feature/10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet/gcn_test_middle_feature_fold_'+str(fold)+'.pt').detach().numpy()
-        train = torch.load('data/feature/10fold_traditional_feature/fold_'+str(fold)+'_train_addition_feature.pt').detach().numpy()
-        test = torch.load('data/feature/10fold_traditional_feature/fold_'+str(fold)+'_test_addition_feature.pt').detach().numpy()
-        # train = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_train.pt').detach().numpy()
-        # test = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_test.pt').detach().numpy()
-
-        all_feature = np.concatenate((train, test), axis=0)
-        all_label = np.concatenate((train_label, test_label), axis=0)
+        train = torch.load('data/feature/addition_feature_mask<=20/fold_'+str(fold)+'_train_addition_feature.pt')
+        test = torch.load('data/feature/addition_feature_mask<=20/fold_'+str(fold)+'_test_addition_feature.pt')
         for jndex in range(248,255):
             max = train[:, jndex].max()  
             min = train[:, jndex].min()  
@@ -1627,40 +1603,27 @@ def t_SNE():
             test[:, jndex] = (test[:, jndex] - min) / (max-min)
 
 
-        title_describe = 'traditional_248_norm'
-        is_norm = True
         
         tsne = TSNE(n_components=2).fit_transform(train)
-        if is_norm:
-            x_min, x_max = tsne.min(0), tsne.max(0)
-            tsne = (tsne - x_min) / (x_max - x_min)
-        plt.plot(tsne[train_label == 0][:,0], tsne[train_label == 0][:,1], 'r*', label='benign',markersize=10,alpha=0.5)
-        plt.plot(tsne[train_label == 1][:,0], tsne[train_label == 1][:,1], 'b.', label='maligancy',markersize=10,alpha=0.5)
+        x_min, x_max = tsne.min(0), tsne.max(0)
+        tsne_norm = (tsne - x_min) / (x_max - x_min)
+
+        plt.plot(tsne_norm[train_label == 0][:,0], tsne_norm[train_label == 0][:,1], 'r.', label='benign')
+        plt.plot(tsne_norm[train_label == 1][:,0], tsne_norm[train_label == 1][:,1], 'b.', label='maligancy')
         plt.legend()
-        plt.title(title_describe+'_feature_'+str(fold)+'_train_t-sne')
-        plt.savefig('data/feature/vis_feature/'+title_describe+'/t-sne_alexnet_train_'+str(fold)+'.png')
+        plt.title('add_'+str(fold)+'_train_t-sne')
+        plt.savefig('data/feature/vis_feature/add'+str(fold)+'mask<=20_train_t-sne.png')
         plt.cla()
 
         tsne = TSNE(n_components=2).fit_transform(test)
-        if is_norm:
-            x_min, x_max = tsne.min(0), tsne.max(0)
-            tsne = (tsne - x_min) / (x_max - x_min)
-        plt.plot(tsne[test_label == 0][:,0], tsne[test_label == 0][:,1], 'r*', label='benign',markersize=10,alpha=0.5)
-        plt.plot(tsne[test_label == 1][:,0], tsne[test_label == 1][:,1], 'b.', label='maligancy',markersize=10,alpha=0.5)
+        x_min, x_max = tsne.min(0), tsne.max(0)
+        tsne_norm = (tsne - x_min) / (x_max - x_min)
+
+        plt.plot(tsne_norm[test_label == 0][:,0], tsne_norm[test_label == 0][:,1], 'r.', label='benign')
+        plt.plot(tsne_norm[test_label == 1][:,0], tsne_norm[test_label == 1][:,1], 'b.', label='maligancy')
         plt.legend()
-        plt.title(title_describe+'_feature_'+str(fold)+'_test_t-sne')
-        plt.savefig('data/feature/vis_feature/'+title_describe+'/t-sne_alexnet_test_'+str(fold)+'.png')
-        plt.cla()
-        
-        tsne = TSNE(n_components=2).fit_transform(all_feature)
-        if is_norm:
-            x_min, x_max = tsne.min(0), tsne.max(0)
-            tsne = (tsne - x_min) / (x_max - x_min)
-        plt.plot(tsne[all_label == 0][:,0], tsne[all_label == 0][:,1], 'r*', label='benign',markersize=10,alpha=0.5)
-        plt.plot(tsne[all_label == 1][:,0], tsne[all_label == 1][:,1], 'b.', label='maligancy',markersize=10,alpha=0.5)
-        plt.legend()
-        plt.title(title_describe+'_feature_'+str(fold)+'_all_t-sne')
-        plt.savefig('data/feature/vis_feature/'+title_describe+'/t-sne_alexnet_all_'+str(fold)+'.png')
+        plt.title('add_'+str(fold)+'_test_t-sne')
+        plt.savefig('data/feature/vis_feature/add'+str(fold)+'mask<=20_test_t-sne.png')
         plt.cla()
 
     
@@ -1832,16 +1795,16 @@ def nodule_diameter_statistic():
 
     
     group = np.arange(3,50,1)
-    # plt.hist(diameter_list, group,rwidth=0.85, color='#0504aa', label='Total', alpha=0.5)
+    plt.hist(diameter_list, group,rwidth=0.85, color='#0504aa', label='Total', alpha=0.5)
 
     plt.hist(benign_diameter_list, group,rwidth=0.85, color='green', label='Benign', alpha=0.5)
 
-    plt.hist(malignancy_diameter_list, group,rwidth=0.85, color='purple', label='Malignancy', alpha=0.5)
+    plt.hist(malignancy_diameter_list, group,rwidth=0.85, color='red', label='Malignancy', alpha=0.5)
     plt.grid(axis='y', alpha=0.75)
 
-    plt.title('All nodule diameter statistics')
+    plt.title('comb nodule diameter statistic.png')
     plt.legend()
-    plt.savefig('data/fig/comb_nodule_diameter_statistic.png')
+    plt.savefig('data/comb_nodule_diameter_statistic.png')
 
     return
 
@@ -2096,32 +2059,30 @@ def nodule_fold_diameter_statistic():
 
 from sklearn.tree import DecisionTreeClassifier
 #SVM、决策树
-def SVM_classification():
-    for fold in range(10):
+def traditional_feature_traditional_method_classification():
+    rootPath = 'data/feature/addition_feature_mask<=20/'
+    set_logger(rootPath + 'SVM_DecisionTreeClassifier.log')
+    for fold in range(3,4):
 
-        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/10fold/fold"+str(fold+1), train_shuffle=False, fold=0)
+        dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = 3000, data_dir="data/5fold_128/fold"+str(fold+1), train_shuffle=False,fold=0)
         train_dl = dataloaders['train']
         test_dl = dataloaders['test']
-        for i, (train_batch, labels_batch, _, _) in enumerate(train_dl):
-            train_label = labels_batch
-        for i, (train_batch, labels_batch, _, _) in enumerate(test_dl):
-            test_label = labels_batch
+        for i, (train_batch, labels_batch, file_name, _) in enumerate(train_dl):
+            train_label = np.array(labels_batch)
+            train_feature = getEightLabelFeature(file_name)
+        for i, (train_batch, labels_batch, file_name, _) in enumerate(test_dl):
+            test_label = np.array(labels_batch)
+            test_name = file_name
+            test_feature = getEightLabelFeature(file_name)
 
-        train_feature = torch.load('data/feature/10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet/gcn_train_middle_feature_fold_'+str(fold)+'.pt').detach().numpy()
-        test_feature = torch.load('data/feature/10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet/gcn_test_middle_feature_fold_'+str(fold)+'.pt').detach().numpy()
-        # train_feature = torch.load('data/feature/10fold_traditional_feature/fold_'+str(fold)+'_train_addition_feature.pt').detach().numpy()
-        # test_feature = torch.load('data/feature/10fold_traditional_feature/fold_'+str(fold)+'_test_addition_feature.pt').detach().numpy()
-        # train_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_train.pt').detach().numpy()
-        # test_feature = torch.load('data/feature/10fold_model_feature_noNorm/fold_'+str(fold)+'_alexnet_test.pt').detach().numpy()
         
         kernel_function = ['linear', 'poly', 'rbf', 'sigmoid']
-        # C = [1e-2,1e-1,1,1e1,1e2]
-        # gamma = [0.0001,0.0005,0.001,0.005,0.01,0.1] 
-        # max_iter = [50,100,200,500,700,1000,1500,2000]
-        C = [1e-2]
-        gamma = [0.001] 
-        max_iter = [50]
+        C = [1e-2,1e-1,1,1e1,1e2] #C是对错误的惩罚
+        gamma = [0.0001,0.0005,0.001,0.005,0.01,0.1] 
+        max_iter = [50,100,200,500,700,1000,1500,2000]
         with tqdm(total = len(kernel_function)*len(C)*len(gamma)*len(max_iter)) as t:
+            train_feature = train_feature.detach().numpy()
+            test_feature = test_feature.detach().numpy()
             best_accuracy = 0
             for kf in kernel_function:
                 for c in C:
@@ -2135,13 +2096,49 @@ def SVM_classification():
                             
                             accuracy = (con_matrix[0][0] + con_matrix[1][1])/len(test_label)
                             if accuracy > best_accuracy:
-                                # idx = [i for i in range(len(Y_pred)) if Y_pred[i] != test_label[i]]
-                                # wrong_classify = [name for i,name in enumerate(test_name) if i in idx]
-                                # save_matrix = con_matrix
+                                idx = [i for i in range(len(Y_pred)) if Y_pred[i] != test_label[i]]
+                                wrong_classify = [name for i,name in enumerate(test_name) if i in idx]
+                                save_matrix = con_matrix
                                 param_list = [c, ga, miter,kf]
                                 best_accuracy = accuracy
                             t.update()
             
+        TN = save_matrix[0][0]
+        TP = save_matrix[1][1]
+        FN = save_matrix[1][0]
+        FP = save_matrix[0][1]
+        logging.info('TN:{0}, TP:{1}, FN:{2}, FP:{3} '.format(TN, TP, FN, FP))
+        logging.info('classify incorrectly nodule:')
+        logging.info(wrong_classify)
+        logging.info('{0} classification, kernel_function={1}, c={2}, gamma={3}, max_iter={4}, test_accuracy={5}'.format('SVM addition_feature<=20mm_mask', 
+                                                                                                                                    param_list[3],
+                                                                                                                                    param_list[0], 
+                                                                                                                                    param_list[1], 
+                                                                                                                                    param_list[2],
+                                                                                                                                    best_accuracy))
+        
+        # criterion = ['entropy', 'gini']
+        # splitter = ['best', 'random'] #C是对错误的惩罚
+        # class_weight = {0:0.3,
+        #                 1:0.7}
+        # with tqdm(total = len(criterion)*len(splitter)) as t:
+        #     best_accuracy = 0
+        #     for cri in criterion:
+        #         for spli in splitter:
+        #             clf = DecisionTreeClassifier(criterion=cri, splitter=spli,class_weight=class_weight)
+        #             clf = clf.fit(train_feature, train_label)
+
+        #             Y_pred = clf.predict(test_feature)
+        #             con_matrix = confusion_matrix(test_label,Y_pred,labels=range(2))
+        #             accuracy = (con_matrix[0][0] + con_matrix[1][1])/len(test_label)
+        #             if accuracy > best_accuracy:
+        #                 idx = [i for i in range(len(Y_pred)) if Y_pred[i] != test_label[i]]
+        #                 wrong_classify = [name for i,name in enumerate(test_name) if i in idx]
+        #                 save_matrix = con_matrix
+        #                 param_list = [cri, spli]
+        #                 best_accuracy = accuracy
+        #             t.update()
+
         # TN = save_matrix[0][0]
         # TP = save_matrix[1][1]
         # FN = save_matrix[1][0]
@@ -2149,19 +2146,14 @@ def SVM_classification():
         # logging.info('TN:{0}, TP:{1}, FN:{2}, FP:{3} '.format(TN, TP, FN, FP))
         # logging.info('classify incorrectly nodule:')
         # logging.info(wrong_classify)
-        print('{0} classification, fold={6},kernel_function={1}, c={2}, gamma={3}, max_iter={4}, best_test_accuracy={5}'.format('SVM ', 
-                                                                                                                param_list[3],
-                                                                                                                param_list[0], 
-                                                                                                                param_list[1], 
-                                                                                                                param_list[2],
-                                                                                                                best_accuracy,
-                                                                                                                fold))
-        # logging.info('{0} classification, kernel_function={1}, c={2}, gamma={3}, max_iter={4}, test_accuracy={5}'.format('SVM addition_feature<=20mm_mask', 
-        #                                                                                                                             param_list[3],
-        #                                                                                                                             param_list[0], 
-        #                                                                                                                             param_list[1], 
-        #                                                                                                                             param_list[2],
-        #                                                                                                                             best_accuracy))
+        # logging.info('{0} classification, criterion={1}, splitter={2}, test_accuracy={3}'.format('DecisionTreeClassifier addition_feature<=20mm_mask', 
+        #                                                                                 param_list[0],
+        #                                                                                 param_list[1],
+        #                                                                                 best_accuracy))
+        # logging.info('\n')                                                                            
+
+        
+
     return
 
 #得到8个标签的特征值
@@ -2231,6 +2223,5 @@ def getDatasetMeanAndStd():
     std = torch.tensor([[41.8699, 41.6722, 41.5907, 41.4606, 41.3476, 41.1476, 40.9845, 40.8674]])
     return mean,std
 
-
 if __name__ == '__main__':
-    shufflenet_mobilenet_rename()
+    get_various_feature_thread()

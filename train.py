@@ -65,25 +65,20 @@ else:
     save_model_dir = '10fold_model_feature_noNorm'
 
 #设置生成的json文件、预测结果的描述，每次实验都不一样
-# descripe = '_<=20mm_nodule_gcn_trad +itional_addEightLabelFeature_norInput_testZero_para1_10fold'
+# descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
 # descripe = '_para1_10fold_noNorm_add_gcn_traditional'
-# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_5feature_512_cat_traditional'
-# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_GAT_cat_traditional'
 # descripe = '_para1_10fold_noNorm_add_gcn_adj_fc_5feature_512_graphSAGE_cat_traditional'
 # descripe = 'para1_10fold_noNorm_only_add_gcn_adj_1-similarity_norm_5feature_512_cat'
-# descripe = 'para1_10fold'
+# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_cat_traditional_BCELoss'
+# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_4feature_512_cat_traditional' #对比试验4个特征FocalLoss
 
-# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_4feature_512_cat_traditional'
+#GCN特征的文件加名
+# gcn_feature_path = '10fold_gcn_feature_noNorm_adj_fc_addGoogleNet_grapgSAGE_mean' #用graphSAGE，mean聚合函数
+# gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet' #5个特征，最好模型
 # gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_4feature' #4个特征FocalLoss
 
 descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_7feature_512_cat_traditional'
 gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_7feature' #7个特征FocalLoss
-
-#GCN特征的文件加名
-# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_cat_traditional'
-# gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet'#5个特征，最好模型
-
-
 
 #加特征之后全连接层的特征维度
 feature_fusion_method = 'cat'
@@ -95,9 +90,8 @@ if feature_fusion_method == 'cat':
 elif feature_fusion_method == 'add' or feature_fusion_method == 'avg':
     fc_feature_dim = 512  + 38 + 255
 
-
 #设置GPU的编号
-torch.cuda.set_device(0)
+torch.cuda.set_device(2)
 
 #数据集文件夹名
 # data_fold = '5fold_128<=20mm_aug'
@@ -105,9 +99,11 @@ data_fold = '10fold'
 
 #要训练的模型
 # model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet','mobilenet']
+# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet']
+# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet']
 # model_list = ['alexnet','vgg13','resnet34','attention56']
-# model_list = ['attention56'] 
-# model_list = ['attention56','googlenet']
+# model_list = ['googlenet']
+# model_list = ['resnet34','attention56','googlenet'] #VGG还没有训练完第8，9，10折
 # model_list = ['attention56','googlenet']
 # model_list = ['resnet34','attention56','googlenet','shufflenet']
 model_list = ['shufflenet','mobilenet',]
@@ -118,8 +114,8 @@ model_list = ['shufflenet','mobilenet',]
 # model_list = ['attention56']
 
 #分两张卡训练，指定要训练的fold
-# foldList = [2]
-foldList = [0,1,2]
+foldList = [3,4,5,6,7,8,9]
+# foldList = [0,1,2]
 
 
 def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_folder, scheduler, model_name, lmbda):
@@ -410,7 +406,7 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         finish_time = time.time()
         used_time = finish_time-start_time
         print('used: ' + str(used_time) + ' seconds. ')
-        eta = ((params.num_epochs - 1 - epoch) + (3 - N_folder) * params.num_epochs) * used_time / 60
+        eta = ((params.num_epochs - 1 - epoch) + (9 - N_folder) * params.num_epochs) * used_time / 60
         print(model_name + ' eta: ' + str(eta) + ' minutes. = ' + str(eta/60) + 'hs')
         print("\n")
 
@@ -626,7 +622,7 @@ if __name__ == '__main__':
                 loss_fn = net.FocalLoss(alpha=params.FocalLossAlpha,gamma=params.FocalLossGamma)       #focalLoss损失
             else:
                 print("- No this type of loss!")
-            # loss_fn = net.loss_fn_BCE
+            loss_fn = net.loss_fn_BCE
             metrics = net.metrics
 
             # Train the model

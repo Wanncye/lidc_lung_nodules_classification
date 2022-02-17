@@ -74,15 +74,16 @@ class GAT(nn.Module):
         self.fc = nn.Linear(fc_num*5, nclass)
 
     def forward(self, x, adj):
-        x1 = F.dropout(x, self.dropout, training=self.training)
-        x = torch.cat([att(x1, adj) for att in self.attentions], dim=1)
+        print(x)
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = torch.cat([att(x, adj) for att in self.attentions], dim=1)
         # print(x)
         x = F.dropout(x, self.dropout, training=self.training)
         x = F.elu(self.out_att(x, adj))     #根据GCN的经验，是不是可以试试将这里的elu激活函数去掉？
         # x = self.out_att(x, adj)
-        middle_feature = x.view(1,-1)
-        x = self.fc(middle_feature)
-        return x1,middle_feature,F.log_softmax(x, dim=1)
+        x = x.view(1,-1)
+        x = self.fc(x)
+        return F.log_softmax(x, dim=1)
 
 
 
@@ -115,13 +116,6 @@ class GC(Module):
             return output + self.bias
         else:
             return output
-    # def forward(self, input):
-    #     support = torch.mm(input, self.weight)
-    #     output = torch.spmm(self.adj, support)
-    #     if self.bias is not None:
-    #         return output + self.bias
-    #     else:
-    #         return output
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
@@ -140,53 +134,21 @@ class GCN(nn.Module):
         node_num = ft
         self.fc = nn.Linear(fc_num*node_num, nclass)
 
-
     def forward(self, x, adj):
+        # x = F.dropout(x, self.dropout, training=self.training)  不能在这里加dropout，这个会降低性能
         x1 = F.relu(self.gc1(x, adj))
-        x2 = F.dropout(x1, self.dropout, training=self.training)
-        x3 = F.relu(self.gc2(x2, adj))
+        # print(x1)
+        x2 = F.dropout(x1, self.dropout, training=self.training)#dropout了哪些信息？ 确定，这里的dropout是随机失活某一维度的一些值，而不是所有值
+        # print(x2)
+        x3 = F.relu(self.gc2(x2, adj))  #这儿可以也加一个激活函数,但是这里加激活函数之后测试集准确率全50%，所以去掉relu
         middle_feature = x3.view(1, -1)
         x3 = F.dropout(x3, self.dropout, training=self.training)
         x3 = F.relu(self.gc3(x3, adj))
+        # x3 = F.dropout(x3, self.dropout, training=self.training)
+        # x3 = F.relu(self.gc4(x3, adj))
         x4 = x3.view(1, -1)
         x5 = self.fc(x4)
         return x1, middle_feature, F.log_softmax(x5, dim=1)
-
-    # def forward(self, x):
-    #     x1 = F.relu(self.gc1(x))
-    #     x2 = F.dropout(x1, self.dropout, training=self.training)
-    #     x3 = F.relu(self.gc2(x2))
-    #     middle_feature = x3.view(1, -1)
-    #     x3 = F.dropout(x3, self.dropout, training=self.training)
-    #     x3 = F.relu(self.gc3(x3))
-    #     x4 = x3.view(1, -1)
-    #     x5 = self.fc(x4)
-    #     return x1, middle_feature, F.log_softmax(x5, dim=1)
-
-
-
-class GCN_512(nn.Module):
-    def __init__(self, nfeat, nhid, nclass, fc_num, dropout, ft):
-        super(GCN_512, self).__init__()
-        self.nclass = nclass
-        self.gc1 = GC(nfeat, nhid)
-        self.gc2 = GC(nhid, 73)
-        self.gc3 = GC(73, fc_num)
-        self.dropout = dropout
-        node_num = ft
-        self.fc = nn.Linear(fc_num*node_num, nclass)
-
-    def forward(self, x, adj):
-        x1 = F.relu(self.gc1(x, adj))
-        x2 = F.dropout(x1, self.dropout, training=self.training)
-        x3 = F.relu(self.gc2(x2, adj))
-        middle_feature = x3.view(1, -1)
-        x3 = F.dropout(x3, self.dropout, training=self.training)
-        x3 = F.relu(self.gc3(x3, adj))
-        x4 = x3.view(1, -1)
-        x5 = self.fc(x4)
-        return x1, middle_feature, F.log_softmax(x5, dim=1)
-
 
 
 class GCN_all_nodule(nn.Module):

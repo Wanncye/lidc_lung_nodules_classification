@@ -187,7 +187,7 @@ def fetch_N_folders_dataloader(test_folder, types = ["train"], data_dir = "data/
                 dl = DataLoader(LIDC_N_folder_Dataset(path_list, tfms_train), 
                                         batch_size = batch_size,
                                         shuffle=True,
-                                        num_workers=0,
+                                        num_workers=2,
                                         pin_memory=True)
             elif split == 'test':
                 path_list = [os.path.join(path, str(test_folder))]
