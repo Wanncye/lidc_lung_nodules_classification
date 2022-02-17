@@ -295,7 +295,7 @@ class Attention(nn.Module):
         block_num: attention module number for each stage
     """
 
-    def __init__(self, block_num, class_num=100):
+    def __init__(self, block_num, fc_feature_dim=512, class_num=100):
 
         super().__init__()
         self.pre_conv = nn.Sequential(
@@ -315,8 +315,9 @@ class Attention(nn.Module):
         self.avg = nn.AdaptiveAvgPool3d(1)
         self.linear1 = nn.Linear(2048, 512)
         self.linear2 = nn.Linear(512, 2)
+        self.linear3 = nn.Linear(fc_feature_dim, 2)
 
-    def forward(self, x,  gcn_feature=None, add_gcn_middle_feature=None):
+    def forward(self, x,  gcn_feature, add_gcn_middle_feature, feature_fusion_method):
         x = self.pre_conv(x) #16 64 8 128 128
         x = self.stage1(x)
         x = self.stage2(x)
@@ -325,7 +326,22 @@ class Attention(nn.Module):
         x = self.avg(x) #16, 2048, 1, 1, 1
         x = x.view(x.size(0), -1)
         feature = self.linear1(x)
-        x = self.linear2(feature)
+        if add_gcn_middle_feature:
+            if feature_fusion_method == 'cat':
+                x1 = torch.cat((feature,gcn_feature),axis=1)
+            elif feature_fusion_method == 'add':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = feature + sub_feature_1
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
+            elif feature_fusion_method == 'avg':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = (feature + sub_feature_1)/2
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
+            x = self.linear3(x1)
+        else:
+            x = self.linear2(feature)
         return x, feature
 
     def _make_stage(self, in_channels, out_channels, num, block):
@@ -338,8 +354,8 @@ class Attention(nn.Module):
 
         return nn.Sequential(*layers)
 
-def attention56():
-    return Attention([1, 1, 1])
+def attention56(fc_feature_dim):
+    return Attention([1, 1, 1],fc_feature_dim)
 
-def attention92():
-    return Attention([1, 2, 3])
+def attention92(fc_feature_dim):
+    return Attention([1, 2, 3],fc_feature_dim)

@@ -14,7 +14,7 @@ from torch.autograd import Variable
 from tqdm import tqdm
 from torchsummary import summary
 from torch.optim.lr_scheduler import LambdaLR
-from torch.optim.lr_scheduler import StepLR,MultiStepLR
+from torch.optim.lr_scheduler import StepLR,MultiStepLR,ExponentialLR,CosineAnnealingLR
 import torch.nn.functional as F
 
 import utils
@@ -48,6 +48,12 @@ from model.xception import xception
 import netron     
 import torch.onnx
 
+'''
+注意事项：
+不加入其他特征时add_middle_feature=False,此时会保存模型提取出的特征
+加入中间特征指的是GCN特征和传统特征
+每次实验得修改descripe，用于生成不同的保存CSV预测结果的文件夹以及模型和准确率json文件
+'''
 
 #是否加入中间特征(包括GCN，传统，统计特征)
 add_middle_feature = True
@@ -56,6 +62,60 @@ if add_middle_feature:
     save_model_feature = False
 else:
     save_model_feature = True
+    save_model_dir = '10fold_model_feature_noNorm'
+
+#设置生成的json文件、预测结果的描述，每次实验都不一样
+# descripe = '_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1_10fold'
+# descripe = '_para1_10fold_noNorm_add_gcn_traditional'
+# descripe = '_para1_10fold_noNorm_add_gcn_adj_fc_5feature_512_graphSAGE_cat_traditional'
+# descripe = 'para1_10fold_noNorm_only_add_gcn_adj_1-similarity_norm_5feature_512_cat'
+# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_5feature_512_cat_traditional_BCELoss'
+# descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_4feature_512_cat_traditional' #对比试验4个特征FocalLoss
+
+#GCN特征的文件加名
+# gcn_feature_path = '10fold_gcn_feature_noNorm_adj_fc_addGoogleNet_grapgSAGE_mean' #用graphSAGE，mean聚合函数
+# gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_addGoogleNet' #5个特征，最好模型
+# gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_4feature' #4个特征FocalLoss
+
+descripe = '_para1_10fold_noNorm_add_gcn_adj_1-similarity_norm_7feature_512_cat_traditional'
+gcn_feature_path = '10fold_gcn_feature_noNorm_1-similarity_adj_diag_0_512_norm_7feature' #7个特征FocalLoss
+
+#加特征之后全连接层的特征维度
+feature_fusion_method = 'cat'
+# feature_fusion_method = 'avg'
+# feature_fusion_method = 'cat'
+if feature_fusion_method == 'cat':
+    fc_feature_dim = 512 + 512 + 38 + 255
+    # fc_feature_dim = 512 + 38 + 512
+elif feature_fusion_method == 'add' or feature_fusion_method == 'avg':
+    fc_feature_dim = 512  + 38 + 255
+
+#设置GPU的编号
+torch.cuda.set_device(2)
+
+#数据集文件夹名
+# data_fold = '5fold_128<=20mm_aug'
+data_fold = '10fold'
+
+#要训练的模型
+# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet','mobilenet']
+# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet','shufflenet']
+# model_list = ['alexnet','vgg13','resnet34','attention56','googlenet']
+# model_list = ['alexnet','vgg13','resnet34','attention56']
+# model_list = ['googlenet']
+# model_list = ['resnet34','attention56','googlenet'] #VGG还没有训练完第8，9，10折
+# model_list = ['attention56','googlenet']
+# model_list = ['resnet34','attention56','googlenet','shufflenet']
+model_list = ['shufflenet','mobilenet',]
+# model_list = ['alexnet']
+# model_list = ['googlenet']
+# model_list = ['vgg13']
+# model_list = ['resnet34']
+# model_list = ['attention56']
+
+#分两张卡训练，指定要训练的fold
+foldList = [3,4,5,6,7,8,9]
+# foldList = [0,1,2]
 
 descripe = '_<=20mm_nodule_gcn_traditional'
 
@@ -71,6 +131,7 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
         metrics: (dict) a dictionary of functions that compute a metric using the output and labels of each batch
         params: (Params) hyperparameters
         num_steps: (int) number of batches to train on, each of size params.batch_size
+        ------- git graph test ------
     """
 
     # set model to training mode
@@ -85,17 +146,25 @@ def train(model, optimizer, loss_fn, dataloader, metrics, params, epoch, vis, N_
     ground_truch_list = []
     predict_list = []
     # Use tqdm for progress bar
+    datasetMean, datasetStd = utils.getDatasetMeanAndStd()
+    datasetMean = datasetMean.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
+    datasetStd = datasetStd.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
     with tqdm(total=len(dataloader)) as t:
         for i, (train_batch, labels_batch, file_name, one_feature) in enumerate(dataloader):
-            # move to GPU if available
+
+            # train_batch = (train_batch-datasetMean)/datasetStd
+            
+            egithFeature = utils.getEightLabelFeature(file_name)
+            one_feature = torch.cat((one_feature, egithFeature), axis = 1)
+
             if params.cuda:
                 train_batch, labels_batch, one_feature = train_batch.cuda(), labels_batch.cuda(), one_feature.cuda()
             #将载入的数据变成tensor
             train_batch, labels_batch = Variable(train_batch), Variable(labels_batch)
 
             #将载入的数据输入3DResNet,得到结果
-            output_batch, _ = model(train_batch, one_feature, add_middle_feature)
-            #计算网络输出结果和目标值之间的损失
+            output_batch, _ = model(train_batch, one_feature, add_middle_feature, feature_fusion_method)
+
             loss = loss_fn(output_batch, labels_batch)
             #将梯度初始化为0
             optimizer.zero_grad()
@@ -163,7 +232,15 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         # compute metrics over the dataset
         predict_prob = torch.zeros(len(dataloader.dataset))
         target = torch.zeros(len(dataloader.dataset))
+        datasetMean, datasetStd = utils.getDatasetMeanAndStd()
+        datasetMean = datasetMean.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
+        datasetStd = datasetStd.T.expand(8,128).unsqueeze(-1).expand(8,128,128)
         for dataloader_index, (data_batch, labels_batch, filename, one_feature) in enumerate(dataloader):
+            # data_batch = (data_batch-datasetMean)/datasetStd
+
+            egithFeature = utils.getEightLabelFeature(filename)
+            egithFeature = torch.zeros_like(egithFeature)
+            one_feature = torch.cat((one_feature, egithFeature), axis = 1)
 
             # move to GPU if available
             if params.cuda:
@@ -172,9 +249,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
             data_batch, labels_batch = Variable(data_batch), Variable(labels_batch)
             
             # compute model output
-            output_batch, _ = model(data_batch, one_feature, add_middle_feature)
-            # output_batch, _, confidence = model(data_batch, one_feature, add_middle_feature)
-            # confidence = F.sigmoid(confidence)
+            output_batch, _ = model(data_batch, one_feature, add_middle_feature, feature_fusion_method)
             loss = loss_fn(output_batch, labels_batch)
 
             m = nn.Softmax(dim=1)
@@ -218,7 +293,7 @@ def evaluate(model, loss_fn, dataloader, metrics, params,epoch, model_dir, vis, 
         print("class 0 : {0}, class 1 : {1}".format(class_0_number,class_1_number))
         cMtric = confusion_matrix(ground_truch_list, predict_list)
         print(cMtric)
-
+        print('confusion matrix acc: ' + str((cMtric[0,0]+cMtric[1,1])/(class_1_number+class_0_number)))
         for metric in summ[0]:
             print(metric)
         metrics_mean = {metric:np.mean([x[metric] for x in summ]) for metric in summ[0]} 
@@ -260,9 +335,12 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
     best_val_acc = 0.0
     is_best = 1
     val_acc_list = []
+    params.num_epochs = 50
     for epoch in range(params.num_epochs):
         # Run one epoch
+        print("模型：{0}，第{1}折".format(model_name,N_folder))
         print("第%d个epoch的学习率：%f" % (epoch+1, optimizer.param_groups[0]['lr']))
+        vis.plot('lr',optimizer.param_groups[0]['lr'],2)
         logging.info("Epoch {}/{}".format(epoch + 1, params.num_epochs))
 
         # compute number of batches in one epoch (one full pass over the training set)
@@ -281,34 +359,35 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
         vis.plot(model_name + '_val_sensitivity_epoch_folder_' + str(N_folder), recall , 3)
         vis.plot(model_name + '_val_specificity_epoch_folder_' + str(N_folder), specificity , 3)
         val_acc = val_metrics['accuracy']
-        is_best = val_acc>=best_val_acc
+        is_best = val_acc>best_val_acc
 
         # Save weights
-        if params.save_weight == 1:
-            utils.save_checkpoint({'epoch': epoch + 1,
-                                'state_dict': model.state_dict(),
-                                'optim_dict' : optimizer.state_dict()},
-                                is_best=is_best,
-                                checkpoint=model_dir,
-                                N_folder=N_folder,
-                                params=params,
-                                descripe=descripe)
+        # if params.save_weight == 1:
+        #     utils.save_checkpoint({'epoch': epoch + 1,
+        #                         'state_dict': model.state_dict(),
+        #                         'optim_dict' : optimizer.state_dict()},
+        #                         is_best=is_best,
+        #                         checkpoint=model_dir,
+        #                         N_folder=N_folder,
+        #                         params=params,
+        #                         descript=descripe)
 
         # If best_eval, best_save_path
         if is_best:
             logging.info("- Found new best accuracy")
             best_val_acc = val_acc
-
             # Save best val metrics in a json file in the model directory
-            best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + descripe +".metrics_val_best_weights.json")
+            # best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_best_weights_"+descripe+".json")
+            best_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss +'_alpha_'+str(params.FocalLossAlpha) + descripe+".metrics_val_best_weights.json")
             val_metrics['epoch'] = epoch + 1
             utils.save_dict_to_json(val_metrics, best_json_path)
 
             #用最好的模型来提取512维特征
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/"+data_fold+"/fold"+str(N_folder+1), train_shuffle=False, fold= N_folder, gcn_feature_path = gcn_feature_path, add_middle_feature=add_middle_feature)
             train_dl_save = dataloaders['train']
             test_dl_save = dataloaders['test']
             if save_model_feature:
+                print('------save feature-----')
                 with torch.no_grad():
                     model.eval()
                     train_feature = torch.zeros((len(train_dl_save.dataset),512))
@@ -319,36 +398,24 @@ def train_and_evaluate(model, train_dataloader, val_dataloader, optimizer, loss_
                     for i, (x, target, _, gcn_middle_feature) in enumerate(test_dl_save):
                         _, feature = model(x.cuda(), gcn_middle_feature.cuda(), add_middle_feature)
                         test_feature[(i*params.batch_size):((i+1)*params.batch_size), :] = feature.detach()
-                    torch.save(train_feature,'./data/feature/5fold_128/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
-                    torch.save(test_feature,'./data/feature/5fold_128/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
+                    torch.save(train_feature,'./data/feature/'+save_model_dir+'/fold_' + str(N_folder) + '_' + model_name + '_train.pt')
+                    torch.save(test_feature,'./data/feature/'+save_model_dir+'/fold_' + str(N_folder) + '_' + model_name + '_test.pt')
         # Save latest val metrics in a json file in the model directory
-        last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + ".metrics_val_last_weights.json")
+        last_json_path = os.path.join(model_dir, 'folder.'+ str(N_folder) + '.' +params.loss + '_alpha_'+str(params.FocalLossAlpha) + descripe +".metrics_val_last_weights.json")
         utils.save_dict_to_json(val_metrics, last_json_path)
 
         # 计算剩余时间
         finish_time = time.time()
         used_time = finish_time-start_time
         print('used: ' + str(used_time) + ' seconds. ')
-        eta = ((params.num_epochs - 1 - epoch) + (0 - N_folder) * params.num_epochs) * used_time / 60
-        print('eta: ' + str(eta) + ' minutes. = ' + str(eta/60) + 'hs')
+        eta = ((params.num_epochs - 1 - epoch) + (9 - N_folder) * params.num_epochs) * used_time / 60
+        print(model_name + ' eta: ' + str(eta) + ' minutes. = ' + str(eta/60) + 'hs')
         print("\n")
 
         val_acc_list.append(val_acc)
-        # if epoch > 10:
-        #     if val_acc_list[epoch] == val_acc_list[epoch-1] and \
-        #         val_acc_list[epoch] == val_acc_list[epoch-2] and \
-        #         val_acc_list[epoch] == val_acc_list[epoch-3] and \
-        #         val_acc_list[epoch] == val_acc_list[epoch-4] and \
-        #         val_acc_list[epoch] == val_acc_list[epoch-5] and\
-        #         val_acc_list[epoch] == val_acc_list[epoch-6] and\
-        #         val_acc_list[epoch] == val_acc_list[epoch-7]:
-        #         logging.info("- early stop because 5 epochs had the same accuracy.")
-        #         break
 
 if __name__ == '__main__':
-
-    model_list = ['vgg13']
-
+    total_time_start = time.time()
     for model_name in model_list:
         print(model_name)
         print('\n')
@@ -366,8 +433,6 @@ if __name__ == '__main__':
         # use GPU if available
         params.cuda = torch.cuda.is_available()
 
-        #使用第二块gpu
-        torch.cuda.set_device(0)
         torch.cuda.empty_cache()
 
 
@@ -384,15 +449,15 @@ if __name__ == '__main__':
         print('train file path:',os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+'_correct-alpha.log'))
         utils.set_logger(os.path.join(args.model_dir, 'train_'+params.loss+'_alpha_'+str(params.FocalLossAlpha)+descripe+'_correct-alpha.log'))
 
-        # 五折交叉验证
-        threeFold = [2]
-        for N_folder in threeFold:
+
+        for N_folder in foldList:
             print(N_folder)
             logging.info("------------------folder " + str(N_folder) + "------------------")
             logging.info("Loading the datasets...")
-            
+
             #5折交叉验证
-            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/5fold_128<=20mm_aug/fold"+str(N_folder+1), train_shuffle=True, fold= N_folder, add_middle_feature=add_middle_feature)
+            dataloaders = data_loader.fetch_dataloader(types = ["train", "test"], batch_size = params.batch_size, data_dir="data/"+data_fold+"/fold"+str(N_folder+1), train_shuffle=True, gcn_feature_path = gcn_feature_path, fold= N_folder, add_middle_feature=add_middle_feature)
+            # dataloaders = data_loader.fetch_N_folders_dataloader(test_folder=N_folder, types = ["train", "test"], batch_size = params.batch_size, data_dir=params.data_dir)
             train_dl = dataloaders['train']
             test_dl = dataloaders['test']
             logging.info("- done.")
@@ -403,7 +468,7 @@ if __name__ == '__main__':
                 model = generate_model(params.net_depth).cuda()
                 print('Using ResNet'+str(params.net_depth))
             elif model_name == 'resnet34':
-                model = generate_model(params.net_depth).cuda()
+                model = generate_model(params.net_depth, fc_feature_dim=fc_feature_dim).cuda()
                 print('Using ResNet'+str(params.net_depth))
             elif model_name == 'resnet50':
                 model = generate_model(params.net_depth).cuda()
@@ -418,13 +483,13 @@ if __name__ == '__main__':
                 model = generate_model(params.net_depth).cuda()
                 print('Using ResNet'+str(params.net_depth))
             elif model_name == 'googlenet':
-                model = googlenet().cuda()
+                model = googlenet(fc_feature_dim=fc_feature_dim).cuda()
                 print('Using GoogLeNet')
             elif model_name == 'vgg11':
                 model = vgg11_bn(params.dropout_rate).cuda()
                 print('Using VGG_11')
             elif model_name == 'vgg13':
-                model = vgg13_bn(params.dropout_rate).cuda()
+                model = vgg13_bn(params.dropout_rate,fc_feature_dim).cuda()
                 print('Using VGG_13')
             elif model_name == 'vgg16':
                 model = vgg16_bn(params.dropout_rate).cuda()
@@ -445,13 +510,13 @@ if __name__ == '__main__':
                 model = DenseNet201().cuda()
                 print('Using densenet201')
             elif model_name == 'alexnet':
-                model = alexnet().cuda()
+                model = alexnet(fc_feature_dim=fc_feature_dim).cuda()
                 print('Using alexnet')
             elif model_name == 'lenet5':
                 model = lenet5().cuda()
                 print('Using lenet5')
             elif model_name == 'attention56':
-                model = attention56().cuda()
+                model = attention56(fc_feature_dim=fc_feature_dim).cuda()
                 print('Using attention56')
             elif model_name == 'attention92':
                 model = attention92().cuda()
@@ -466,7 +531,7 @@ if __name__ == '__main__':
                 model = inception_resnet_v2().cuda()
                 print('Using inception_resnet_v2')
             elif model_name == 'mobilenet':
-                model = mobilenet().cuda()
+                model = mobilenet(fc_feature_dim=fc_feature_dim).cuda()
                 print('Using mobilenet')
             elif model_name == 'mobilenetv2':
                 model = mobilenetv2().cuda()
@@ -514,7 +579,7 @@ if __name__ == '__main__':
                 model = senet152().cuda()
                 print('Using senet152')
             elif model_name == 'shufflenet':
-                model = shufflenet().cuda()
+                model = shufflenet(fc_feature_dim=fc_feature_dim).cuda()
                 print('Using shufflenet')
             elif model_name == 'squeezenet':
                 model = squeezenet().cuda()
@@ -526,13 +591,13 @@ if __name__ == '__main__':
                 model = xception().cuda()
                 print('Using xception')
 
-            print('# model parameters:', sum(param.numel() for param in model.parameters()))
-            input = torch.randn(1, 1, 8, 128, 128).cuda()
-            fake_feature = torch.randn(1,56*4).cuda()
-            fake_add_gcn_feature = False
-            flops_num, params_num = profile(model, inputs=(input, fake_feature, fake_add_gcn_feature))
-            print('# flops:', flops_num)
-            print('# params:', params_num)
+            # print('# model parameters:', sum(param.numel() for param in model.parameters()))
+            # input = torch.randn(1, 1, 8, 128, 128).cuda()
+            # fake_feature = torch.randn(1,56*4).cuda()
+            # fake_add_gcn_feature = False
+            # flops_num, params_num = profile(model, inputs=(input, fake_feature, fake_add_gcn_feature))
+            # print('# flops:', flops_num)
+            # print('# params:', params_num)
 
             # 在pytorch中，输入数据的维数可以表示为（N,C,D,H,W），其中：N为batch_size，C为输入的通道数，D为深度（D这个维度上含有时序信息），H和W分别是输入图像的高和宽。
             #可视化网络结构
@@ -541,9 +606,15 @@ if __name__ == '__main__':
             # onnx_path = "onnx_model_name.onnx"
             # torch.onnx.export(model, vis_x, onnx_path)
             # netron.start(onnx_path)
-            
-            optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=0.0001)
+            if model_name in ['shufflenet','mobilenet']:
+                weight_decay = 0.01
+            else:
+                weight_decay = 0.0001
+            optimizer = optim.Adam(model.parameters(), lr=params.learning_rate, weight_decay=weight_decay)
             scheduler = MultiStepLR(optimizer, milestones=[20,50,80], gamma=0.5)
+            # scheduler = MultiStepLR(optimizer, milestones=[100], gamma=0.8)
+            # scheduler = ExponentialLR(optimizer, gamma=0.90)
+            # scheduler = CosineAnnealingLR(optimizer, T_max=50, eta_min=0)
 
             # fetch loss function and metrics
             print(params.loss)
@@ -553,6 +624,7 @@ if __name__ == '__main__':
                 loss_fn = net.FocalLoss(alpha=params.FocalLossAlpha,gamma=params.FocalLossGamma)       #focalLoss损失
             else:
                 print("- No this type of loss!")
+            loss_fn = net.loss_fn_BCE
             metrics = net.metrics
 
             # Train the model
@@ -566,5 +638,7 @@ if __name__ == '__main__':
             # train_and_evaluate(model, train_dl, test_dl, optimizer, loss_fn, metrics, params, args.model_dir, N_folder, scheduler, model_name, restore_file="folder.0.FocalLoss_alpha_0.25.best")
         all_time_finish = time.time()
         all_used_time = all_time_finish - all_time_start
-        print('used: ' + str(all_used_time/60) + ' mins.  =' + str(all_used_time/3600) + 'hs')
-
+        print(model_name + ' used: ' + str(all_used_time/60) + ' mins.  =' + str(all_used_time/3600) + 'hs')
+    total_time_finish = time.time()
+    total_used_time = total_time_finish-total_time_start
+    print('total used: ' + str(all_used_time/60) + ' mins.  =' + str(all_used_time/3600) + 'hs')

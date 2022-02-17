@@ -5,7 +5,7 @@ import torch
 
 class VGG(nn.Module):
 
-    def __init__(self, features, dropout_rate, num_classes=2, init_weights=True):
+    def __init__(self, features, dropout_rate, fc_feature_dim=512, num_classes=2, init_weights=True):
         super(VGG, self).__init__()
         self.features = features
         self.classifier = nn.Sequential(
@@ -17,7 +17,7 @@ class VGG(nn.Module):
             nn.Dropout(dropout_rate),
         )
         self.fc1 = nn.Linear(4096, 512)
-        self.fc2 = nn.Linear(512 + 56 * 4 + 255, num_classes)
+        self.fc2 = nn.Linear(fc_feature_dim, num_classes)
         self.fc3 = nn.Linear(512, num_classes)
 
         self.confidence = nn.Linear(512, 1)
@@ -25,13 +25,24 @@ class VGG(nn.Module):
         if init_weights:
             self._initialize_weights()
 
-    def forward(self, x, gcn_feature, add_gcn_middle_feature):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature, feature_fusion_method):
         x = self.features(x)
         x = x.view(x.size(0), -1)  #16*8192
         x = self.classifier(x)
         feature = self.fc1(x)    #得到的512维特征
         if add_gcn_middle_feature:
-            x1 = torch.cat((feature,gcn_feature),axis=1)
+            if feature_fusion_method == 'cat':
+                x1 = torch.cat((feature,gcn_feature),axis=1)
+            elif feature_fusion_method == 'add':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = feature + sub_feature_1
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
+            elif feature_fusion_method == 'avg':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = (feature + sub_feature_1)/2
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
             x2 = self.fc2(x1)
         else:
             x2 = self.fc3(feature)
@@ -80,43 +91,43 @@ cfg = {
 }
 
 
-def vgg11(**kwargs):
-    model = VGG(make_layers(cfg['A']), **kwargs)
+def vgg11(fc_feature_dim, **kwargs):
+    model = VGG(make_layers(cfg['A']), fc_feature_dim, **kwargs)
     return model
 
 
-def vgg11_bn(dropout_rate,**kwargs):
-    model = VGG(make_layers(cfg['A'], batch_norm=True), dropout_rate, **kwargs)
+def vgg11_bn(fc_feature_dim, dropout_rate,**kwargs):
+    model = VGG(make_layers(cfg['A'], batch_norm=True), dropout_rate, fc_feature_dim, **kwargs)
     return model
 
 
-def vgg13(**kwargs):
-    model = VGG(make_layers(cfg['B']), **kwargs)
+def vgg13(fc_feature_dim, **kwargs):
+    model = VGG(make_layers(cfg['B']), fc_feature_dim, **kwargs)
     return model
 
 
-def vgg13_bn(dropout_rate,**kwargs):
-    model = VGG(make_layers(cfg['B'], batch_norm=True), dropout_rate, **kwargs)
+def vgg13_bn(dropout_rate,fc_feature_dim,**kwargs):
+    model = VGG(make_layers(cfg['B'], batch_norm=True), dropout_rate, fc_feature_dim, **kwargs)
     return model
 
 
-def vgg16(**kwargs):
-    model = VGG(make_layers(cfg['D']), **kwargs)
+def vgg16(fc_feature_dim, **kwargs):
+    model = VGG(make_layers(cfg['D']),fc_feature_dim,  **kwargs)
     return model
 
 
-def vgg16_bn(dropout_rate,**kwargs):
-    model = VGG(make_layers(cfg['D'], batch_norm=True), dropout_rate, **kwargs)
+def vgg16_bn(fc_feature_dim, dropout_rate,**kwargs):
+    model = VGG(make_layers(cfg['D'], batch_norm=True), dropout_rate, fc_feature_dim, **kwargs)
     return model
 
 
-def vgg19(**kwargs):
-    model = VGG(make_layers(cfg['E']), **kwargs)
+def vgg19(fc_feature_dim, **kwargs):
+    model = VGG(make_layers(cfg['E']), fc_feature_dim, **kwargs)
     return model
 
 
-def vgg19_bn(dropout_rate,**kwargs):
-    model = VGG(make_layers(cfg['E'], batch_norm=True), dropout_rate, **kwargs)
+def vgg19_bn(fc_feature_dim, dropout_rate,**kwargs):
+    model = VGG(make_layers(cfg['E'], batch_norm=True), dropout_rate, fc_feature_dim, **kwargs)
     return model
 
 

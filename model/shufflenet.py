@@ -156,7 +156,7 @@ class ShuffleNetUnit(nn.Module):
 
 class ShuffleNet(nn.Module):
 
-    def __init__(self, num_blocks, num_classes=2, groups=3):
+    def __init__(self, num_blocks, num_classes=2, groups=3, fc_feature_dim=512):
         super().__init__()
 
         if groups == 1:
@@ -203,8 +203,10 @@ class ShuffleNet(nn.Module):
         self.avg = nn.AdaptiveAvgPool3d((1))
         self.fc1 = nn.Linear(out_channels[3], 512)
         self.fc2 = nn.Linear(512, num_classes)
+        # self.fc3 = nn.Linear(512 + 512+ 255 + 38, num_classes)
+        self.fc3 = nn.Linear(fc_feature_dim, num_classes)
 
-    def forward(self, x):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature, feature_fusion_method):
         x = self.conv1(x)
         x = self.stage2(x)
         x = self.stage3(x)
@@ -212,8 +214,22 @@ class ShuffleNet(nn.Module):
         x = self.avg(x)
         x = x.view(x.size(0), -1)
         feature = self.fc1(x)
-        x = self.fc2(feature)
-
+        if add_gcn_middle_feature:
+            if feature_fusion_method == 'cat':
+                catX = torch.cat((feature,gcn_feature),axis=1)
+            elif feature_fusion_method == 'add':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = feature + sub_feature_1
+                catX = torch.cat((x1,sub_feature_2),axis=1)
+            elif feature_fusion_method == 'avg':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = (feature + sub_feature_1)/2
+                catX = torch.cat((x1,sub_feature_2),axis=1)
+            x = self.fc3(catX)
+        else:
+            x = self.fc2(feature)
         return x,feature
 
     def _make_stage(self, block, num_blocks, output_channels, stride, stage, groups):
@@ -246,5 +262,5 @@ class ShuffleNet(nn.Module):
 
         return nn.Sequential(*stage)
 
-def shufflenet():
-    return ShuffleNet([4, 8, 4])
+def shufflenet(fc_feature_dim):
+    return ShuffleNet([4, 8, 4], fc_feature_dim=fc_feature_dim)

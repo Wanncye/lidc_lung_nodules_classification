@@ -36,7 +36,7 @@ class LRN(nn.Module):
 
 class AlexNet(nn.Module):
 
-    def __init__(self, num_classes=2):
+    def __init__(self, fc_feature_dim=512, num_classes=2):
         super(AlexNet, self).__init__()
         self.features = nn.Sequential(
             nn.Conv3d(1, 96, kernel_size=5, stride=2, padding=1),
@@ -61,10 +61,10 @@ class AlexNet(nn.Module):
         self.linear2 = nn.Linear(4096, 512)
         self.relu2 = nn.ReLU(inplace=True)
         self.dropout2 = nn.Dropout()
-        self.linear3 = nn.Linear(512 + 56 * 4 + 255, num_classes)
+        self.linear3 = nn.Linear(fc_feature_dim, num_classes)
         self.linear4 = nn.Linear(512, num_classes)
 
-    def forward(self, x, gcn_feature, add_gcn_middle_feature):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature, feature_fusion_method):
         x = self.features(x)
         x = x.view(x.size(0), 256 * 7 * 7)
         x = self.linear1(x)
@@ -74,20 +74,31 @@ class AlexNet(nn.Module):
         x = self.relu2(feature)
         x = self.dropout2(x)
         if add_gcn_middle_feature:
-            x = torch.cat((x,gcn_feature),axis=1)
+            if feature_fusion_method == 'cat':
+                x = torch.cat((x,gcn_feature),axis=1)
+            elif feature_fusion_method == 'add':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x = x + sub_feature_1
+                x = torch.cat((x,sub_feature_2),axis=1)
+            elif feature_fusion_method == 'avg':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x = (x + sub_feature_1)/2
+                x = torch.cat((x,sub_feature_2),axis=1)
             output = self.linear3(x)
         else:
             output = self.linear4(x)
         return output, feature
 
 
-def alexnet(pretrained=False, **kwargs):
+def alexnet(fc_feature_dim, pretrained=False, **kwargs):
     r"""AlexNet model architecture from the
     `"One weird trick..." <https://arxiv.org/abs/1404.5997>`_ paper.
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = AlexNet(**kwargs)
+    model = AlexNet(fc_feature_dim, **kwargs)
     if pretrained:
         model_path = 'model_list/alexnet.pth.tar'
         pretrained_model = torch.load(model_path)

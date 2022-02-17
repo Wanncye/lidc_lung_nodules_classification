@@ -8,7 +8,7 @@ for i in range(1):
     ensembleMeanList = []
     for fold in range(5):
         for model in modelList:
-            jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25.metrics_val_best_weights_.json'
+            jsonFileName = 'folder.'+str(fold)+'.FocalLoss_alpha_0.25_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1.metrics_val_best_weights.json'
             jsonFilePath = 'experiments/'+model+'_nomask/'+jsonFileName
             f = open(jsonFilePath,'r')
             jsonData = json.load(f)
@@ -17,7 +17,7 @@ for i in range(1):
             print("{2}_fold_{0}_epoch_{1}".format(fold,jsonEpoch-1,model))
             csvPath = 'experiments/'+\
                         model+\
-                        '_nomask/result_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero/'+\
+                        '_nomask/result_<=20mm_nodule_gcn_traditional_addEightLabelFeature_norInput_testZero_para1/'+\
                         'folder_'+\
                         str(fold)+\
                         '_result_'+\
@@ -65,7 +65,7 @@ for i in range(1):
         resnet34PredLabel = modelWeight[2] * resnet34PredLabel
         attention56PredLabel = modelWeight[3] * attention56PredLabel
         finalPredLabel = np.array(alexnetPredLabel + vgg13PredLabel + resnet34PredLabel + attention56PredLabel)
-        finalPredLabel = np.where(finalPredLabel>0.5, 1, 0)
+        finalPredLabel = np.where(finalPredLabel>=0.5, 1, 0)
         # print('finalPredLabel:',finalPredLabel)
         ensembleAcc = np.sum(groundTruth == finalPredLabel)/len(groundTruth)
         ensembleMeanList.append(ensembleAcc)

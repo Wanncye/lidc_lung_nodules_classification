@@ -111,7 +111,8 @@ class ResNet(nn.Module):
                  no_max_pool=False,
                  shortcut_type='B',
                  widen_factor=1.0,
-                 n_classes=2):
+                 n_classes=2,
+                 fc_feature_dim=512):
         super().__init__()
 
         block_inplanes = [int(x * widen_factor) for x in block_inplanes]
@@ -148,7 +149,7 @@ class ResNet(nn.Module):
 
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
         self.fc1 = nn.Linear(block_inplanes[3] * block.expansion, 512)
-        self.fc2 = nn.Linear(512 + 56 * 4 + 255, n_classes)
+        self.fc2 = nn.Linear(fc_feature_dim, n_classes)
         self.fc3 = nn.Linear(512, n_classes)
 
         for m in self.modules():
@@ -195,7 +196,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x, gcn_feature, add_gcn_middle_feature):
+    def forward(self, x, gcn_feature, add_gcn_middle_feature, feature_fusion_method):
 
         x = self.conv1(x)
         x = self.bn1(x)
@@ -210,30 +211,40 @@ class ResNet(nn.Module):
         x = x.view(x.size(0), -1)
         feature = self.fc1(x)
         if add_gcn_middle_feature:
-            #拼接两个tensor
-            x1 = torch.cat((feature,gcn_feature),axis=1)
+            if feature_fusion_method == 'cat':
+                x1 = torch.cat((feature,gcn_feature),axis=1)
+            elif feature_fusion_method == 'add':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = feature + sub_feature_1
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
+            elif feature_fusion_method == 'avg':
+                sub_feature_1 = gcn_feature[:,:512]
+                sub_feature_2 = gcn_feature[:,512:]
+                x1 = (feature + sub_feature_1)/2
+                x1 = torch.cat((x1,sub_feature_2),axis=1)
             x2 = self.fc2(x1)
         else:
             x2 = self.fc3(feature)
         return x2, feature
 
 
-def generate_model(model_depth, **kwargs):
+def generate_model(model_depth, fc_feature_dim, **kwargs):
     assert model_depth in [10, 18, 34, 50, 101, 152, 200]
 
     if model_depth == 10:
-        model = ResNet(BasicBlock, [1, 1, 1, 1], get_inplanes(), **kwargs)
+        model = ResNet(BasicBlock, [1, 1, 1, 1], get_inplanes(), fc_feature_dim=fc_feature_dim,  **kwargs)
     elif model_depth == 18:
-        model = ResNet(BasicBlock, [2, 2, 2, 2], get_inplanes(), **kwargs)
+        model = ResNet(BasicBlock, [2, 2, 2, 2], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
     elif model_depth == 34:
-        model = ResNet(BasicBlock, [3, 4, 6, 3], get_inplanes(), **kwargs)
+        model = ResNet(BasicBlock, [3, 4, 6, 3], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
     elif model_depth == 50:
-        model = ResNet(Bottleneck, [3, 4, 6, 3], get_inplanes(), **kwargs)
+        model = ResNet(Bottleneck, [3, 4, 6, 3], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
     elif model_depth == 101:
-        model = ResNet(Bottleneck, [3, 4, 23, 3], get_inplanes(), **kwargs)
+        model = ResNet(Bottleneck, [3, 4, 23, 3], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
     elif model_depth == 152:
-        model = ResNet(Bottleneck, [3, 8, 36, 3], get_inplanes(), **kwargs)
+        model = ResNet(Bottleneck, [3, 8, 36, 3], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
     elif model_depth == 200:
-        model = ResNet(Bottleneck, [3, 24, 36, 3], get_inplanes(), **kwargs)
+        model = ResNet(Bottleneck, [3, 24, 36, 3], get_inplanes(), fc_feature_dim=fc_feature_dim, **kwargs)
 
     return model

@@ -40,7 +40,7 @@ class LIDCDataset(Dataset):
     """
     A standard PyTorch definition of Dataset which defines the functions __len__ and __getitem__.
     """
-    def __init__(self, data_dir, transform, fold, split, add_middle_feature=False):
+    def __init__(self, data_dir, transform, fold, split, gcn_feature_path ,add_middle_feature=False):
         """
         Store the filenames of the jpgs to use. Specifies transforms to apply on images.
 
@@ -52,20 +52,18 @@ class LIDCDataset(Dataset):
         self.transform = transform
         self.npy_list = os.listdir(data_dir)
         self.npy_list.sort(key= lambda x:int(x[:6]))
-        self.fold = fold
         self.add_middle_feature = add_middle_feature
         if self.add_middle_feature:
-            self.gcn_middle_feature = torch.load('data/feature/5fold_128<=20mm_aug/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
+            self.fold = fold
+            self.gcn_middle_feature = torch.load('data/feature/'+gcn_feature_path+'/gcn_'+split+'_middle_feature_fold_'+str(fold)+'.pt')
             self.gcn_middle_feature.requires_grad = False
-            self.addition_feature = torch.load('data/feature/addition_feature_mask<=20_aug/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
+            self.addition_feature = torch.load('data/feature/10fold_traditional_feature/fold_' + str(fold) + '_' + split + '_addition_feature.pt')
             self.addition_feature.requires_grad = False
-        
-
-        #对新加进来的feature某些特征做一下归一化，因为这些特征不在同一个数量级上
-        # for jndex in range(248,255):
-        #     max = self.addition_feature[:, jndex].max()  
-        #     min = self.addition_feature[:, jndex].min()  
-        #     self.addition_feature[:, jndex] = (self.addition_feature[:, jndex] - min) / (max-min)
+            #对新加进来的feature某些特征做一下归一化，因为这些特征不在同一个数量级上
+            for jndex in range(248,255):
+                max = self.addition_feature[:, jndex].max()  
+                min = self.addition_feature[:, jndex].min()  
+                self.addition_feature[:, jndex] = (self.addition_feature[:, jndex] - min) / (max-min)
 
     def __len__(self):
         # return size of dataset
@@ -73,15 +71,22 @@ class LIDCDataset(Dataset):
 
     def __getitem__(self, idx):
         filename = self.npy_list[idx]
+        # fileNameList = ['0037_02_1.npy','0052_01_0.npy',
+        #         '0182_03_0.npy','0312_03_1.npy',
+        #         '0505_02_0.npy','0458_02_1.npy',
+        #         '0777_04_0.npy','0686_08_1.npy',
+        #         '0993_01_0.npy','1000_01_1.npy',]
+        # if filename in fileNameList:
+        #     print(filename,idx)
         cube = np.load(os.path.join(self.data_dir,filename))
         cube = torch.tensor(cube)
         cube = cube.transpose(0,2)
         cube = torch.unsqueeze(cube,0)  #2d卷积的时候把这行注释掉
         cube = cube.type(torch.FloatTensor)
         #非数据增强
-        # label = self.npy_list[idx].split('.')[0][-1]
+        label = self.npy_list[idx].split('.')[0][-1]
         #数据增强
-        label = self.npy_list[idx].split('_')[2][0]
+        # label = self.npy_list[idx].split('_')[2][0]
         # print(label)
         label = np.array(int(label))
         label = torch.tensor(label)
@@ -89,12 +94,14 @@ class LIDCDataset(Dataset):
             one_gcn_middle_feature = self.gcn_middle_feature[idx]
             one_addition_feature = self.addition_feature[idx]
             one_feature = torch.cat((one_gcn_middle_feature,one_addition_feature), axis = 0)
+            # one_feature = self.addition_feature[idx]
+            # one_feature = self.gcn_middle_feature[idx]
         else:
-            one_feature = np.zeros((1,255))
+            one_feature = np.zeros((255))
         return cube, label, filename, one_feature
 
 
-def fetch_dataloader(types = ["train"], data_dir = "data/nodules3d_128_mask_npy", df = None, params = None, batch_size = 128, train_shuffle=True, tfms = [], fold = None, add_middle_feature=False):
+def fetch_dataloader(types = ["train"], data_dir = "data/nodules3d_128_mask_npy", df = None, params = None, batch_size = 128, train_shuffle=True, tfms = [], fold = None, gcn_feature_path = None, add_middle_feature=False):
 
     print('data_dir:',data_dir)
     dataloaders = {}
@@ -106,16 +113,16 @@ def fetch_dataloader(types = ["train"], data_dir = "data/nodules3d_128_mask_npy"
             path = os.path.join(path,split)
             # use the train_transformer if training data, else use eval_transformer without random flip
             if split == 'train':
-                train_dataset = LIDCDataset(path, tfms_train, fold, split, add_middle_feature)
+                train_dataset = LIDCDataset(path, tfms_train, fold, split, gcn_feature_path, add_middle_feature)
                 dl = DataLoader(train_dataset, 
-                                # sampler=ImbalancedDatasetSampler(train_dataset, num_samples=472),
+                                # sampler=ImbalancedDatasetSampler(train_dataset, num_samples=1728),
                                 batch_size = batch_size,
                                 shuffle=train_shuffle,
-                                num_workers=0,
+                                num_workers=2,
                                 pin_memory=False)
             else:
                 # dl = DataLoader(SEGMENTATIONDataset(path, eval_transformer, df[df.split.isin([split])]), 
-                dl = DataLoader(LIDCDataset(path, tfms_eval, fold, split, add_middle_feature), 
+                dl = DataLoader(LIDCDataset(path, tfms_eval, fold, split, gcn_feature_path, add_middle_feature), 
                                 batch_size = batch_size,
                                 shuffle=False,
                                 num_workers=2,
@@ -180,7 +187,7 @@ def fetch_N_folders_dataloader(test_folder, types = ["train"], data_dir = "data/
                 dl = DataLoader(LIDC_N_folder_Dataset(path_list, tfms_train), 
                                         batch_size = batch_size,
                                         shuffle=True,
-                                        num_workers=0,
+                                        num_workers=2,
                                         pin_memory=True)
             elif split == 'test':
                 path_list = [os.path.join(path, str(test_folder))]

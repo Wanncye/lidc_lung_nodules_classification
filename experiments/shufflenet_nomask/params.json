@@ -1,0 +1,10 @@
+{
+    "learning_rate": 1e-4,
+    "batch_size": 16,
+    "num_epochs": 100,
+    "vis_env" : "shufflenet_nomask",
+    "loss": "FocalLoss",
+    "FocalLossAlpha": 0.25,
+    "FocalLossGamma": 2,
+    "save_weight": 1
+}
